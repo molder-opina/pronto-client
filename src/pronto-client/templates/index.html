@@ -1,5 +1,67 @@
 {% extends "base.html" %} {% set currency_symbol = config.get('CURRENCY_SYMBOL', '$') %} {% set
 currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
+<style>
+  /* FORCE PROFILE MODAL HIDDEN (DEBUG STRIP FIX) */
+  .profile-modal {
+    display: none !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .profile-modal.active {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+
+  .profile-modal-content {
+    position: relative;
+    background: white;
+    max-width: 480px;
+    width: 90%;
+    border-radius: 16px;
+    padding: 0;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+    overflow: hidden;
+  }
+
+  .profile-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 36px;
+    height: 36px;
+    background: var(--surface);
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-modal-close:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+</style>
 <link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
 <link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css" />
 
