@@ -14,7 +14,7 @@ business_info_bp = Blueprint("client_business_info", __name__)
 @business_info_bp.get("/business-info")
 def get_business_info():
     """Get business information and schedule for client-facing display."""
-    from shared.services.business_info_service import BusinessInfoService, BusinessScheduleService
+    from pronto_shared.services.business_info_service import BusinessInfoService, BusinessScheduleService
 
     business_info = BusinessInfoService.get_business_info()
     schedule = BusinessScheduleService.get_schedule()

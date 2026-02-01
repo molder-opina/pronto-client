@@ -7,9 +7,9 @@ from __future__ import annotations
 from flask import Blueprint, current_app, render_template, request, session
 from sqlalchemy import select
 
-from shared.db import get_session
-from shared.jwt_middleware import get_current_user
-from shared.models import Area, Table, DiningSession
+from pronto_shared.db import get_session
+from pronto_shared.jwt_middleware import get_current_user
+from pronto_shared.models import Area, Table, DiningSession
 
 web_bp = Blueprint("client_web", __name__)
 
@@ -26,7 +26,7 @@ def home():
     available_tables = []
     if debug_auto_table or True:  # Always fetch for now to support debug panel
         try:
-            from shared.models import Table, Area
+            from pronto_shared.models import Table, Area
 
             with get_session() as db_session:
                 results = db_session.execute(

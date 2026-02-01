@@ -13,8 +13,8 @@ promotions_bp = Blueprint("client_promotions", __name__)
 @promotions_bp.get("/promotions/active")
 def get_active_promotions():
     """Get active promotions for display."""
-    from shared.db import get_session
-    from shared.models import Promotion
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Promotion
 
     is_registered = request.args.get("is_registered", "false").lower() == "true"
 
@@ -57,8 +57,8 @@ def get_active_promotions():
 @promotions_bp.post("/discount-code/validate")
 def validate_discount_code():
     """Validate a discount code."""
-    from shared.db import get_session
-    from shared.models import DiscountCode
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiscountCode
 
     payload = request.get_json(silent=True) or {}
     code = payload.get("code", "").strip().upper()

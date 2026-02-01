@@ -39,9 +39,9 @@ def trigger_feedback_email(order_id: int):
     from flask import session
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import Order
-    from shared.services.feedback_email_service import FeedbackEmailService
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Order
+    from pronto_shared.services.feedback_email_service import FeedbackEmailService
 
     try:
         # Get session from Flask session
@@ -81,7 +81,7 @@ def trigger_feedback_email(order_id: int):
             timeout_seconds = int(request.args.get("timeout") or 10)
 
             # Get config values
-            from shared.services.business_config_service import ConfigService
+            from pronto_shared.services.business_config_service import ConfigService
 
             config = ConfigService()
             ttl_hours = config.get_int("feedback_email_token_ttl_hours", 24)
@@ -114,9 +114,9 @@ def get_feedback_email_form(token: str):
 
     Returns feedback form context if valid.
     """
-    from shared.db import get_session
-    from shared.models import FeedbackQuestion
-    from shared.services.feedback_email_service import FeedbackEmailService
+    from pronto_shared.db import get_session
+    from pronto_shared.models import FeedbackQuestion
+    from pronto_shared.services.feedback_email_service import FeedbackEmailService
 
     try:
         # Validate token
@@ -175,10 +175,10 @@ def submit_feedback_email(token: str):
 
     from flask import jsonify, request
 
-    from shared.constants import FeedbackCategory
-    from shared.db import get_session
-    from shared.models import DiningSession, Feedback, Order
-    from shared.services.feedback_email_service import FeedbackEmailService
+    from pronto_shared.constants import FeedbackCategory
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, Feedback, Order
+    from pronto_shared.services.feedback_email_service import FeedbackEmailService
 
     try:
         # Validate token first

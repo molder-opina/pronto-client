@@ -12,8 +12,8 @@ from clients_app.utils.input_sanitizer import (
     sanitize_email,
     sanitize_support_description,
 )
-from shared.db import get_session
-from shared.models import SupportTicket
+from pronto_shared.db import get_session
+from pronto_shared.models import SupportTicket
 
 support_bp = Blueprint("client_support", __name__)
 

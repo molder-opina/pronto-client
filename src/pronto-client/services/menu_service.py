@@ -10,12 +10,12 @@ from flask import current_app
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from shared.db import get_session
-from shared.models import (
+from pronto_shared.db import get_session
+from pronto_shared.models import (
     MenuCategory,
     MenuItem,
 )
-from shared.services.day_period_service import DayPeriodService
+from pronto_shared.services.day_period_service import DayPeriodService
 
 
 def _is_item_available_by_schedule(item: MenuItem) -> bool:

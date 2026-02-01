@@ -12,12 +12,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     <div class="smart-search">
       <div class="smart-search__input">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="m21 21-4.35-4.35m0-6.3a6.3 6.3 0 1 1-12.6 0 6.3 6.3 0 0 1 12.6 0z"
-          />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="m21 21-4.35-4.35m0-6.3a6.3 6.3 0 1 1-12.6 0 6.3 6.3 0 0 1 12.6 0z" />
         </svg>
         <input type="search" id="menu-search" placeholder="Busca tu antojo..." autocomplete="off" />
         <button class="filter-toggle-btn" id="filter-toggle-btn" title="Filtros avanzados">
@@ -46,22 +42,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     </div>
 
     <!-- Quick Filter Chips (Horizontal Scroll) -->
-    <div
-      class="filter-chips-scroll"
-      style="overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none"
-    >
+    <div class="filter-chips-scroll" style="overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none">
       <button type="button" class="filter-chip active" data-filter="all">Todas</button>
       <button type="button" class="filter-chip" data-filter="breakfast">
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
           <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
           <line x1="6" y1="1" x2="6" y2="4"></line>
@@ -71,65 +56,31 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         Desayuno
       </button>
       <button type="button" class="filter-chip" data-filter="afternoon">
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
-          <path
-            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-          ></path>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
           <path d="M2 12h20"></path>
         </svg>
         Comida
       </button>
       <button type="button" class="filter-chip" data-filter="dinner">
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
         Cena
       </button>
       <button type="button" class="filter-chip" data-filter="quick-serve">
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
         </svg>
         Rápido
       </button>
       <button type="button" class="filter-chip" data-filter="promotion">
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="2" x2="12" y2="22"></line>
           <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
         </svg>
@@ -201,12 +152,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             </div>
           </div>
 
-          <button
-            type="button"
-            class="modal-add-to-cart"
-            id="modal-add-to-cart-btn"
-            onclick="addToCartFromModal()"
-          >
+          <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn" onclick="addToCartFromModal()">
             Agregar al carrito: <span id="modal-total-price">{{ currency_symbol }}0.00</span>
           </button>
         </div>
@@ -228,19 +174,15 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         <button type="button" class="checkout-preference__btn" data-checkout-method="terminal">
           🧾 Terminal
         </button>
-        <button
-          type="button"
-          class="checkout-preference__btn checkout-preference__btn--digital"
-          data-checkout-method="digital"
-        >
+        <button type="button" class="checkout-preference__btn checkout-preference__btn--digital"
+          data-checkout-method="digital">
           💳 Pago digital (Stripe)
         </button>
       </div>
       <p class="checkout-preference__helper">
         Se cerrará en
-        <span id="checkout-preference-timer"
-          >{{ app_settings.checkout_prompt_duration_seconds or 6 }}</span
-        >s · Método por defecto: <span id="checkout-preference-default">Efectivo</span>
+        <span id="checkout-preference-timer">{{ app_settings.checkout_prompt_duration_seconds or 6 }}</span>s · Método
+        por defecto: <span id="checkout-preference-default">Efectivo</span>
       </p>
     </div>
   </div>
@@ -275,13 +217,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   </div>
   <div class="cart-items" id="cart-items">
     <div class="empty-state">
-      <svg
-        class="empty-state-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-      >
+      <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <circle cx="9" cy="21" r="1" />
         <circle cx="20" cy="21" r="1" />
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
@@ -297,24 +233,16 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       <span id="cart-total">{{ currency_symbol }}0.00</span>
     </div>
     <div class="cart-actions">
-      <button
-        class="btn btn-secondary btn--small"
-        id="clear-cart-btn"
-        onclick="window.clearCart()"
-        title="Vaciar carrito"
-      >
+      <button class="btn btn-secondary btn--small" id="clear-cart-btn" onclick="window.clearCart()"
+        title="Vaciar carrito">
         🗑️ Vaciar
       </button>
-      <button
-        class="checkout-btn btn btn-primary btn--full"
-        id="checkout-btn"
-        onclick="
+      <button class="checkout-btn btn btn-primary btn--full" id="checkout-btn" onclick="
           event.preventDefault();
           window.proceedToCheckout
             ? window.proceedToCheckout()
             : (window.location.href = '/checkout');
-        "
-      >
+        ">
         Ir a pagar
       </button>
     </div>
@@ -383,13 +311,13 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       content.innerHTML = `
         <div class="hours-list">
             ${schedule
-              .map((day, index) => {
-                const isToday = index === todayIndex;
-                const isOpen = day.is_open;
-                const openTime = day.open_time || '--:--';
-                const closeTime = day.close_time || '--:--';
+          .map((day, index) => {
+            const isToday = index === todayIndex;
+            const isOpen = day.is_open;
+            const openTime = day.open_time || '--:--';
+            const closeTime = day.close_time || '--:--';
 
-                return `
+            return `
                     <div class="hours-day ${isToday ? 'hours-day--today' : ''} ${!isOpen ? 'hours-day--closed' : ''}">
                         <div class="hours-day__icon">${dayIcons[index]}</div>
                         <div class="hours-day__info">
@@ -407,13 +335,12 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                         </div>
                     </div>
                 `;
-              })
-              .join('')}
+          })
+          .join('')}
         </div>
 
-        ${
-          currentDaySchedule && currentDaySchedule.is_open
-            ? `
+        ${currentDaySchedule && currentDaySchedule.is_open
+          ? `
             <div class="hours-current-info">
                 <div class="hours-current-info__icon">✨</div>
                 <div class="hours-current-info__text">
@@ -422,8 +349,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                 </div>
             </div>
         `
-            : currentDaySchedule
-              ? `
+          : currentDaySchedule
+            ? `
             <div class="hours-current-info hours-current-info--closed">
                 <div class="hours-current-info__icon">🌙</div>
                 <div class="hours-current-info__text">
@@ -432,7 +359,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                 </div>
             </div>
         `
-              : ''
+            : ''
         }
     `;
     }
@@ -452,10 +379,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   </script>
 
   <!-- Checkout Waiting Overlay -->
-  <div
-    class="checkout-waiting-overlay checkout-waiting-overlay--hidden"
-    id="checkout-waiting-overlay"
-  >
+  <div class="checkout-waiting-overlay checkout-waiting-overlay--hidden" id="checkout-waiting-overlay">
     <div class="checkout-waiting-content">
       <div class="checkout-waiting-icon">
         <div class="waiter-animation">🧑‍🍳</div>
@@ -473,10 +397,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   </div>
 
   <!-- Payment Confirmed Notification -->
-  <div
-    class="payment-confirmed-notification payment-confirmed-overlay"
-    id="payment-confirmed-notification"
-  >
+  <div class="payment-confirmed-notification payment-confirmed-overlay" id="payment-confirmed-notification">
     <div class="payment-confirmed-content">
       <div class="payment-confirmed-icon">✅</div>
       <h3 class="payment-confirmed-title">¡Pago confirmado!</h3>
@@ -496,32 +417,20 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         <p class="table-selection-modal__description">
           Por favor indica el número de tu mesa para continuar
         </p>
-        <select
-          id="manual-table-select"
-          class="table-selection-modal__select"
-          style="
+        <select id="manual-table-select" class="table-selection-modal__select" style="
             width: 100%;
             margin-bottom: 1.5rem;
             padding: 0.75rem;
             border: 2px solid #e5e7eb;
             border-radius: 8px;
-          "
-        >
+          ">
           <option value="">Elige tu mesa</option>
         </select>
-        <button
-          id="confirm-table-btn"
-          class="btn btn--primary table-selection-modal__button"
-          style="width: 100%"
-        >
+        <button id="confirm-table-btn" class="btn btn--primary table-selection-modal__button" style="width: 100%">
           Confirmar Mesa
         </button>
-        <button
-          type="button"
-          class="btn btn--ghost table-selection-modal__button"
-          style="width: 100%; margin-top: 0.5rem"
-          onclick="hideTableSelectionModal()"
-        >
+        <button type="button" class="btn btn--ghost table-selection-modal__button"
+          style="width: 100%; margin-top: 0.5rem" onclick="hideTableSelectionModal()">
           Continuar sin mesa
         </button>
       </div>
@@ -872,13 +781,10 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     })();
   </script>
   <script src="{{ assets_js_clients }}/keyboard-shortcuts.js"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v=cachebust1"></script>
   {% if config.get('DEBUG') %} {% if debug_auto_table %}
   <!-- Draggable Debug Table Selector (DEBUG MODE ONLY) -->
-  <div
-    id="debug-table-panel"
-    class="draggable-panel"
-    style="
+  <div id="debug-table-panel" class="draggable-panel" style="
       display: none;
       position: fixed;
       top: 50%;
@@ -890,11 +796,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       z-index: 999999 !important;
       border: 1px solid #e2e8f0;
-    "
-  >
-    <div
-      class="draggable-header"
-      style="
+    ">
+    <div class="draggable-header" style="
         background: #1e293b;
         color: white;
         padding: 12px 16px;
@@ -903,34 +806,25 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         display: flex;
         justify-content: space-between;
         align-items: center;
-      "
-    >
+      ">
       <span style="font-weight: 600; font-size: 0.9rem">🛠️ Configuración DEBUG</span>
-      <button
-        id="close-debug-panel-btn"
-        style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem"
-      >
+      <button id="close-debug-panel-btn"
+        style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem">
         ×
       </button>
     </div>
     <div class="draggable-content" style="padding: 16px">
       <div style="margin-bottom: 12px">
-        <label
-          for="debug-table-select"
-          style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px"
-          >Seleccionar Mesa:</label
-        >
-        <select
-          id="debug-table-select"
-          style="
+        <label for="debug-table-select"
+          style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Seleccionar Mesa:</label>
+        <select id="debug-table-select" style="
             width: 100%;
             padding: 8px;
             border: 1px solid #cbd5e1;
             border-radius: 6px;
             background: #fff;
             font-size: 1rem;
-          "
-        >
+          ">
           {% if available_tables %}
           <option value="">-- Seleccionar --</option>
           {% for table in available_tables %}
@@ -948,14 +842,10 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         </select>
       </div>
       <div style="margin-bottom: 12px">
-        <label style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px"
-          >Estado Sesión:</label
-        >
+        <label style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Estado Sesión:</label>
         <div style="font-size: 0.9rem; font-weight: 600" id="debug-session-status">Inactiva</div>
       </div>
-      <button
-        onclick="updateTableFromDebug()"
-        style="
+      <button onclick="updateTableFromDebug()" style="
           width: 100%;
           padding: 10px;
           background: #ff6b35;
@@ -964,8 +854,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           border-radius: 8px;
           font-weight: 600;
           cursor: pointer;
-        "
-      >
+        ">
         Actualizar Mesa
       </button>
     </div>

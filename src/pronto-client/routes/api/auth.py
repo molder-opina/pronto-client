@@ -17,8 +17,8 @@ from clients_app.utils.input_sanitizer import (
     sanitize_phone,
 )
 
-from shared.jwt_service import create_client_token
-from shared.serializers import success_response, error_response
+from pronto_shared.jwt_service import create_client_token
+from pronto_shared.serializers import success_response, error_response
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +36,9 @@ def recover_password():
     """
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import Customer
-    from shared.security import hash_identifier
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Customer
+    from pronto_shared.security import hash_identifier
 
     payload = request.get_json(silent=True) or {}
     email = payload.get("email")
@@ -144,8 +144,8 @@ def reset_password():
 @auth_bp.post("/auth/register")
 def register_customer():
     """Register or login a customer with minimal data."""
-    from shared.db import get_session
-    from shared.models import Customer
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Customer
 
     payload = request.get_json(silent=True) or {}
     name = payload.get("name")
@@ -171,7 +171,7 @@ def register_customer():
             if email:
                 from sqlalchemy import select
 
-                from shared.security import hash_identifier
+                from pronto_shared.security import hash_identifier
 
                 email_hash = hash_identifier(sanitized_email)
                 customer = (
@@ -254,8 +254,8 @@ def login_customer():
     """Login a customer with email."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import Customer
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Customer
 
     payload = request.get_json(silent=True) or {}
     email = payload.get("email")
@@ -270,7 +270,7 @@ def login_customer():
 
     try:
         with get_session() as db_session:
-            from shared.security import hash_identifier
+            from pronto_shared.security import hash_identifier
 
             email_hash = hash_identifier(sanitized_email)
             customer = (
@@ -332,8 +332,8 @@ def login_customer():
 @auth_bp.put("/auth/update/<int:customer_id>")
 def update_customer(customer_id: int):
     """Update customer profile."""
-    from shared.db import get_session
-    from shared.models import Customer
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Customer
 
     payload = request.get_json(silent=True) or {}
     name = payload.get("name")
@@ -404,8 +404,8 @@ def update_customer_avatar(customer_id: int):
     """Update customer avatar."""
     from pathlib import Path
 
-    from shared.db import get_session
-    from shared.models import Customer
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Customer
 
     payload = request.get_json(silent=True) or {}
     avatar = payload.get("avatar")

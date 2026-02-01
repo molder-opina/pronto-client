@@ -14,8 +14,8 @@ def get_tables():
     """Return active tables for table selection."""
     from sqlalchemy import select, join
 
-    from shared.db import get_session
-    from shared.models import Area, Table
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Area, Table
 
     try:
         with get_session() as session:
@@ -49,8 +49,8 @@ def get_config(config_key: str):
     """Get a single configuration parameter by key."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import BusinessConfig
+    from pronto_shared.db import get_session
+    from pronto_shared.models import BusinessConfig
 
     with get_session() as session:
         config = (
@@ -90,8 +90,8 @@ def get_table_by_qr(qr_code: str):
     """Get table information by QR code."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import Table
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Table
 
     with get_session() as session:
         table = (

@@ -11,13 +11,13 @@ from sqlalchemy.orm import joinedload
 from clients_app.services.order_service import OrderValidationError
 from clients_app.services.order_service import create_order as create_order_service
 from clients_app.utils.input_sanitizer import sanitize_email
-from shared.constants import OrderStatus
-from shared.db import get_session
-from shared.models import Customer, DiningSession, Order, OrderItem, OrderItemModifier
-from shared.security_middleware import rate_limit
-from shared.services.notifications_service import send_order_confirmation_email
-from shared.services.order_service import cancel_order as cancel_order_service
-from shared.supabase.realtime import emit_new_order, emit_order_status_change
+from pronto_shared.constants import OrderStatus
+from pronto_shared.db import get_session
+from pronto_shared.models import Customer, DiningSession, Order, OrderItem, OrderItemModifier
+from pronto_shared.security_middleware import rate_limit
+from pronto_shared.services.notifications_service import send_order_confirmation_email
+from pronto_shared.services.order_service import cancel_order as cancel_order_service
+from pronto_shared.supabase.realtime import emit_new_order, emit_order_status_change
 
 orders_bp = Blueprint("client_orders", __name__)
 
@@ -128,7 +128,7 @@ def create_order_endpoint():
 
             # Send SSE notification to waiters via Redis stream
             try:
-                from shared.notification_stream_service import notify_waiters
+                from pronto_shared.notification_stream_service import notify_waiters
 
                 order_id = response["order_id"]
                 table_number = payload.get("table_number", "N/A")
@@ -192,8 +192,8 @@ def modify_order_endpoint(order_id: int):
     """
     Allow customers to modify their orders (only before waiter accepts).
     """
-    from shared.constants import ModificationInitiator
-    from shared.services.order_modification_service import create_modification
+    from pronto_shared.constants import ModificationInitiator
+    from pronto_shared.services.order_modification_service import create_modification
 
     payload = request.get_json(silent=True) or {}
     customer_id = payload.get("customer_id")
@@ -220,7 +220,7 @@ def modify_order_endpoint(order_id: int):
 @orders_bp.post("/modifications/<int:modification_id>/approve")
 def approve_modification_endpoint(modification_id: int):
     """Allow customers to approve waiter-initiated modifications."""
-    from shared.services.order_modification_service import approve_modification
+    from pronto_shared.services.order_modification_service import approve_modification
 
     payload = request.get_json(silent=True) or {}
     customer_id = payload.get("customer_id")
@@ -235,7 +235,7 @@ def approve_modification_endpoint(modification_id: int):
 @orders_bp.post("/modifications/<int:modification_id>/reject")
 def reject_modification_endpoint(modification_id: int):
     """Allow customers to reject waiter-initiated modifications."""
-    from shared.services.order_modification_service import reject_modification
+    from pronto_shared.services.order_modification_service import reject_modification
 
     payload = request.get_json(silent=True) or {}
     customer_id = payload.get("customer_id")
@@ -251,7 +251,7 @@ def reject_modification_endpoint(modification_id: int):
 @orders_bp.get("/modifications/<int:modification_id>")
 def get_modification_endpoint(modification_id: int):
     """Get details of a modification request."""
-    from shared.services.order_modification_service import get_modification_details
+    from pronto_shared.services.order_modification_service import get_modification_details
 
     response, status = get_modification_details(modification_id)
     return jsonify(response), status
@@ -260,7 +260,7 @@ def get_modification_endpoint(modification_id: int):
 @orders_bp.get("/session/<int:session_id>/orders")
 def get_session_orders(session_id: int):
     """Return orders for a session (used by client active orders tab)."""
-    from shared.serializers import serialize_order
+    from pronto_shared.serializers import serialize_order
 
     try:
         with get_session() as db_session:
@@ -575,8 +575,8 @@ def get_orders_history():
 
     Returns: List of past orders with items and totals
     """
-    from shared.security import hash_identifier
-    from shared.serializers import serialize_order
+    from pronto_shared.security import hash_identifier
+    from pronto_shared.serializers import serialize_order
 
     email = request.args.get("email")
     status_filter = request.args.get("status", "all")
@@ -688,7 +688,7 @@ def get_order_details(order_id: int):
     """
     Get detailed information for a specific order.
     """
-    from shared.serializers import serialize_order
+    from pronto_shared.serializers import serialize_order
 
     try:
         with get_session() as db_session:

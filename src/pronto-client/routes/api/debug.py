@@ -7,7 +7,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, current_app, jsonify, request
 
-from shared.constants import OrderStatus
+from pronto_shared.constants import OrderStatus
 
 debug_bp = Blueprint("client_debug", __name__)
 
@@ -20,8 +20,8 @@ def debug_list_tables():
 
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import Area, Table
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Area, Table
 
     try:
         with get_session() as db_session:
@@ -52,8 +52,8 @@ def debug_advance_order_state(order_id: int):
 
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import Employee, Order
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Employee, Order
 
     try:
         with get_session() as db_session:
@@ -143,8 +143,8 @@ def debug_request_checkout(session_id: int):
 
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import DiningSession, Order
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, Order
 
     try:
         with get_session() as db_session:
@@ -222,8 +222,8 @@ def debug_simulate_payment(session_id: int):
 
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import DiningSession
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession
 
     payload = request.get_json(silent=True) or {}
     payment_method = payload.get("payment_method", "cash")

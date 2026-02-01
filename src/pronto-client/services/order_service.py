@@ -20,10 +20,10 @@ from clients_app.utils.input_sanitizer import (
     sanitize_notes,
     sanitize_phone,
 )
-from shared.config import SESSION_TTL_HOURS
-from shared.constants import OrderStatus
-from shared.db import get_session
-from shared.models import (
+from pronto_shared.config import SESSION_TTL_HOURS
+from pronto_shared.constants import OrderStatus
+from pronto_shared.db import get_session
+from pronto_shared.models import (
     Customer,
     DiningSession,
     MenuItem,
@@ -34,8 +34,8 @@ from shared.models import (
     OrderItem,
     OrderItemModifier,
 )
-from shared.security import hash_identifier
-from shared.services.price_service import calculate_price_breakdown, get_price_display_mode
+from pronto_shared.security import hash_identifier
+from pronto_shared.services.price_service import calculate_price_breakdown, get_price_display_mode
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +219,7 @@ def create_order(
 
         # Resolve table_id from table_number BEFORE session lookup
         def get_valid_table(recorded_table_number: str | None, allow_fallback: bool = False):
-            from shared.models import Table
+            from pronto_shared.models import Table
 
             normalized = (recorded_table_number or "").strip()
             table = None
@@ -258,7 +258,7 @@ def create_order(
         if table_id:
             try:
                 # Use plain execute with SQL to avoid issues with model imports or detaching
-                from shared.models import Table
+                from pronto_shared.models import Table
 
                 session.execute(select(Table).where(Table.id == table_id).with_for_update())
                 _debug(f"Acquired lock for table_id {table_id}")
@@ -611,7 +611,7 @@ def create_order(
         )
 
         if cached_table_id:
-            from shared.services.waiter_table_assignment_service import get_table_assignment
+            from pronto_shared.services.waiter_table_assignment_service import get_table_assignment
 
             try:
                 assignment = get_table_assignment(cached_table_id)
@@ -676,7 +676,7 @@ def create_order(
         # Emit notification for auto-accepted orders
         if order.waiter_id and order.workflow_status == OrderStatus.QUEUED.value:
             try:
-                from shared.socketio_manager import emit_custom_event
+                from pronto_shared.socketio_manager import emit_custom_event
 
                 emit_custom_event(
                     "orders.auto_accepted",

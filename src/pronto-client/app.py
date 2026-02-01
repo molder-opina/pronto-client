@@ -12,20 +12,20 @@ import logging
 
 from flask import Flask, jsonify
 from flask_cors import CORS
-from shared.extensions import csrf as csrf_protection
+from pronto_shared.extensions import csrf as csrf_protection
 from routes.api import api_bp
 from routes.web import web_bp
 
-from shared.config import load_config
-from shared.db import get_session, init_db, init_engine
-from shared.error_handlers import register_error_handlers
-from shared.jwt_middleware import init_jwt_middleware
-from shared.logging_config import configure_logging
-from shared.models import Base
-from shared.security_middleware import configure_security_headers
-from shared.services.business_config_service import get_config_map, sync_env_config_to_db
-from shared.services.secret_service import load_env_secrets, sync_env_secrets_to_db
-from shared.services.seed import ensure_seed_data, load_seed_data
+from pronto_shared.config import load_config
+from pronto_shared.db import get_session, init_db, init_engine
+from pronto_shared.error_handlers import register_error_handlers
+from pronto_shared.jwt_middleware import init_jwt_middleware
+from pronto_shared.logging_config import configure_logging
+from pronto_shared.models import Base
+from pronto_shared.security_middleware import configure_security_headers
+from pronto_shared.services.business_config_service import get_config_map, sync_env_config_to_db
+from pronto_shared.services.secret_service import load_env_secrets, sync_env_secrets_to_db
+from pronto_shared.services.seed import ensure_seed_data, load_seed_data
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def create_app() -> Flask:
     load_env_secrets()
 
     # Validate all required environment variables (fail-fast)
-    from shared.config import validate_required_env_vars, read_bool
+    from pronto_shared.config import validate_required_env_vars, read_bool
 
     validate_required_env_vars(skip_in_debug=False)
 
@@ -157,7 +157,7 @@ def create_app() -> Flask:
 
     @app.context_processor
     def inject_globals():
-        from shared.services.settings_service import get_setting
+        from pronto_shared.services.settings_service import get_setting
 
         config_keys = [
             "currency_code",
@@ -190,7 +190,7 @@ def create_app() -> Flask:
             ),
         }
 
-        from shared.jwt_middleware import get_current_user
+        from pronto_shared.jwt_middleware import get_current_user
 
         current_user = get_current_user()
 
@@ -200,6 +200,7 @@ def create_app() -> Flask:
 
         return {
             "app_name": config.app_name,
+            "static_host_url": base_url,
             "restaurant_name": config.restaurant_name,
             "restaurant_assets": f"{base_url}{assets_path}/{restaurant_slug}",
             "current_year": datetime.utcnow().year,

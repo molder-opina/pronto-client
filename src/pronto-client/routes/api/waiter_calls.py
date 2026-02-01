@@ -7,8 +7,8 @@ from http import HTTPStatus
 
 from flask import Blueprint, current_app, jsonify, request
 
-from shared.services.waiter_call_service import get_waiter_assignment_from_db
-from shared.supabase.realtime import emit_waiter_call
+from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
+from pronto_shared.supabase.realtime import emit_waiter_call
 
 waiter_calls_bp = Blueprint("client_waiter_calls", __name__)
 
@@ -22,8 +22,8 @@ def call_waiter():
     from sqlalchemy import and_, select
     from sqlalchemy.orm import joinedload
 
-    from shared.db import get_session
-    from shared.models import (
+    from pronto_shared.db import get_session
+    from pronto_shared.models import (
         DiningSession,
         Notification,
         Order,
@@ -80,8 +80,8 @@ def call_waiter():
 
         if recent_call:
             try:
-                from shared.models import DiningSession
-                from shared.services.waiter_call_service import (
+                from pronto_shared.models import DiningSession
+                from pronto_shared.services.waiter_call_service import (
                     get_waiter_assignment_from_dining_session,
                 )
 
@@ -176,7 +176,7 @@ def call_waiter():
         # Si no hay mesero asignado, alertar a administradores tras N minutos sin asignación
         if not waiter_id:
             try:
-                from shared.services.business_config_service import get_config_value
+                from pronto_shared.services.business_config_service import get_config_value
 
                 minutes_cfg = get_config_value("unassigned_table_alert_minutes", "5")
                 alert_minutes = int(minutes_cfg) if str(minutes_cfg).isdigit() else 5
@@ -246,8 +246,8 @@ def get_waiter_call_status(call_id):
     """Check the status of a waiter call."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import WaiterCall
+    from pronto_shared.db import get_session
+    from pronto_shared.models import WaiterCall
 
     with get_session() as session:
         waiter_call = (
@@ -279,8 +279,8 @@ def get_waiter_call_status_alt(call_id):
     """Check the status of a waiter call (alternative endpoint for frontend compatibility)."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import WaiterCall
+    from pronto_shared.db import get_session
+    from pronto_shared.models import WaiterCall
 
     with get_session() as session:
         waiter_call = (

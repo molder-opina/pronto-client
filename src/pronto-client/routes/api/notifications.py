@@ -15,8 +15,8 @@ def get_notifications():
     """Get unread notifications for the current user."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import Notification
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Notification
 
     session.get("dining_session_id") or request.args.get("session_id")
     recipient_type = request.args.get("recipient_type", "customer")
@@ -51,8 +51,8 @@ def get_notifications():
 @notifications_bp.post("/notifications/<int:notification_id>/read")
 def mark_notification_read(notification_id: int):
     """Mark a notification as read."""
-    from shared.db import get_session
-    from shared.models import Notification
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Notification
 
     with get_session() as db_session:
         notification = db_session.get(Notification, notification_id)

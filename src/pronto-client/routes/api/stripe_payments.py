@@ -7,7 +7,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, current_app, jsonify, request
 
-from shared.supabase.realtime import emit_waiter_call
+from pronto_shared.supabase.realtime import emit_waiter_call
 
 stripe_payments_bp = Blueprint("client_stripe_payments", __name__)
 
@@ -17,9 +17,9 @@ def pay_with_stripe(session_id: int):
     """Process payment with Stripe for a dining session."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import DiningSession
-    from shared.services.payment_providers.stripe_provider import PaymentError, StripeProvider
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession
+    from pronto_shared.services.payment_providers.stripe_provider import PaymentError, StripeProvider
 
     payload = request.get_json(silent=True) or {}
     tip_amount = payload.get("tip_amount")
@@ -78,8 +78,8 @@ def pay_with_clip(session_id: int):
     """Register a Clip/Terminal payment request for a dining session."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import DiningSession, Notification, WaiterCall
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, Notification, WaiterCall
 
     payload = request.get_json(silent=True) or {}
     tip_amount = payload.get("tip_amount")

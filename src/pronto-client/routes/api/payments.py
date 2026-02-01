@@ -8,9 +8,9 @@ from http import HTTPStatus
 
 from flask import Blueprint, current_app, jsonify, request
 
-from shared.services.order_service import prepare_checkout as employee_prepare_checkout
-from shared.services.waiter_call_service import get_waiter_assignment_from_db
-from shared.supabase.realtime import emit_waiter_call
+from pronto_shared.services.order_service import prepare_checkout as employee_prepare_checkout
+from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
+from pronto_shared.supabase.realtime import emit_waiter_call
 
 payments_bp = Blueprint("client_payments", __name__)
 
@@ -23,8 +23,8 @@ def request_payment(session_id: int):
     """
     from sqlalchemy import and_, select
 
-    from shared.db import get_session
-    from shared.models import DiningSession, Notification, Order, WaiterCall
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, Notification, Order, WaiterCall
 
     payload = request.get_json(silent=True) or {}
     payment_method = payload.get("payment_method", "").strip().lower()
@@ -138,8 +138,8 @@ def confirm_tip():
     """Save the tip amount for a dining session."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import DiningSession
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession
 
     payload = request.get_json(silent=True) or {}
     session_id = payload.get("session_id")
@@ -207,9 +207,9 @@ def request_session_checkout(session_id: int):
     """Request checkout for a dining session."""
     from sqlalchemy import select
 
-    from shared.constants import OrderStatus
-    from shared.db import get_session
-    from shared.models import DiningSession, Order
+    from pronto_shared.constants import OrderStatus
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, Order
 
     try:
         with get_session() as db_session:
@@ -280,9 +280,9 @@ def request_check(session_id: int):
     """Request check/bill for a dining session."""
     from sqlalchemy import select
 
-    from shared.constants import OrderStatus
-    from shared.db import get_session
-    from shared.models import DiningSession, Order
+    from pronto_shared.constants import OrderStatus
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, Order
 
     try:
         with get_session() as db_session:
@@ -335,8 +335,8 @@ def validate_session(session_id: int):
     """Validate if a session exists and return its basic info for client-side validation."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import DiningSession
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession
 
     try:
         with get_session() as db_session:
@@ -379,8 +379,8 @@ def get_session_orders(session_id: int):
     """Get all orders for a specific session with their items and status."""
     from sqlalchemy import select
 
-    from shared.db import get_session
-    from shared.models import DiningSession, Order
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, Order
 
     try:
         with get_session() as db_session:

@@ -8,8 +8,8 @@ from http import HTTPStatus
 from flask import Blueprint, current_app, jsonify
 from sqlalchemy import select
 
-from shared.db import get_session
-from shared.models import KeyboardShortcut
+from pronto_shared.db import get_session
+from pronto_shared.models import KeyboardShortcut
 
 shortcuts_bp = Blueprint("client_shortcuts", __name__)
 
@@ -50,7 +50,7 @@ def get_feedback_questions():
     """Get all enabled feedback questions for the form."""
     try:
         with get_session() as db_session:
-            from shared.models import FeedbackQuestion
+            from pronto_shared.models import FeedbackQuestion
 
             stmt = (
                 select(FeedbackQuestion)

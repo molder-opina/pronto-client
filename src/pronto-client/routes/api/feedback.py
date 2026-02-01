@@ -14,9 +14,9 @@ def submit_session_feedback(session_id: int):
     """Submit customer feedback for a dining session."""
     from sqlalchemy import select
 
-    from shared.constants import FeedbackCategory
-    from shared.db import get_session
-    from shared.models import DiningSession, Feedback
+    from pronto_shared.constants import FeedbackCategory
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, Feedback
 
     payload = request.get_json(silent=True) or {}
     ratings = payload.get("ratings") or []

@@ -13,7 +13,7 @@ split_bills_bp = Blueprint("client_split_bills", __name__)
 
 def _calculate_equal_split(session, split_bill_id: int, dining_session):
     """Helper function to calculate equal split for all people."""
-    from shared.models import SplitBill
+    from pronto_shared.models import SplitBill
 
     split_bill = session.query(SplitBill).filter(SplitBill.id == split_bill_id).first()
     if not split_bill:
@@ -56,8 +56,8 @@ def _calculate_equal_split(session, split_bill_id: int, dining_session):
 @split_bills_bp.post("/sessions/<int:session_id>/split-bill")
 def create_split_bill(session_id: int):
     """Create a split bill for a dining session."""
-    from shared.db import get_session
-    from shared.models import DiningSession, SplitBill, SplitBillPerson
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession, SplitBill, SplitBillPerson
 
     try:
         payload = request.get_json(silent=True) or {}
@@ -138,8 +138,8 @@ def create_split_bill(session_id: int):
 @split_bills_bp.get("/split-bills/<int:split_id>")
 def get_split_bill(split_id: int):
     """Get split bill details including all people and their assignments."""
-    from shared.db import get_session
-    from shared.models import SplitBill
+    from pronto_shared.db import get_session
+    from pronto_shared.models import SplitBill
 
     try:
         with get_session() as db_session:
@@ -203,8 +203,8 @@ def get_split_bill(split_id: int):
 @split_bills_bp.post("/split-bills/<int:split_id>/assign")
 def assign_item_to_person(split_id: int):
     """Assign an order item to a person in the split."""
-    from shared.db import get_session
-    from shared.models import OrderItem, SplitBill, SplitBillAssignment, SplitBillPerson
+    from pronto_shared.db import get_session
+    from pronto_shared.models import OrderItem, SplitBill, SplitBillAssignment, SplitBillPerson
 
     try:
         payload = request.get_json(silent=True) or {}
@@ -292,8 +292,8 @@ def assign_item_to_person(split_id: int):
 @split_bills_bp.post("/split-bills/<int:split_id>/calculate")
 def calculate_split_totals(split_id: int):
     """Recalculate totals for all people in the split based on their assignments."""
-    from shared.db import get_session
-    from shared.models import SplitBill
+    from pronto_shared.db import get_session
+    from pronto_shared.models import SplitBill
 
     try:
         with get_session() as db_session:
@@ -350,8 +350,8 @@ def calculate_split_totals(split_id: int):
 @split_bills_bp.get("/split-bills/<int:split_id>/summary")
 def get_split_summary(split_id: int):
     """Get a summary of the split including session info and all people with their totals."""
-    from shared.db import get_session
-    from shared.models import SplitBill
+    from pronto_shared.db import get_session
+    from pronto_shared.models import SplitBill
 
     try:
         with get_session() as db_session:
@@ -405,8 +405,8 @@ def get_split_summary(split_id: int):
 @split_bills_bp.post("/split-bills/<int:split_id>/people/<int:person_id>/pay")
 def pay_split_person(split_id: int, person_id: int):
     """Process payment for an individual person in a split bill."""
-    from shared.db import get_session
-    from shared.models import SplitBill, SplitBillPerson
+    from pronto_shared.db import get_session
+    from pronto_shared.models import SplitBill, SplitBillPerson
 
     try:
         payload = request.get_json(silent=True) or {}

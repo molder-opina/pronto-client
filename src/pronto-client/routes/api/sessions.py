@@ -9,10 +9,10 @@ from http import HTTPStatus
 from flask import Blueprint, jsonify, make_response, request
 from sqlalchemy.exc import IntegrityError
 
-from shared.config import SESSION_TTL_HOURS
-from shared.db import get_session
-from shared.models import Customer, DiningSession, Table
-from shared.services.customer_service import (
+from pronto_shared.config import SESSION_TTL_HOURS
+from pronto_shared.db import get_session
+from pronto_shared.models import Customer, DiningSession, Table
+from pronto_shared.services.customer_service import (
     create_anonymous_customer,
     get_customer_by_anon_id,
 )
@@ -49,7 +49,7 @@ def open_session():
                 db.commit()
             else:
                 cust = db.query(Customer).filter(Customer.id == existing.customer_id).first()
-                from shared.jwt_service import create_client_token
+                from pronto_shared.jwt_service import create_client_token
                 access_token = create_client_token(
                     customer_id=cust.id,
                     customer_name=cust.name,
@@ -152,7 +152,7 @@ def open_session():
                 {"error": "Unable to create or recover session for table"}
             ), HTTPStatus.INTERNAL_SERVER_ERROR
 
-        from shared.jwt_service import create_client_token
+        from pronto_shared.jwt_service import create_client_token
         access_token = create_client_token(
             customer_id=cust.id,
             customer_name=cust.name,
