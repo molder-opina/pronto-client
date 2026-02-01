@@ -1,0 +1,1078 @@
+{% extends "base.html" %}
+{# Use config directly if app_settings is not available in context #}
+{% set currency_symbol = config.get('CURRENCY_SYMBOL', '$') %}
+{% set currency_code = config.get('CURRENCY_CODE', 'MXN') %}
+
+{% set STATUS_CLASS_MAP = {
+'requested': 'requested',
+'waiter_accepted': 'waiter_accepted',
+'accepted': 'waiter_accepted',
+'kitchen_in_progress': 'kitchen_in_progress',
+'preparing': 'kitchen_in_progress',
+'ready_for_delivery': 'ready_for_delivery',
+'ready': 'ready_for_delivery',
+'delivered': 'delivered'
+} %}
+{% set ORDER_STATUS_LABELS = {
+'requested': 'Pedido recibido',
+'waiter_accepted': 'Mesero asignado',
+'kitchen_in_progress': 'En cocina',
+'ready_for_delivery': 'Por entregar',
+'delivered': 'Entregado'
+} %}
+{% set ORDER_STATUS_ICONS = {
+'requested': '🆕',
+'waiter_accepted': '🤝',
+'kitchen_in_progress': '🔥',
+'ready_for_delivery': '✅',
+'delivered': '🎉'
+} %}
+{% set ORDER_STATUS_PROGRESS = {
+'requested': 12,
+'waiter_accepted': 35,
+'kitchen_in_progress': 60,
+'ready_for_delivery': 85,
+'delivered': 100
+} %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
+
+<nav class="breadcrumbs" aria-label="Navegación de ruta">
+    <div class="breadcrumbs-container">
+        <a href="/" class="breadcrumb-item">
+            <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Menú
+        </a>
+        <svg class="breadcrumb-separator" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+        <a href="/checkout" class="breadcrumb-item">
+            <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            Checkout
+        </a>
+        <svg class="breadcrumb-separator" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Estado del pedido
+        </span>
+    </div>
+</nav>
+
+<style>
+    .thank-you-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .success-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        text-align: left;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .cta-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 107, 53, 0.12);
+        color: var(--primary);
+        padding: 0.85rem 1.75rem;
+        border-radius: 14px;
+        border: 2px solid rgba(255, 107, 53, 0.35);
+        font-weight: 700;
+        text-decoration: none;
+        box-shadow: 0 10px 25px rgba(255, 107, 53, 0.18);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .cta-secondary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 30px rgba(255, 107, 53, 0.25);
+    }
+
+    .floating-toast {
+        position: fixed;
+        top: 100px;
+        right: 24px;
+        background: #ecfdf5;
+        border: 1px solid #6ee7b7;
+        color: #065f46;
+        border-radius: 18px;
+        padding: 0.85rem 1.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 25px 45px rgba(16, 185, 129, 0.25);
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        z-index: 1500;
+    }
+
+    .floating-toast.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .floating-toast.hide {
+        opacity: 0;
+        transform: translateY(-5px);
+        pointer-events: none;
+    }
+
+    .floating-toast .toast-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #34d399;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+    }
+
+    .floating-toast button {
+        border: none;
+        background: none;
+        color: inherit;
+        font-size: 1.1rem;
+        cursor: pointer;
+    }
+
+    #confirmation-toast {
+        top: 170px;
+    }
+
+    .floating-toast--info {
+        background: #eef2ff;
+        border-color: #c7d2fe;
+        color: #312e81;
+        box-shadow: 0 25px 45px rgba(99, 102, 241, 0.2);
+    }
+
+    .floating-toast--info .toast-icon {
+        background: #6366f1;
+    }
+
+    .digital-provider-group {
+        margin: 1.5rem 0 0;
+    }
+
+    .digital-provider-label {
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+    }
+
+    .digital-provider-buttons {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .provider-btn {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: white;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .provider-btn.active {
+        border-color: var(--primary);
+        color: white;
+        background: linear-gradient(135deg, var(--primary), #e55a2b);
+        box-shadow: 0 10px 20px rgba(255, 107, 53, 0.25);
+    }
+
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: #48bb78;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .success-icon svg {
+        width: 48px;
+        height: 48px;
+        color: white;
+    }
+
+    .success-card h1 {
+        margin: 0 0 1rem 0;
+        color: var(--text);
+        font-size: 2rem;
+        font-weight: 800;
+    }
+
+    .success-card p {
+        color: var(--muted);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    /* Order Details Header - Integrated */
+    .order-details-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 2px solid rgba(226, 232, 240, 0.6);
+    }
+
+    .order-details-header .success-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    .order-details-header .success-icon svg {
+        width: 36px;
+        height: 36px;
+    }
+
+    .order-details-header h1 {
+        margin: 0;
+        color: var(--text);
+        font-size: 1.75rem;
+    }
+
+    .order-history-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .order-history-card h2 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.35rem;
+        color: var(--text);
+        font-weight: 600;
+    }
+
+    .order-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 2px solid rgba(226, 232, 240, 0.6);
+        box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12),
+            0 8px 24px rgba(15, 23, 42, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .order-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.15),
+            0 12px 32px rgba(15, 23, 42, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        border-color: rgba(255, 107, 53, 0.3);
+    }
+
+    .order-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgba(255, 107, 53, 0.03) 0%, rgba(255, 140, 66, 0.05) 100%);
+        pointer-events: none;
+    }
+
+    .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 2px solid rgba(226, 232, 240, 0.8);
+        gap: 1rem;
+    }
+
+    .order-number {
+        font-weight: 800;
+        font-size: 1.25rem;
+        color: #0f172a;
+        background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.02em;
+    }
+
+    .order-progress {
+        width: 100%;
+        height: 8px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 100%);
+        margin-top: 0.75rem;
+        overflow: hidden;
+        position: relative;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    .order-progress__bar {
+        width: var(--order-progress, 0%);
+        height: 100%;
+        background: linear-gradient(90deg, #FF6B35 0%, #FF8C42 50%, #FFB84D 100%);
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: inherit;
+        box-shadow: 0 4px 16px rgba(255, 107, 53, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        position: relative;
+    }
+
+    .order-progress__bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, transparent 100%);
+        border-radius: inherit;
+    }
+
+    .order-status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #0f172a;
+        background: var(--status-chip-bg, linear-gradient(120deg, rgba(148, 163, 184, 0.25), rgba(148, 163, 184, 0.4)));
+        border: 2px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        position: relative;
+        overflow: hidden;
+        letter-spacing: 0.02em;
+    }
+
+    .order-status-chip::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+        transform: translateX(-120%);
+        animation: statusShimmer 3s linear infinite;
+    }
+
+    .order-status-chip__icon {
+        font-size: 1.1rem;
+        filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.25));
+    }
+
+    .order-status-chip--requested {
+        --status-chip-bg: linear-gradient(120deg, #f1f5f9, #e2e8f0);
+        color: #475569;
+    }
+
+    .order-status-chip--waiter_accepted {
+        --status-chip-bg: linear-gradient(120deg, #dbeafe, #bfdbfe);
+        color: #1e40af;
+    }
+
+    .order-status-chip--kitchen_in_progress {
+        --status-chip-bg: linear-gradient(120deg, #ede9fe, #ddd6fe);
+        color: #6d28d9;
+    }
+
+    .order-status-chip--ready_for_delivery {
+        --status-chip-bg: linear-gradient(120deg, #fef9c3, #fef08a);
+        color: #a16207;
+    }
+
+    .order-status-chip--delivered {
+        --status-chip-bg: linear-gradient(120deg, #dcfce7, #bbf7d0);
+        color: #15803d;
+    }
+
+    @keyframes statusShimmer {
+        0% {
+            transform: translateX(-120%);
+        }
+
+        100% {
+            transform: translateX(120%);
+        }
+    }
+
+    .order-items {
+        margin: 1.25rem 0;
+        padding: 1rem;
+        background: rgba(248, 250, 252, 0.5);
+        border-radius: 12px;
+        border: 1px solid rgba(226, 232, 240, 0.5);
+    }
+
+    .order-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    }
+
+    .order-item:last-child {
+        border-bottom: none;
+    }
+
+    .order-item-name {
+        color: #1e293b;
+        font-weight: 500;
+        font-size: 1rem;
+    }
+
+    .order-item-price {
+        font-weight: 700;
+        font-size: 1.05rem;
+        background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .order-total {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        padding: 1.25rem 1.5rem;
+        background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(255, 140, 66, 0.12) 100%);
+        border-radius: 12px;
+        border: 2px solid rgba(255, 107, 53, 0.2);
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0f172a;
+        box-shadow: 0 8px 24px rgba(255, 107, 53, 0.15);
+    }
+
+    .session-summary {
+        background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 50%, #FFB84D 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 16px;
+        margin-top: 2rem;
+        box-shadow: 0 20px 60px rgba(255, 107, 53, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .session-summary::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .session-summary h3 {
+        margin: 0 0 1.25rem 0;
+        font-size: 1.35rem;
+        font-weight: 800;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .session-summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .session-summary-total {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px solid rgba(255, 255, 255, 0.3);
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 1rem;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: var(--primary);
+        border: 2px solid var(--primary);
+    }
+
+    .btn-secondary:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--muted);
+    }
+
+    .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1rem;
+        color: var(--border);
+    }
+
+    .estimated-time-card {
+        position: relative;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .estimated-time-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 24px 70px rgba(102, 126, 234, 0.4);
+    }
+
+    .estimated-time-card__content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .estimated-time-card__icon-wrapper {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .estimated-time-card__icon {
+        font-size: 4rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        animation: iconFloat 3s ease-in-out infinite;
+        position: relative;
+        z-index: 2;
+    }
+
+    @keyframes iconFloat {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-8px);
+        }
+    }
+
+    .estimated-time-card__pulse {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        animation: pulse 2s ease-out infinite;
+        z-index: 1;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        100% {
+            transform: translate(-50%, -50%) scale(1.5);
+            opacity: 0;
+        }
+    }
+
+    .estimated-time-card__info {
+        flex: 1;
+        text-align: left;
+    }
+
+    .estimated-time-card__title {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .estimated-time-card__message {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 500;
+        opacity: 0.95;
+        line-height: 1.5;
+    }
+
+    .estimated-time-card__decoration {
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 200px;
+        height: 200px;
+        opacity: 0.3;
+        z-index: 1;
+        animation: decorationRotate 20s linear infinite;
+    }
+
+    @keyframes decorationRotate {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .estimated-time-card {
+            padding: 1.5rem;
+        }
+
+        .estimated-time-card__content {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .estimated-time-card__info {
+            text-align: center;
+        }
+
+        .estimated-time-card__icon {
+            width: 70px;
+            height: 70px;
+            font-size: 3.5rem;
+        }
+
+        .estimated-time-card__pulse {
+            width: 70px;
+            height: 70px;
+        }
+
+        .estimated-time-card__title {
+            font-size: 1.25rem;
+        }
+
+        .estimated-time-card__message {
+            font-size: 1rem;
+        }
+
+        .estimated-time-card__decoration {
+            top: -30px;
+            right: -30px;
+            width: 150px;
+            height: 150px;
+        }
+    }
+
+    /* Payment Modals */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--text);
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--muted);
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.2s;
+    }
+
+    .modal-close:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+    }
+
+    .payment-instructions {
+        margin-bottom: 2rem;
+        line-height: 1.6;
+        color: var(--text-secondary);
+    }
+
+    .payment-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .payment-step {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .step-number {
+        width: 28px;
+        height: 28px;
+        background: var(--primary-light);
+        color: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .bank-details {
+        background: var(--surface);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1.5rem 0;
+        border: 1px solid var(--border);
+    }
+
+    .bank-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .bank-label {
+        color: var(--muted);
+        font-weight: 500;
+    }
+
+    .bank-value {
+        color: var(--text);
+        font-weight: 600;
+        font-family: monospace;
+        font-size: 1.1rem;
+    }
+</style>
+
+<div class="checkout-page checkout-shell">
+    {% if session %}
+    <div class="thank-you-container">
+        <div class="success-card">
+            <div class="success-icon">
+                <svg fill="none" class="w-12 h-12" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h1>¡Gracias, orden recibida!</h1>
+            <p>La cocina ya está preparando tus alimentos. En breve te los llevaremos a tu mesa {{ session.table_number
+                }}.</p>
+
+            {% if can_pay_digitally %}
+            <div class="digital-provider-group">
+                <p class="digital-provider-label">Pagar ahora con:</p>
+                <div class="digital-provider-buttons">
+                    <button class="provider-btn" onclick="initiatePayment('stripe')">
+                        💳 Tarjeta
+                    </button>
+                    <!-- <button class="provider-btn" onclick="initiatePayment('paypal')">PayPal</button> -->
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if show_estimated_time %}
+        <div class="estimated-time-card">
+            <!-- Decoration background -->
+            <svg class="estimated-time-card__decoration" viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                <circle cx="50" cy="50" r="40" stroke-width="2" stroke-dasharray="10 5" />
+                <path d="M50 10 L50 90 M10 50 L90 50" stroke-width="1" />
+            </svg>
+
+            <div class="estimated-time-card__content">
+                <div class="estimated-time-card__icon-wrapper">
+                    <div class="estimated-time-card__pulse"></div>
+                    <div class="estimated-time-card__icon">
+                        ⏲️
+                    </div>
+                </div>
+                <div class="estimated-time-card__info">
+                    <h3 class="estimated-time-card__title">Tiempo estimado</h3>
+                    <p class="estimated-time-card__message">
+                        Tu pedido estará listo en aproximadamente
+                        <strong>{{ estimated_time_min }}-{{ estimated_time_max }} minutos</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if orders %}
+        <!-- Order History -->
+        <div class="order-history-card checkout-card" id="order-history-card" data-session-id="{{ session.id }}">
+            <div class="order-details-header">
+                <div class="success-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                </div>
+                <h1>Tu Historial de Pedidos</h1>
+            </div>
+
+            <div id="order-history-list">
+                {% for order in orders %}
+                <div class="order-card" data-order-id="{{ order.id }}">
+                    <div class="order-header">
+                        <span class="order-number">Orden #{{ order.id }}</span>
+                        <span class="order-status-chip order-status-chip--{{ STATUS_CLASS_MAP[order.status] }}">
+                            <span class="order-status-chip__icon">{{ ORDER_STATUS_ICONS[order.status] }}</span>
+                            {{ ORDER_STATUS_LABELS[order.status] }}
+                        </span>
+                    </div>
+
+                    <div class="order-progress">
+                        <div class="order-progress__bar"
+                            style="--order-progress: {{ ORDER_STATUS_PROGRESS[order.status] }}%"></div>
+                    </div>
+
+                    <div class="order-items">
+                        {% for item in order['items'] %}
+                        <div class="order-item">
+                            <div class="order-item-details">
+                                <div class="order-item-name">
+                                    {{ item.quantity }}x {{ item.name }}
+                                </div>
+                                {% if item.modifiers %}
+                                <div class="order-item-modifiers"
+                                    style="font-size: 0.85rem; color: var(--muted); padding-left: 1rem;">
+                                    {% for mod in item.modifiers %}
+                                    <div>+ {{ mod.name }}</div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="order-item-price">
+                                {{ currency_symbol }}{{ "{:,.2f}".format(item.total) }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="order-total">
+                        <span>Total Orden</span>
+                        <span>{{ currency_symbol }}{{ "{:,.2f}".format(order.total_amount) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Session Summary -->
+        <div class="session-summary">
+            <h3>Resumen de la Sesión</h3>
+
+            <div class="session-summary-row">
+                <span>Subtotal</span>
+                <span>{{ currency_symbol }}{{ "{:,.2f}".format(session.subtotal) }}</span>
+            </div>
+            <div class="session-summary-row">
+                <span>Impuestos</span>
+                <span>{{ currency_symbol }}{{ "{:,.2f}".format(session.tax_amount) }}</span>
+            </div>
+
+            <div class="session-summary-total">
+                <span>Total a Pagar</span>
+                <span>{{ currency_symbol }}{{ "{:,.2f}".format(session.total_amount) }}</span>
+            </div>
+        </div>
+
+    </div>
+    {% else %}
+    <!-- Empty State / Error State -->
+    <div class="thank-you-container">
+        <div class="success-card">
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                <h2>No se encontró la sesión</h2>
+                <p>No pudimos encontrar los detalles de tu orden. Asegúrate de haber realizado un pedido.</p>
+                <a href="/" class="cta-secondary" style="margin-top: 1rem;">Volver al Menú</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="action-buttons">
+        <a href="/" class="btn btn-secondary">Volver al Menú</a>
+        {% if session %}
+        <a href="/feedback?session_id={{ session.id }}" class="btn btn-primary">Calificar Servicio</a>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Payment Modal -->
+<div class="modal" id="payment-modal">
+    <div class="modal__overlay" onclick="closePaymentModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Pago Digital</h2>
+            <button class="modal-close" onclick="closePaymentModal()">×</button>
+        </div>
+        <div class="modal-body" id="payment-modal-body">
+            <!-- Content injected by JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Floating Toast Notification -->
+<div id="confirmation-toast" class="floating-toast">
+    <div class="toast-icon">✓</div>
+    <span>Solicitud enviada</span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    // Payment and interaction logic
+    function initiatePayment(provider) {
+        const modal = document.getElementById('payment-modal');
+        const body = document.getElementById('payment-modal-body');
+
+        // Simple mock for now
+        body.innerHTML = `
+            <div class="payment-instructions">
+                <p>Estás iniciando un pago seguro con <strong>${provider === 'stripe' ? 'Tarjeta' : 'PayPal'}</strong>.</p>
+                <div class="spinner" style="margin: 2rem auto;"></div>
+                <p style="text-align: center;">Conectando con el proveedor de pagos...</p>
+            </div>
+        `;
+
+        modal.classList.add('active');
+    }
+
+    function closePaymentModal() {
+        document.getElementById('payment-modal').classList.remove('active');
+    }
+</script>
+{% endblock %}

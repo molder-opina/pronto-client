@@ -1,0 +1,234 @@
+[project]
+name = "pronto-app"
+version = "1.0.0"
+description = "Pronto Restaurant Management System"
+requires-python = ">=3.9"
+
+[tool.ruff]
+# Configuración general de Ruff
+line-length = 100
+target-version = "py311"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "*.egg-info",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "build",
+    "dist",
+    "migrations",
+]
+
+[tool.ruff.lint]
+# Seleccionar reglas de linting
+# E/W: pycodestyle errors/warnings
+# F: Pyflakes
+# I: isort (ordenar imports)
+# N: pep8-naming
+# UP: pyupgrade
+# B: flake8-bugbear
+# C4: flake8-comprehensions
+# SIM: flake8-simplify
+# TID: flake8-tidy-imports
+# ARG: flake8-unused-arguments
+# PTH: flake8-use-pathlib
+# ERA: eradicate (comentarios muertos)
+# PL: Pylint
+# RUF: reglas específicas de Ruff
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "TID",  # flake8-tidy-imports
+    "ARG",  # flake8-unused-arguments
+    "PTH",  # flake8-use-pathlib
+    "ERA",  # eradicate
+    "PL",   # pylint
+    "RUF",  # ruff-specific rules
+]
+
+ignore = [
+    "E501",    # line too long (manejado por formatter)
+    "PLR0913", # too many arguments
+    "PLR0915", # too many statements
+    "PLR2004", # magic value comparison
+    "PLC0415", # import should be at the top-level (intencional para evitar imports circulares)
+    "E402",    # module level import not at top of file (intencional en __init__.py)
+    "PLR0911", # too many return statements (común en endpoints con validaciones)
+    "PLR0912", # too many branches (común en endpoints con lógica compleja)
+    "B904",    # raise without from (estilo, no crítico)
+    "SIM102",  # nested if statements (estilo, no crítico)
+    "ERA001",  # commented-out code (preservar para contexto futuro)
+    "F401",    # unused imports (común por refactoring incremental)
+    "F841",    # unused variables (común por refactoring incremental)
+    "F541",    # f-string without placeholders (logging con mensajes estáticos)
+    "SIM222",  # simplificación de expresiones (legibilidad)
+    "PTH",     # pathlib suggestions (transición gradual de os.path a pathlib)
+    "ARG001",   # unused function arguments (común por interfaces de callback)
+    "ARG002",   # unused method arguments (común por interfaces)
+    "ARG004",   # unused static method arguments (común por interfaces)
+    "SIM105",  # try-except-pass para manejo de excepciones esperadas
+    "SIM118",  # dict.keys() iteración (estilo, no afecta funcionalidad)
+    "SIM201",  # simplificación de comparaciones negadas
+    "SIM103",  # return negado inline (legibilidad)
+    "UP017",   # timezone.utc vs datetime.UTC (compatibilidad)
+    "PLW0602", # global sin asignación (cache pattern)
+    "PLW0603", # global statement (singleton pattern)
+    "N805",    # pydantic validator method name (cls es correcto)
+    "N806",    # variable naming (uppercase constants)
+    "RUF012",  # ClassVar annotations (transición gradual)
+    "RUF010",  # explicit conversion flag (compatibilidad)
+    "RUF100",  # unused noqa directive (scripts específicos)
+    "F821",    # undefined names (imports faltantes por estructura modular)
+]
+
+# Permitir auto-fix para reglas específicas
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+# Ignorar imports no usados en __init__.py
+"__init__.py" = ["F401", "F403"]
+# Menos estricto en scripts
+"scripts/*.py" = ["T201"]  # print statements
+"bin/*.py" = ["T201"]
+
+[tool.ruff.lint.isort]
+# Configuración de ordenamiento de imports
+known-first-party = ["employees_app", "clients_app", "shared"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.format]
+# Usar ruff como formateador (compatible con black)
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.black]
+# Configuración de Black (si prefieres usarlo en vez del formatter de ruff)
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | __pycache__
+  | \.pytest_cache
+  | \.mypy_cache
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.mypy]
+# Configuración de MyPy para chequeo de tipos
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Cambiar a true gradualmente
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+# Directorios a ignorar
+exclude = [
+    'venv/',
+    '.venv/',
+    'dist/',
+]
+
+[tool.pytest.ini_options]
+# Configuración de pytest
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov=build",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+# Configuración de cobertura
+source = ["build"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+branch = true
+
+[tool.coverage.report]
+# Reporte de cobertura
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+[tool.bandit]
+# Configuración de Bandit (análisis de seguridad)
+exclude_dirs = [
+    "/tests/",
+    "/.venv/",
+    "/venv/",
+    "/build/",
+]
+skips = ["B101"]  # assert_used (común en tests)
+
+[tool.pylint.main]
+# Configuración de Pylint (opcional, ruff cubre mucho)
+ignore = ["migrations", "venv", ".venv", "__pycache__"]
+jobs = 0  # Usar todos los CPUs disponibles
+load-plugins = ["pylint.extensions.docparams"]
+
+[tool.pylint.messages_control]
+disable = [
+    "C0111",  # missing-docstring
+    "R0903",  # too-few-public-methods
+    "R0913",  # too-many-arguments
+    "W0212",  # protected-access
+]
+
+[tool.pylint.format]
+max-line-length = 100

@@ -1,0 +1,2020 @@
+{# MODULE: MENU & PRODUCTS #}
+{% if has_permission(Permission.MENU_EDIT) %}
+{% include 'includes/_menu_chef.html' %}
+{% elif has_permission(Permission.MENU_VIEW) %}
+{% include 'includes/_menu_waiter.html' %}
+{% endif %} <header class="section__header">
+  <h2>⭐ Gestión de Recomendaciones</h2>
+  <p>
+    Selecciona hasta 3 productos destacados por horario. Los clientes los verán primero en el
+    menú.
+  </p>
+</header>
+
+<div class="recommendations-manager-new" id="recommendations-periods">
+  {% for period in day_periods %}
+  <div class="recommendation-period-card" data-period-key="{{ period.key }}">
+    <div class="recommendation-period-card__header">
+      <div>
+        <h3>{{ period.icon or '🕒' }} {{ period.name }}</h3>
+        <p>{{ period.start_time }} - {{ period.end_time }}</p>
+      </div>
+      <span class="recommendation-count" id="{{ period.key }}-count">0/3</span>
+    </div>
+    <div class="recommendation-items" id="{{ period.key }}-recommendations">
+      <p class="empty-recommendations">
+        No hay productos recomendados para {{ period.name|lower }}
+      </p>
+    </div>
+    <button type="button" class="btn btn--secondary btn--small add-recommendation-btn" data-period="{{ period.key }}">
+      ➕ Agregar producto
+    </button>
+  </div>
+  {% endfor %}
+</div>
+<button type="button" class="btn btn--outline btn--small" id="manage-day-periods-secondary" style="margin-top: 1rem">
+  ⚙️ Configurar horarios personalizados
+</button>
+
+<!-- Modal para seleccionar producto -->
+<div class="modal" id="select-recommendation-modal">
+  <div class="modal-content" style="max-width: 700px">
+    <div class="modal-header" style="
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 1.5rem;
+        ">
+      <h3 id="select-recommendation-title" style="margin: 0; color: white">
+        Seleccionar Producto
+      </h3>
+      <button class="modal-close" onclick="closeSelectRecommendationModal()" style="color: white; font-size: 1.5rem">
+        ×
+      </button>
+    </div>
+    <div class="modal-body" style="padding: 1.5rem">
+      <p class="modal-hint">Por favor busca y selecciona el producto que deseas recomendar:</p>
+      <div class="form-field" style="position: relative; margin-bottom: 1rem">
+        <label for="recommendation-search"
+          style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #334155">🔍 Buscar producto:</label>
+        <input type="text" id="recommendation-search" placeholder="Escribe nombre o categoría..." style="
+              width: 100%;
+              padding: 0.75rem 1rem;
+              border: 2px solid #e2e8f0;
+              border-radius: 8px;
+              font-size: 1rem;
+              transition: all 0.2s;
+            " autocomplete="off" />
+        <div id="recommendation-search-suggestions" class="search-suggestions" style="display: none"></div>
+      </div>
+
+      <div class="recommendation-filters" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem">
+        <button type="button" class="filter-chip active" data-category="all"
+          onclick="filterRecommendationsByCategory('all')">
+          Todos
+        </button>
+      </div>
+
+      <div class="recommendation-products-list" id="recommendation-products-list"
+        style="max-height: 400px; overflow-y: auto">
+        <p style="text-align: center; padding: 2rem; color: #94a3b8">Cargando productos...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p id="recommendations-feedback" class="feedback"></p>
+
+<div class="modal" id="day-periods-modal">
+  <div class="modal-content" style="max-width: 720px">
+    <div class="modal-header">
+      <h3>Configurar horarios del día</h3>
+      <button class="modal-close" id="close-day-periods-modal" type="button">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">
+        Por favor actualiza los rangos de mañana, tarde o crea nuevos periodos como brunch o happy
+        hour.
+      </p>
+      <div class="day-periods-table" id="day-periods-table"></div>
+      <form id="day-period-form" class="day-period-form">
+        <input type="hidden" id="day-period-id" />
+        <div class="form-row">
+          <label class="form-group">
+            <span>Nombre *</span>
+            <input type="text" id="day-period-name" class="filter-input" required />
+          </label>
+          <label class="form-group">
+            <span>Clave *</span>
+            <input type="text" id="day-period-key" class="filter-input" placeholder="ej. breakfast" required />
+          </label>
+          <label class="form-group">
+            <span>Icono</span>
+            <input type="text" id="day-period-icon" class="filter-input" placeholder="☕" />
+          </label>
+        </div>
+        <div class="form-row">
+          <label class="form-group">
+            <span>Inicio *</span>
+            <input type="time" id="day-period-start" class="filter-input" required />
+          </label>
+          <label class="form-group">
+            <span>Fin *</span>
+            <input type="time" id="day-period-end" class="filter-input" required />
+          </label>
+          <label class="form-group">
+            <span>Color</span>
+            <input type="color" id="day-period-color" class="filter-input" value="#0ea5e9" />
+          </label>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn--outline btn--small" id="reset-day-period-form">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn--primary btn--small" id="save-day-period-btn">
+            Guardar periodo
+          </button>
+        </div>
+      </form>
+      <p id="day-periods-feedback" class="feedback" style="margin-top: 1rem"></p>
+    </div>
+  </div>
+</div>
+</section>
+{% endif %} {% if has_permission(Permission.MENU_EDIT_PRICE) %}
+<section class="section" id="promociones" data-menu-title="Promociones" data-menu-group="💫 ESPECIALES"
+  data-promotions-root>
+  <header class="section__header">
+    <h2>🎁 Gestión de promociones</h2>
+    <p>
+      Crea y administra promociones automáticas con filtros inteligentes y asignación de productos.
+    </p>
+  </header>
+
+  <div class="promotion-manager">
+    <aside class="promotion-sidebar">
+      <div class="promotion-sidebar__header">
+        <div>
+          <p>Promociones activas</p>
+          <strong id="promotion-count-label">0 promociones</strong>
+        </div>
+        {% if employee_role in ['super_admin', 'admin_roles'] %}
+        <button class="btn btn--primary btn--small" id="new-promotion-btn">
+          + Nueva promoción
+        </button>
+        {% endif %}
+      </div>
+
+      <label class="promotion-field">
+        <span>Buscar</span>
+        <div class="promotion-search-wrapper">
+          <input type="search" id="promotion-search" placeholder="Happy Hour, Navidad, etc." />
+          <div id="promotion-search-suggestions" class="promotion-search-suggestions" aria-live="polite"></div>
+        </div>
+      </label>
+
+      <div class="promotion-filter-group">
+        <span>Estado</span>
+        <div class="segmented-control" id="promotion-status-filter">
+          <button class="segmented-control__btn active" data-status="all">Todas</button>
+          <button class="segmented-control__btn" data-status="active">Activas</button>
+          <button class="segmented-control__btn" data-status="inactive">Inactivas</button>
+        </div>
+      </div>
+
+      <div class="promotion-filter-group">
+        <span>Tipo de descuento</span>
+        <div id="promotion-type-filter" class="promotion-filter-list"></div>
+      </div>
+
+      <div class="promotion-stats">
+        <div>
+          <p>Total</p>
+          <strong id="promotion-total-count">--</strong>
+        </div>
+        <div>
+          <p>Activas</p>
+          <strong id="promotion-active-count">--</strong>
+        </div>
+      </div>
+    </aside>
+
+    <div class="promotion-content">
+      <div class="promotion-grid" id="promotion-grid"></div>
+      <div id="promotion-pagination" class="pagination-wrapper"></div>
+      <div class="promotion-empty" id="promotion-empty-state" style="display: none">
+        <h4>Sin coincidencias</h4>
+        <p>Prueba con otra búsqueda o cambia los filtros.</p>
+      </div>
+    </div>
+  </div>
+
+  {% if employee_role in ['super_admin', 'admin_roles'] %}
+  <div class="promotion-drawer" id="promotion-drawer">
+    <div class="promotion-drawer__content">
+      <div class="promotion-drawer__header">
+        <h3 id="promotion-drawer-title">Nueva promoción</h3>
+        <button class="promotion-drawer__close" type="button" id="close-promotion-drawer">×</button>
+      </div>
+      <form id="promotion-form">
+        <input type="hidden" id="promotion-id" />
+
+        <div class="promotion-form__grid">
+          <label>Nombre *
+            <input type="text" id="promotion-name" required placeholder="Ej. Happy Hour" />
+          </label>
+          <label>Tipo de Descuento *
+            <select id="promotion-type" required>
+              <option value="percentage">Porcentaje (%)</option>
+              <option value="fixed">Monto Fijo</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="promotion-form__grid">
+          <label id="promotion-percentage-label">Porcentaje de Descuento *
+            <input type="number" id="promotion-percentage" min="0" max="100" step="0.01" placeholder="10" />
+          </label>
+          <label id="promotion-amount-label" style="display: none">Monto de Descuento *
+            <input type="number" id="promotion-amount" min="0" step="0.01" placeholder="5.00" />
+          </label>
+          <label>Compra Mínima
+            <input type="number" id="promotion-min-purchase" min="0" step="0.01" placeholder="0.00" />
+          </label>
+        </div>
+
+        <div class="promotion-form__grid">
+          <label>Aplica a
+            <select id="promotion-applies-to">
+              <option value="all">Todos los clientes</option>
+              <option value="registered">Solo registrados</option>
+              <option value="anonymous">Solo anónimos</option>
+            </select>
+          </label>
+          <label>Válido Desde
+            <input type="datetime-local" id="promotion-valid-from" />
+          </label>
+          <label>Válido Hasta
+            <input type="datetime-local" id="promotion-valid-until" />
+          </label>
+        </div>
+
+        <label>Descripción
+          <textarea id="promotion-description" rows="2" placeholder="Descripción interna de la promoción"></textarea>
+        </label>
+
+        <label>Mensaje de Banner
+          <input type="text" id="promotion-banner" placeholder="Ej. ¡20% de descuento en todos los pedidos!" />
+        </label>
+
+        <div class="promotion-products-section">
+          <div class="promotion-products-header">
+            <h4>Aplicación de la promoción</h4>
+            <div class="promotion-apply-tabs">
+              <button type="button" class="promotion-apply-tab active" data-tab="products"
+                onclick="switchPromotionApplyTab('products')">
+                Productos
+              </button>
+              <button type="button" class="promotion-apply-tab" data-tab="tags"
+                onclick="switchPromotionApplyTab('tags')">
+                Por Tags
+              </button>
+              <button type="button" class="promotion-apply-tab" data-tab="package"
+                onclick="switchPromotionApplyTab('package')">
+                Paquete
+              </button>
+            </div>
+          </div>
+
+          <div class="promotion-apply-content active" id="promotion-apply-products">
+            <button type="button" class="btn btn--secondary btn--small" id="add-promotion-products"
+              style="margin-bottom: 1rem">
+              ➕ Agregar productos
+            </button>
+            <div class="promotion-products-list" id="promotion-products-list">
+              <p class="empty-promotion-products">
+                No hay productos seleccionados. Agrega productos específicos para esta promoción.
+              </p>
+            </div>
+          </div>
+
+          <div class="promotion-apply-content" id="promotion-apply-tags">
+            <div style="margin-bottom: 1rem">
+              <label class="product-field">
+                <span style="font-weight: 600; color: #1e293b; font-size: 0.875rem">Tags aplicables</span>
+                <small style="color: #64748b; margin-bottom: 0.5rem">Ingresa tags separados por comas. La promoción
+                  aplicará a productos con
+                  cualquiera de estos tags.</small>
+                <input type="text" id="promotion-tags-input" placeholder="bebida, caliente, premium" />
+              </label>
+            </div>
+            <div class="promotion-tags-display" id="promotion-tags-display"></div>
+          </div>
+
+          <div class="promotion-apply-content" id="promotion-apply-package">
+            <div style="margin-bottom: 1rem">
+              <label class="product-field">
+                <span style="font-weight: 600; color: #1e293b; font-size: 0.875rem">Nombre del Paquete</span>
+                <small style="color: #64748b; margin-bottom: 0.5rem">Configura un paquete de productos con descuento
+                  especial.</small>
+                <input type="text" id="promotion-package-name" placeholder="Combo Familiar, Pack Desayuno, etc." />
+              </label>
+            </div>
+            <button type="button" class="btn btn--secondary btn--small" id="add-package-products"
+              style="margin-bottom: 1rem">
+              ➕ Agregar productos al paquete
+            </button>
+            <div class="promotion-products-list" id="promotion-package-products-list">
+              <p class="empty-promotion-products">
+                No hay productos en el paquete. Agrega productos para crear el paquete.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="promotion-active" checked />
+          Promoción activa
+        </label>
+
+        <div class="promotion-form__actions">
+          <button type="button" class="btn btn--outline" id="cancel-promotion-btn">Cancelar</button>
+          <button type="submit" class="btn btn--primary">Guardar Promoción</button>
+        </div>
+        <p id="promotion-form-feedback" class="feedback"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para seleccionar productos -->
+  <div class="modal" id="select-promotion-products-modal">
+    <div class="modal-content" style="max-width: 700px">
+      <div class="modal-header">
+        <h3>Seleccionar productos para la promoción</h3>
+        <button class="modal-close" onclick="closeSelectPromotionProductsModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-hint">
+          Por favor busca y selecciona los productos que deseas incluir en la promoción:
+        </p>
+        <div class="form-field">
+          <label for="promotion-product-search">Buscar producto:</label>
+          <input type="text" id="promotion-product-search" placeholder="Escribe para buscar..." />
+        </div>
+        <div class="promotion-product-selection-list" id="promotion-product-selection-list">
+          <p>Cargando productos...</p>
+        </div>
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end">
+          <button type="button" class="btn btn--outline" onclick="closeSelectPromotionProductsModal()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn--primary" onclick="confirmPromotionProducts()">
+            Confirmar selección
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endif %} {% if has_permission(Permission.CONFIG_EDIT) %}
+<section class="section" id="codigos-descuento" data-menu-title="Códigos de Descuento" data-menu-group="💫 ESPECIALES"
+  data-coupons-root>
+  <header class="section__header">
+    <h2>🏷️ Gestión de códigos de descuento</h2>
+    <p>Genera y administra códigos promocionales que los clientes pueden aplicar en su pedido.</p>
+  </header>
+
+  <div class="coupon-manager">
+    <aside class="coupon-sidebar">
+      <div class="coupon-sidebar__header">
+        <div>
+          <p>Cupones activos</p>
+          <strong id="coupon-count-label">0 cupones</strong>
+        </div>
+        <button class="btn btn--primary btn--small" id="new-coupon-btn">+ Nuevo cupón</button>
+      </div>
+
+      <label class="coupon-field">
+        <span>Buscar</span>
+        <div class="coupon-search-wrapper">
+          <input type="search" id="coupon-search" placeholder="VERANO2024, PROMO10, etc." />
+          <div id="coupon-search-suggestions" class="coupon-search-suggestions" aria-live="polite"></div>
+        </div>
+      </label>
+
+      <div class="coupon-filter-group">
+        <span>Estado</span>
+        <div class="segmented-control" id="coupon-status-filter">
+          <button class="segmented-control__btn active" data-status="all">Todos</button>
+          <button class="segmented-control__btn" data-status="active">Activos</button>
+          <button class="segmented-control__btn" data-status="inactive">Inactivos</button>
+        </div>
+      </div>
+
+      <div class="coupon-filter-group">
+        <span>Tipo de descuento</span>
+        <div id="coupon-type-filter" class="coupon-filter-list"></div>
+      </div>
+
+      <div class="coupon-stats">
+        <div>
+          <p>Total</p>
+          <strong id="coupon-total-count">--</strong>
+        </div>
+        <div>
+          <p>Activos</p>
+          <strong id="coupon-active-count">--</strong>
+        </div>
+      </div>
+    </aside>
+
+    <div class="coupon-content">
+      <div class="coupon-grid" id="coupon-grid"></div>
+      <div id="coupon-pagination" class="pagination-wrapper"></div>
+      <div class="coupon-empty" id="coupon-empty-state" style="display: none">
+        <h4>Sin coincidencias</h4>
+        <p>Prueba con otra búsqueda o cambia los filtros.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="coupon-drawer" id="coupon-drawer">
+    <div class="coupon-drawer__content">
+      <div class="coupon-drawer__header">
+        <h3 id="coupon-drawer-title">Nuevo cupón</h3>
+        <button class="coupon-drawer__close" type="button" id="close-coupon-drawer">×</button>
+      </div>
+      <form id="coupon-form">
+        <input type="hidden" id="coupon-id" />
+
+        <div class="coupon-form__grid">
+          <label>Código *
+            <input type="text" id="coupon-code" required placeholder="VERANO2024" style="text-transform: uppercase" />
+          </label>
+          <label>Tipo de Descuento *
+            <select id="coupon-type" required>
+              <option value="percentage">Porcentaje (%)</option>
+              <option value="fixed">Monto Fijo</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="coupon-form__grid">
+          <label id="coupon-percentage-label">Porcentaje de Descuento *
+            <input type="number" id="coupon-percentage" min="0" max="100" step="0.01" placeholder="15" />
+          </label>
+          <label id="coupon-amount-label" style="display: none">Monto de Descuento *
+            <input type="number" id="coupon-amount" min="0" step="0.01" placeholder="10.00" />
+          </label>
+          <label>Compra Mínima
+            <input type="number" id="coupon-min-purchase" min="0" step="0.01" placeholder="0.00" />
+          </label>
+        </div>
+
+        <div class="coupon-form__grid">
+          <label>Límite de Usos
+            <input type="number" id="coupon-usage-limit" min="0" placeholder="Dejar vacío para ilimitado" />
+          </label>
+          <label>Aplica a
+            <select id="coupon-applies-to">
+              <option value="all">Todos los clientes</option>
+              <option value="registered">Solo registrados</option>
+              <option value="anonymous">Solo anónimos</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="coupon-form__grid">
+          <label>Válido Desde
+            <input type="datetime-local" id="coupon-valid-from" />
+          </label>
+          <label>Válido Hasta
+            <input type="datetime-local" id="coupon-valid-until" />
+          </label>
+        </div>
+
+        <label>Descripción
+          <textarea id="coupon-description" rows="2" placeholder="Descripción del código de descuento"></textarea>
+        </label>
+
+        <div class="coupon-products-section">
+          <div class="coupon-products-header">
+            <h4>Aplicación del cupón</h4>
+            <div class="coupon-apply-tabs">
+              <button type="button" class="coupon-apply-tab active" data-tab="all"
+                onclick="switchCouponApplyTab('all')">
+                Todos
+              </button>
+              <button type="button" class="coupon-apply-tab" data-tab="tags" onclick="switchCouponApplyTab('tags')">
+                Por Tags
+              </button>
+              <button type="button" class="coupon-apply-tab" data-tab="products"
+                onclick="switchCouponApplyTab('products')">
+                Productos
+              </button>
+            </div>
+          </div>
+
+          <div class="coupon-apply-content active" id="coupon-apply-all">
+            <p class="empty-coupon-products">Este cupón aplica a todos los productos del menú</p>
+          </div>
+
+          <div class="coupon-apply-content" id="coupon-apply-tags">
+            <div style="margin-bottom: 1rem">
+              <label class="product-field">
+                <span style="font-weight: 600; color: #1e293b; font-size: 0.875rem">Tags aplicables</span>
+                <small style="color: #64748b; margin-bottom: 0.5rem">Ingresa tags separados por comas. El cupón aplicará
+                  a productos con cualquiera de
+                  estos tags.</small>
+                <input type="text" id="coupon-tags-input" placeholder="bebida, caliente, premium" />
+              </label>
+            </div>
+            <div class="coupon-tags-display" id="coupon-tags-display"></div>
+          </div>
+
+          <div class="coupon-apply-content" id="coupon-apply-products">
+            <button type="button" class="btn btn--secondary btn--small" id="add-coupon-products"
+              style="margin-bottom: 1rem">
+              ➕ Agregar productos
+            </button>
+            <div class="coupon-products-list" id="coupon-products-list"></div>
+          </div>
+        </div>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="coupon-active" checked />
+          Cupón activo
+        </label>
+
+        <div class="coupon-form__actions">
+          <button type="button" class="btn btn--outline" id="cancel-coupon-btn">Cancelar</button>
+          <button type="submit" class="btn btn--primary">Guardar Cupón</button>
+        </div>
+        <p id="coupon-form-feedback" class="feedback"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal para seleccionar productos -->
+  <div class="modal" id="select-coupon-products-modal">
+    <div class="modal-content" style="max-width: 700px">
+      <div class="modal-header">
+        <h3>Seleccionar productos para el cupón</h3>
+        <button class="modal-close" onclick="closeSelectCouponProductsModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-hint">
+          Por favor busca y selecciona los productos que deseas incluir en el cupón:
+        </p>
+        <div class="form-field">
+          <label for="coupon-product-search">Buscar producto:</label>
+          <input type="text" id="coupon-product-search" placeholder="Escribe para buscar..." />
+        </div>
+        <div class="coupon-product-selection-list" id="coupon-product-selection-list">
+          <p>Cargando productos...</p>
+        </div>
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: flex-end">
+          <button type="button" class="btn btn--outline" onclick="closeSelectCouponProductsModal()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn--primary" onclick="confirmCouponProducts()">
+            Confirmar selección
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="section" id="clientes" data-menu-title="Clientes" data-menu-group="🏢 ADMINISTRACIÓN"
+  data-customers-root>
+  <header class="section__header">
+    <h2>👥 Gestión de clientes</h2>
+    <p>Busca clientes por email, ID de usuario o nombre para ver su información completa.</p>
+  </header>
+
+  <div class="customer-search-container">
+    <div class="customer-search-box">
+      <div class="customer-search-header">
+        <h3>🔍 Buscar cliente</h3>
+        <p>Ingresa el email, ID de usuario o nombre del cliente</p>
+      </div>
+
+      <div class="customer-search-input-group">
+        <input type="search" id="customer-search-main" class="customer-search-input-large"
+          placeholder="Buscar por email, user ID o nombre..." autocomplete="off" />
+        <button type="button" class="btn btn--primary customer-search-btn" id="customer-search-btn">
+          🔍 Buscar
+        </button>
+      </div>
+
+      <div id="customer-search-results" class="customer-search-results" style="display: none">
+        <!-- Search results will appear here -->
+      </div>
+      <div id="customer-search-pagination"></div>
+
+      <div class="customer-search-stats">
+        <div class="stat-item">
+          <span class="stat-label">Total de clientes</span>
+          <span class="stat-value" id="customer-total-count">--</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Clientes activos</span>
+          <span class="stat-value" id="customer-active-count">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer detail panel (shows when a customer is selected) -->
+    <div class="customer-detail-panel" id="customer-detail-panel" style="display: none">
+      <div class="customer-detail-header">
+        <div>
+          <h3 id="customer-detail-name">Cliente</h3>
+          <p id="customer-detail-email" style="color: #64748b; margin-top: 0.25rem"></p>
+        </div>
+        <button class="btn btn--secondary btn--small" type="button" id="close-customer-detail">
+          ✕ Cerrar
+        </button>
+      </div>
+
+      <div class="customer-detail-content">
+        <!-- Customer info -->
+        <div class="customer-detail__section">
+          <h4>📋 Información del cliente</h4>
+          <div class="customer-info-grid" id="customer-info-grid">
+            <p>Cargando...</p>
+          </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="customer-detail__section">
+          <h4>📊 Estadísticas</h4>
+          <div class="customer-stats-cards" id="customer-stats-cards">
+            <p>Cargando...</p>
+          </div>
+        </div>
+
+        <!-- Order history -->
+        <div class="customer-detail__section">
+          <h4>🛒 Historial de órdenes</h4>
+          <div class="customer-orders-list" id="customer-orders-list">
+            <p>Cargando...</p>
+          </div>
+          <div id="customer-orders-pagination"></div>
+        </div>
+
+        <!-- Coupons used -->
+        <div class="customer-detail__section">
+          <h4>🎟️ Cupones utilizados</h4>
+          <div class="customer-coupons-list" id="customer-coupons-list">
+            <p>Cargando...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %} {% if has_permission(Permission.REPORTS_VIEW) %}
+<section class="section" id="horarios" data-menu-title="Horarios de Productos" data-menu-group="🍽️ MENÚ"
+  data-schedules-root>
+  <header class="section__header">
+    <h2>🕒 Horarios personalizados del menú</h2>
+    <p>Define en qué días y horarios está disponible cada producto para el público.</p>
+  </header>
+
+  <div class="schedule-manager">
+    <div class="schedule-controls">
+      <label class="product-field">
+        <span>Selecciona un producto</span>
+        <select id="schedule-product-select" class="filter-input">
+          <option value="">-- Selecciona un producto --</option>
+        </select>
+      </label>
+      <p style="color: #64748b; font-size: 0.875rem; margin-top: 0.5rem">
+        Puedes crear horarios específicos por día o dejarlos en blanco para habilitar la
+        disponibilidad todo el día.
+      </p>
+    </div>
+
+    <div class="schedule-content">
+      <div class="schedule-list" id="schedules-list">
+        <p style="text-align: center; color: #94a3b8">
+          Selecciona un producto para ver sus horarios.
+        </p>
+      </div>
+
+      <div class="schedule-form-card" id="schedule-form-container" style="display: none">
+        <h3 style="margin-top: 0">Agregar horario</h3>
+        <form id="schedule-form">
+          <div class="form-row">
+            <label>
+              <span>Día de la semana</span>
+              <select id="schedule-day" class="filter-input">
+                <option value="">Todos los días</option>
+                <option value="1">Lunes</option>
+                <option value="2">Martes</option>
+                <option value="3">Miércoles</option>
+                <option value="4">Jueves</option>
+                <option value="5">Viernes</option>
+                <option value="6">Sábado</option>
+                <option value="7">Domingo</option>
+              </select>
+            </label>
+            <label>
+              <span>Hora de inicio</span>
+              <input type="time" id="schedule-start-time" class="filter-input" />
+            </label>
+            <label>
+              <span>Hora de fin</span>
+              <input type="time" id="schedule-end-time" class="filter-input" />
+            </label>
+          </div>
+          <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 0.5rem">
+            Deja inicio y fin vacíos para permitir disponibilidad todo el día.
+          </p>
+          <div class="form-actions" style="margin-top: 1rem">
+            <button type="submit" class="btn btn--primary btn--small">Agregar horario</button>
+          </div>
+        </form>
+      </div>
+
+      <p id="schedules-feedback" class="feedback"></p>
+    </div>
+  </div>
+</section>
+{% endif %} {% if employee_role in ['super_admin', 'admin_roles', 'chef'] %}
+<section class="section" id="aditamentos" data-menu-title="Aditamentos" data-menu-group="🍽️ MENÚ">
+  <header class="section__header">
+    <h2>🧀 Catálogo inteligente de aditamentos</h2>
+    <p>
+      Gestiona grupos de modificadores y aditamentos del menú con un panel visual pensado para
+      operaciones.
+    </p>
+  </header>
+
+  <div class="modifiers-manager" data-modifiers-root>
+    <aside class="modifiers-sidebar">
+      <div class="modifiers-sidebar__header">
+        <div>
+          <h3>Filtros</h3>
+          <small>Organiza tu catálogo</small>
+        </div>
+        <button type="button" class="btn btn--primary" id="create-modifier-group-btn">
+          <span>+</span> Nuevo Grupo
+        </button>
+      </div>
+
+      <div class="modifiers-search">
+        <input type="search" id="modifiers-search" placeholder="Buscar por nombre..." />
+      </div>
+
+      <div class="modifiers-filter-section">
+        <h4>Por disponibilidad</h4>
+        <label class="filter-option">
+          <input type="radio" name="modifier-availability" value="all" checked />
+          <span>Todos</span>
+        </label>
+        <label class="filter-option">
+          <input type="radio" name="modifier-availability" value="available" />
+          <span>Disponibles</span>
+        </label>
+        <label class="filter-option">
+          <input type="radio" name="modifier-availability" value="unavailable" />
+          <span>No disponibles</span>
+        </label>
+      </div>
+    </aside>
+
+    <div class="modifiers-content">
+      <div class="modifiers-content__header">
+        <div>
+          <h3>Grupos de Modificadores</h3>
+          <p id="modifiers-count">0 grupos encontrados</p>
+        </div>
+        {% if employee_role in ['super_admin', 'admin_roles', 'chef'] %}
+        <div class="modifiers-content__actions">
+          <button type="button" class="btn btn--outline" id="create-modifier-btn">
+            <span>➕</span> Nuevo Aditamento
+          </button>
+        </div>
+        {% endif %}
+      </div>
+
+      <div id="modifiers-groups-list" class="modifiers-groups-grid">
+        <p class="loading">Cargando grupos de aditamentos...</p>
+      </div>
+      <div id="modifiers-pagination"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Drawer para Crear/Editar Grupo de Modificadores -->
+<div class="modifier-group-drawer" id="modifier-group-drawer">
+  <div class="modifier-group-drawer__content">
+    <div class="modifier-group-drawer__header">
+      <h3 id="modifier-group-drawer-title">Nuevo Grupo</h3>
+      <button class="modifier-group-drawer__close" type="button" id="close-modifier-group-drawer">
+        ×
+      </button>
+    </div>
+
+    <form id="modifier-group-form">
+      <input type="hidden" id="modifier-group-id" name="id" />
+
+      <div class="form-section">
+        <h4>Información Básica</h4>
+        <div class="product-form__grid">
+          <label>Nombre del grupo *
+            <input type="text" id="modifier-group-name" name="name" required
+              placeholder="Ej: Salsas, Tamaños, Extras" />
+          </label>
+          <label>Orden de visualización
+            <input type="number" id="modifier-group-order" name="order" value="0" min="0" placeholder="0" />
+          </label>
+        </div>
+
+        <label style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem">
+          Descripción
+          <textarea id="modifier-group-description" name="description" rows="3"
+            placeholder="Ej: Elige tus salsas favoritas"></textarea>
+        </label>
+      </div>
+
+      <div class="form-section" style="margin-top: 1.5rem">
+        <h4>Configuración de Selección</h4>
+        <div class="product-form__grid">
+          <label>Mínimo a seleccionar
+            <input type="number" id="modifier-group-min" name="min_selection" value="0" min="0" placeholder="0" />
+          </label>
+          <label>Máximo a seleccionar
+            <input type="number" id="modifier-group-max" name="max_selection" value="4" min="1" placeholder="4" />
+          </label>
+        </div>
+
+        <label class="product-checkbox" style="margin-top: 1rem">
+          <input type="checkbox" id="modifier-group-required" name="is_required" />
+          <div>
+            <strong>¿Es requerido?</strong>
+            <small>El cliente debe seleccionar al menos una opción de este grupo</small>
+          </div>
+        </label>
+      </div>
+
+      <div class="product-form__actions" style="margin-top: 2rem">
+        <button type="button" class="btn btn--outline" id="cancel-modifier-group-btn">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn--primary">Guardar Grupo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Drawer para Crear/Editar Modificador Individual -->
+<div class="modifier-drawer" id="modifier-drawer">
+  <div class="modifier-drawer__content">
+    <div class="modifier-drawer__header">
+      <h3 id="modifier-drawer-title">Nuevo Modificador</h3>
+      <button class="modifier-drawer__close" type="button" id="close-modifier-drawer">×</button>
+    </div>
+
+    <form id="modifier-form">
+      <input type="hidden" id="modifier-id" />
+      <input type="hidden" id="modifier-group-id-input" />
+
+      <div class="form-section">
+        <h4>Información del Modificador</h4>
+        <div class="product-form__grid">
+          <label>Nombre *
+            <input type="text" id="modifier-name" required placeholder="Ej: Salsa picante" />
+          </label>
+          <label>Precio adicional
+            <input type="number" id="modifier-price" value="0" min="0" step="0.01" placeholder="0.00" />
+          </label>
+        </div>
+
+        <div class="product-form__grid" style="margin-top: 1rem">
+          <label>Orden de visualización
+            <input type="number" id="modifier-order" value="0" min="0" placeholder="0" />
+          </label>
+          <label class="product-checkbox">
+            <input type="checkbox" id="modifier-available" checked />
+            <div>
+              <strong>Disponible</strong>
+              <small>Visible para los clientes</small>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section" id="modifier-group-selector-section" style="display: none">
+        <h4>Asignar a grupos</h4>
+        <p style="color: #64748b; font-size: 0.85rem; margin-top: -0.25rem">
+          Selecciona uno o varios grupos donde se mostrará este aditamento.
+        </p>
+        <div class="modifier-group-selector" id="modifier-group-selector">
+          <p style="color: #94a3b8">Cargando grupos...</p>
+        </div>
+      </div>
+
+      <div class="product-form__actions" style="margin-top: 2rem">
+        <button type="button" class="btn btn--outline" id="cancel-modifier-btn">Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar Modificador</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+{% if employee_role in ['super_admin'] %}
+<section class="section" id="branding-section" data-menu-title="Gestión de Marca" data-menu-group="🎨 Branding">
+  <div class="branding-header">
+    <h2>Gestión de Marca</h2>
+    <p>Administra logos, iconos y recursos visuales del restaurante</p>
+  </div>
+
+  <div id="branding-manager">
+    <div class="loading-placeholder" style="text-align: center; padding: 3rem; color: #64748b;">
+      <div class="spinner"
+        style="margin: 0 auto 1rem; width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #ff6b35; border-radius: 50%; animation: spin 0.8s linear infinite;">
+      </div>
+      <p>Cargando configuración de branding...</p>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% if employee_role in ['super_admin', 'admin_roles', 'manager'] %}
+<section class="section" id="areas-salones" data-menu-title="Salones" data-menu-group="🏢 ADMINISTRACIÓN">
+  <header class="section__header">
+    <h2>🏛️ Áreas o salones</h2>
+    <p>Gestiona las áreas o salones disponibles para las mesas del restaurante</p>
+  </header>
+
+  <div class="areas-manager" data-areas-root>
+    <div class="areas-manager__header">
+      <div class="areas-stats">
+        <div class="stat-item">
+          <span class="stat-label">Total de áreas</span>
+          <span class="stat-value" id="areas-total-count">0</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn--primary" id="open-area-modal">
+        <span>➕</span> Crear área
+      </button>
+    </div>
+
+    <div class="areas-grid" id="areas-grid">
+      <div style="text-align: center; color: #64748b; padding: 2rem; display: grid; gap: 0.75rem">
+        <p style="margin: 0">Cargando áreas...</p>
+        <button type="button" class="btn btn--primary btn--small"
+          onclick="document.getElementById('open-area-modal')?.click()">
+          ➕ Crear área/Salón
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %} {% if employee_role in ['super_admin', 'admin_roles'] %}
+<section class="section" id="anonymous-sessions" data-menu-title="Sesiones Anónimas"
+  data-menu-group="🏢 ADMINISTRACIÓN">
+  <header class="section__header">
+    <div style="flex: 1">
+      <h2>👤 Gestión de Sesiones Anónimas</h2>
+      <p>Administra las sesiones anónimas activas asignadas a mesas</p>
+    </div>
+    <button type="button" class="btn btn--secondary" id="refresh-anonymous-sessions" title="Actualizar">
+      🔄 Actualizar
+    </button>
+  </header>
+
+  <div class="anonymous-sessions-manager">
+    <div class="table-wrapper">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Mesa</th>
+            <th>Cliente Anónimo ID</th>
+            <th>Estado</th>
+            <th>Órdenes</th>
+            <th>Creada</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="anonymous-sessions-table">
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 2rem; color: #64748b">
+              Cargando sesiones anónimas...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p id="anonymous-sessions-feedback" class="feedback"></p>
+  </div>
+</section>
+{% endif %} {% if employee_role in ['super_admin', 'admin_roles', 'manager', 'waiter'] %}
+<section class="section" id="tables" data-menu-title="Mesas" data-menu-group="🏢 ADMINISTRACIÓN" data-tables-root>
+  <header class="section__header">
+    <h2>🪑 Mesas</h2>
+    <p>Administra las mesas del restaurante con vista gráfica interactiva</p>
+  </header>
+
+  <!-- Message if no areas configured -->
+  <div class="alert alert--warning" id="no-areas-alert" style="display: none">
+    <div style="display: flex; align-items: center; gap: 1rem">
+      <span style="font-size: 2rem">⚠️</span>
+      <div style="flex: 1">
+        <h4 style="margin: 0 0 0.5rem 0; color: #1e293b">No hay áreas o salones configurados</h4>
+        <p style="margin: 0; color: #64748b; font-size: 0.875rem">
+          Antes de crear mesas, debes configurar al menos un área o salón.
+        </p>
+      </div>
+      <a href="javascript:void(0)" class="btn btn--primary" onclick="
+          const el = document.getElementById('areas-salones');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        ">
+        Ir a Áreas y Salones
+      </a>
+    </div>
+  </div>
+
+  <!-- Vista gráfica de mesas -->
+  <div class="tables-visual-manager">
+    <div class="tables-visual-sidebar">
+      <!-- Header con título -->
+      <div class="tables-sidebar-header">
+        <div class="tables-sidebar-icon">🏠</div>
+        <div class="tables-sidebar-title">
+          <h3>Áreas del Local</h3>
+          <p>Selecciona un área para gestionar</p>
+        </div>
+      </div>
+
+      <!-- Selector de áreas -->
+      <div class="tables-area-selector" id="tables-area-selector">
+        <button type="button" class="area-selector-btn active" data-area="all">
+          <span class="area-color" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"></span>
+          <span class="area-name">Todas las áreas</span>
+        </button>
+      </div>
+
+      <!-- Botón crear mesa - MEJORADO -->
+      <button type="button" class="btn-create-table" id="add-table-btn">
+        <span class="btn-create-table__icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </span>
+        <span class="btn-create-table__text">
+          <strong>Nueva Mesa</strong>
+          <small>Agregar al área seleccionada</small>
+        </span>
+      </button>
+
+      <!-- Estadísticas -->
+      <div class="tables-visual-stats">
+        <h4>📊 Resumen de Mesas</h4>
+        <div class="stats-grid">
+          <div class="stat-card stat-card--total">
+            <span class="stat-value" id="tables-total-count">0</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat-card stat-card--available">
+            <span class="stat-value" id="tables-available-count">0</span>
+            <span class="stat-label">Libres</span>
+          </div>
+          <div class="stat-card stat-card--occupied">
+            <span class="stat-value" id="tables-occupied-count">0</span>
+            <span class="stat-label">Ocupadas</span>
+          </div>
+          <div class="stat-card stat-card--reserved">
+            <span class="stat-value" id="tables-reserved-count">0</span>
+            <span class="stat-label">Reservadas</span>
+          </div>
+          <div class="stat-card stat-card--indisposed">
+            <span class="stat-value" id="tables-indisposed-count">0</span>
+            <span class="stat-label">No disponibles</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leyenda -->
+      <div class="tables-visual-legend">
+        <h4>🎨 Estados de Mesa</h4>
+        <div class="legend-grid">
+          <div class="legend-item">
+            <span class="legend-dot legend-dot--available"></span>
+            <span>Disponible</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot legend-dot--occupied"></span>
+            <span>Ocupada</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot legend-dot--reserved"></span>
+            <span>Reservada</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot legend-dot--inactive"></span>
+            <span>No disponible</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tables-visual-canvas" id="tables-visual-canvas">
+      <div class="tables-canvas-controls">
+        <button type="button" class="canvas-control-btn" id="canvas-zoom-out" title="Alejar">
+          <span>−</span>
+        </button>
+        <button type="button" class="canvas-control-btn" id="canvas-reset" title="Reset vista">
+          <span>⟲</span>
+        </button>
+        <button type="button" class="canvas-control-btn" id="canvas-zoom-in" title="Acercar">
+          <span>+</span>
+        </button>
+      </div>
+
+      <div class="tables-canvas-wrapper" id="tables-canvas-wrapper">
+        <div class="tables-canvas-content" id="tables-canvas-content">
+          <div class="canvas-empty-state" id="canvas-empty-state">
+            <span style="font-size: 3rem; opacity: 0.5">🪑</span>
+            <p style="font-size: 1.125rem; color: #64748b; margin-top: 1rem">
+              No hay mesas creadas
+            </p>
+            <p style="font-size: 0.875rem; color: #94a3b8">
+              Haz clic en "➕ Mesa" para agregar tu primera mesa
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-area-label" id="canvas-area-label">Todas las áreas</div>
+    </div>
+  </div>
+
+  <!-- Lista de mesas (modo alternativo) -->
+  <div style="margin-top: 2rem">
+    <details class="section__collapsible">
+      <summary style="
+          font-weight: 600;
+          color: #1e293b;
+          cursor: pointer;
+          padding: 1rem;
+          background: #f8fafc;
+          border-radius: 8px;
+        ">
+        📋 Ver lista de mesas
+      </summary>
+      <div style="margin-top: 1rem">
+        <div id="tables-list-grid" class="tables-list-grid">
+          <p style="text-align: center; color: #64748b; padding: 2rem">Cargando mesas...</p>
+        </div>
+      </div>
+    </details>
+  </div>
+</section>
+{% endif %}
+
+<div class="modal" id="employee-payment-modal">
+  <div class="modal-content payment-modal-content">
+    <div class="payment-modal-header">
+      <h3>
+        💰 Cobrar cuenta
+        <span id="employee-payment-session-label"
+          title="Cuenta (ID de sesión): Una sesión puede contener múltiples órdenes"></span>
+      </h3>
+      <button type="button" class="payment-modal-close" id="close-employee-payment">×</button>
+    </div>
+
+    <!-- Step 1: Payment Method Selection -->
+    <div id="payment-method-selection" class="payment-step">
+      <p class="payment-step-title modal-hint">Por favor selecciona el método de pago:</p>
+
+      <div class="payment-methods-grid">
+        <button type="button" class="payment-method-btn" data-method="cash">
+          <span class="payment-method-icon">💵</span>
+          <span class="payment-method-label">Efectivo</span>
+        </button>
+        <button type="button" class="payment-method-btn" data-method="terminal">
+          <span class="payment-method-icon">💳</span>
+          <span class="payment-method-label">Terminal físico</span>
+        </button>
+        <button type="button" class="payment-method-btn" data-method="clip">
+          <span class="payment-method-icon">📱</span>
+          <span class="payment-method-label">Clip API (prueba)</span>
+        </button>
+      </div>
+
+      <div class="payment-modal-footer">
+        <button type="button" class="btn btn--outline" id="cancel-employee-payment">
+          Cancelar
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Cash Confirmation -->
+    <div id="payment-cash-confirmation" class="payment-step" style="display: none">
+      <div class="payment-step-icon">💵</div>
+      <p class="payment-step-heading">¿Confirmar el cobro en efectivo?</p>
+      <p class="payment-step-description">
+        Después del cobro podrás registrar la propina y entregar el ticket.
+      </p>
+
+      <div class="payment-modal-footer">
+        <button type="button" class="btn btn--outline" id="back-from-cash">Atrás</button>
+        <button type="button" class="btn btn--success" id="confirm-cash-payment">
+          ✓ Confirmar cobro
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Terminal/Clip Options -->
+    <div id="payment-terminal-options" class="payment-step" style="display: none">
+      <div class="payment-step-icon">💳</div>
+      <p class="payment-step-heading">Pago con terminal</p>
+      <p class="payment-step-description">Completa los detalles opcionales del pago</p>
+
+      <form id="terminal-payment-form" class="payment-form">
+        <div class="payment-form-group">
+          <label for="terminal-reference">Referencia de pago (opcional)</label>
+          <input type="text" id="terminal-reference" placeholder="Ej. Últimos 4 dígitos" />
+        </div>
+
+        <div class="payment-form-group">
+          <label for="terminal-card-type">Tipo de tarjeta (opcional)</label>
+          <select id="terminal-card-type">
+            <option value="">No especificado</option>
+            <option value="credit">Crédito</option>
+            <option value="debit">Débito</option>
+          </select>
+        </div>
+
+        <div class="payment-form-group">
+          <label for="terminal-receipt-photo">Foto del ticket del terminal</label>
+          <input type="file" id="terminal-receipt-photo" accept="image/*" capture="environment" style="display: none" />
+          <div style="display: flex; gap: 0.5rem; flex-direction: column">
+            <button type="button" class="btn btn--outline" id="terminal-photo-btn" style="
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+              ">
+              📷 Tomar foto del ticket
+            </button>
+            <div id="terminal-photo-preview" style="display: none; text-align: center; margin-top: 0.5rem">
+              <img id="terminal-photo-preview-img" src="" alt="Preview" style="
+                  max-width: 100%;
+                  max-height: 200px;
+                  border-radius: 8px;
+                  border: 2px solid #e2e8f0;
+                " />
+              <p style="font-size: 0.875rem; color: #64748b; margin-top: 0.5rem">
+                ✓ Foto capturada
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="payment-modal-footer">
+          <button type="button" class="btn btn--outline" id="back-from-terminal">Atrás</button>
+          <button type="submit" class="btn btn--success">✓ Confirmar cobro</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Step 4: Stripe Confirmation -->
+    <div id="payment-stripe-confirmation" class="payment-step" style="display: none">
+      <div class="payment-step-icon">🌐</div>
+      <p class="payment-step-heading">¿Procesar pago con Stripe?</p>
+      <p class="payment-step-description">
+        El pago se procesará automáticamente a través de Stripe.
+      </p>
+
+      <div class="payment-modal-footer">
+        <button type="button" class="btn btn--outline" id="back-from-stripe">Atrás</button>
+        <button type="button" class="btn btn--success" id="confirm-stripe-payment">
+          ✓ Procesar pago
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 5: Clip API Confirmation -->
+    <div id="payment-clip-confirmation" class="payment-step" style="display: none">
+      <div class="payment-step-icon">📱</div>
+      <p class="payment-step-heading">¿Procesar pago con Clip API?</p>
+      <p class="payment-step-description">
+        Modo de prueba (sandbox). El pago se procesará a través del API de Clip.
+      </p>
+      <div class="payment-form-group" style="background: #fef3c7; padding: 1rem; border-radius: 8px; margin: 1rem 0">
+        <p style="margin: 0; font-size: 0.875rem; color: #92400e">
+          <strong>⚠️ Modo de prueba</strong><br />
+          Este es el modo sandbox de Clip para probar el flujo antes de comprar el aparato físico.
+        </p>
+      </div>
+
+      <div class="payment-modal-footer">
+        <button type="button" class="btn btn--outline" id="back-from-clip">Atrás</button>
+        <button type="button" class="btn btn--success" id="confirm-clip-payment">
+          ✓ Procesar pago (sandbox)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de propina (aparece después del cobro) -->
+<div class="modal" id="employee-tip-modal">
+  <div class="modal-content" style="max-width: 480px">
+    <div class="modal-header" style="justify-content: space-between">
+      <h3>
+        Registrar propina
+        <span id="employee-tip-session-label"
+          title="Cuenta (ID de sesión): Una sesión puede contener múltiples órdenes"></span>
+      </h3>
+      <button type="button" class="modal-close" id="close-employee-tip">×</button>
+    </div>
+    <form id="employee-tip-form">
+      <p class="modal-hint">Por favor selecciona el porcentaje de propina que dejó el cliente:</p>
+      <div class="tip-chip-grid" id="employee-tip-options-modal">
+        <button type="button" class="tip-chip" data-tip="0">Sin propina</button>
+        <button type="button" class="tip-chip" data-tip="5">5%</button>
+        <button type="button" class="tip-chip" data-tip="10">10%</button>
+        <button type="button" class="tip-chip" data-tip="15">15%</button>
+        <button type="button" class="tip-chip" data-tip="20">20%</button>
+      </div>
+
+      <div class="modal-footer" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem">
+        <button type="button" class="btn btn--outline" id="cancel-employee-tip">Omitir</button>
+        <button type="submit" class="btn btn--primary">Continuar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de entrega de ticket (aparece después de propina) -->
+<div class="modal" id="employee-ticket-modal">
+  <div class="modal-content" style="max-width: 480px">
+    <div class="modal-header" style="justify-content: space-between">
+      <h3>
+        Entrega del ticket
+        <span id="employee-ticket-session-label"
+          title="Cuenta (ID de sesión): Una sesión puede contener múltiples órdenes"></span>
+      </h3>
+      <button type="button" class="modal-close" id="close-employee-ticket">×</button>
+    </div>
+    <form id="employee-ticket-form">
+      <p style="color: #475569; font-weight: 600">Vista previa del ticket</p>
+      <div id="ticket-preview-container" class="ticket-preview" style="
+          margin: 1rem 0;
+          padding: 1rem;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          max-height: 300px;
+          overflow-y: auto;
+          font-family: monospace;
+          font-size: 0.9rem;
+        ">
+        <!-- Ticket content will be injected here -->
+        <div style="text-align: center; color: #94a3b8">Cargando vista previa...</div>
+      </div>
+
+      <p style="color: #475569; font-weight: 600; margin-top: 1.5rem">
+        ¿Cómo deseas entregar el ticket?
+      </p>
+      <div class="ticket-options" style="margin-top: 1rem">
+        <label><input type="radio" name="ticket-delivery" value="physical" checked /> Entregar
+          impreso</label>
+        <label><input type="radio" name="ticket-delivery" value="digital" /> Enviar por email</label>
+      </div>
+      <input type="email" id="ticket-email-input" placeholder="cliente@ejemplo.com"
+        style="display: none; margin-top: 0.5rem" />
+
+      <div class="modal-footer" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem">
+        <button type="button" class="btn btn--outline" id="cancel-employee-ticket">Omitir</button>
+        <button type="submit" class="btn btn--primary">Finalizar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal para reenviar ticket por email -->
+<div class="modal" id="resend-ticket-modal">
+  <div class="modal-content" style="max-width: 480px">
+    <div class="modal-header" style="justify-content: space-between">
+      <h3>Reenviar ticket <span id="resend-ticket-session-label"></span></h3>
+      <button type="button" class="modal-close" id="close-resend-ticket">×</button>
+    </div>
+    <form id="resend-ticket-form">
+      <p class="modal-hint">
+        Por favor ingresa el correo electrónico del cliente para reenviar el ticket:
+      </p>
+      <input type="email" id="resend-ticket-email" placeholder="cliente@ejemplo.com" required style="
+          width: 100%;
+          padding: 0.75rem;
+          margin-top: 1rem;
+          border: 1px solid #cbd5e1;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+        " />
+
+      <div class="modal-footer" style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem">
+        <button type="button" class="btn btn--outline" id="cancel-resend-ticket">Cancelar</button>
+        <button type="submit" class="btn btn--primary">Enviar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal para crear/editar mesa -->
+<div class="modal" id="table-modal">
+  <div class="modal-content" style="max-width: 600px">
+    <div class="modal-header" style="justify-content: space-between">
+      <h3 id="table-modal-title">Crear Mesa</h3>
+      <button type="button" class="modal-close" id="close-table-modal">×</button>
+    </div>
+    <form id="table-form">
+      <input type="hidden" id="table-id" />
+      <p class="modal-hint">Por favor completa la información de la mesa:</p>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 1rem">
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Número de mesa *</span>
+          <input type="number" id="table-number" required min="1" max="99" placeholder="1-99"
+            style="padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem" />
+        </label>
+
+        <div id="table-code-preview" style="display: none; padding: 0.75rem; background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; margin-top: 0.5rem;">
+          <span style="font-weight: 600; color: #166534;">Código:</span>
+          <span id="table-code-display" style="font-weight: 700; color: #15803d; font-size: 1.125rem; margin-left: 0.5rem;"></span>
+        </div>
+
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Área/Salón *</span>
+          <select id="table-area" required style="
+              padding: 0.75rem;
+              border: 2px solid #e2e8f0;
+              border-radius: 8px;
+              font-size: 1rem;
+              cursor: pointer;
+            ">
+            <option value="">Seleccionar área</option>
+          </select>
+        </label>
+
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Capacidad *</span>
+          <input type="number" id="table-capacity" required min="1" value="4"
+            style="padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem" />
+        </label>
+
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Forma</span>
+          <select id="table-shape" style="
+              padding: 0.75rem;
+              border: 2px solid #e2e8f0;
+              border-radius: 8px;
+              font-size: 1rem;
+              cursor: pointer;
+            ">
+            <option value="round">Redonda</option>
+            <option value="square">Cuadrada</option>
+            <option value="rectangular">Rectangular</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="margin-top: 1.25rem">
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Notas</span>
+          <textarea id="table-notes" rows="3" placeholder="Notas adicionales sobre esta mesa" style="
+              padding: 0.75rem;
+              border: 2px solid #e2e8f0;
+              border-radius: 8px;
+              font-size: 1rem;
+              resize: vertical;
+            "></textarea>
+        </label>
+      </div>
+
+      <div class="modal-footer" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 0.75rem">
+        <button type="button" class="btn btn--outline" id="cancel-table">Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal para crear/editar área -->
+<div class="modal" id="area-modal">
+  <div class="modal-content" style="max-width: 600px">
+    <div class="modal-header" style="justify-content: space-between">
+      <h3 id="area-modal-title">Crear Área/Salón</h3>
+      <button type="button" class="modal-close" id="close-area-modal">×</button>
+    </div>
+    <form id="area-form">
+      <input type="hidden" id="area-id" />
+      <p class="modal-hint">Por favor completa la información del área/salón:</p>
+      <div style="display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1rem">
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Nombre del área *</span>
+          <input type="text" id="area-name" required placeholder="Ej. Interior, Terraza, VIP, Bar"
+            style="padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem" />
+        </label>
+
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Código del área *</span>
+          <input type="text" id="area-prefix" maxlength="1" pattern="[A-Z]" required placeholder="Ej. A, B, C... Z"
+            style="padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; text-transform: uppercase; width: 80px;" />
+          <small style="color: #64748b">Letra única (A-Z) para identificar el área. Se usará en códigos como A-M01, B-M05</small>
+        </label>
+
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Descripción</span>
+          <textarea id="area-description" rows="3" placeholder="Descripción opcional del área" style="
+              padding: 0.75rem;
+              border: 2px solid #e2e8f0;
+              border-radius: 8px;
+              font-size: 1rem;
+              resize: vertical;
+            "></textarea>
+        </label>
+
+        <label style="display: flex; flex-direction: column; gap: 0.5rem">
+          <span style="font-weight: 600; color: #1e293b">Color de identificación</span>
+          <div style="display: flex; gap: 0.75rem; align-items: center">
+            <input type="color" id="area-color" value="#ff6b35" style="
+                width: 60px;
+                height: 40px;
+                border: 2px solid #e2e8f0;
+                border-radius: 8px;
+                cursor: pointer;
+              " />
+            <span style="color: #64748b; font-size: 0.875rem">Elige un color para identificar visualmente este área en
+              el mapa de mesas</span>
+          </div>
+        </label>
+
+        <div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center">
+            <span style="font-weight: 600; color: #1e293b">Boceto del área</span>
+            <div style="display: inline-flex; gap: 0.5rem; align-items: center">
+              <button type="button" class="btn btn--small btn--secondary draw-mode-btn active" data-draw-mode="pen">
+                ✏️
+              </button>
+              <button type="button" class="btn btn--small btn--secondary draw-mode-btn" data-draw-mode="line">
+                📏
+              </button>
+              <button type="button" class="btn btn--small btn--secondary draw-mode-btn" data-draw-mode="rect">
+                ▭
+              </button>
+              <button type="button" class="btn btn--small btn--secondary draw-mode-btn" data-draw-mode="circle">
+                ◯
+              </button>
+            </div>
+            <label style="
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: 0.85rem;
+                color: #475569;
+              ">
+              Color
+              <input type="color" id="area-draw-color" value="#475569" style="
+                  width: 40px;
+                  height: 32px;
+                  border: 2px solid #e2e8f0;
+                  border-radius: 8px;
+                  cursor: pointer;
+                " />
+            </label>
+            <button type="button" class="btn btn--small btn--outline" id="clear-canvas-btn">
+              Limpiar
+            </button>
+          </div>
+          <canvas id="area-background-canvas" width="520" height="260" style="
+              width: 100%;
+              margin-top: 0.75rem;
+              border: 2px dashed #e2e8f0;
+              border-radius: 12px;
+              background: #f8fafc;
+            "></canvas>
+          <small style="color: #64748b; display: block; margin-top: 0.5rem">
+            Este boceto se usa como fondo en la vista de mesas para diagramar el espacio.
+          </small>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 0.75rem">
+        <button type="button" class="btn btn--outline" id="cancel-area">Cancelar</button>
+        <button type="submit" class="btn btn--primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- Table Assignment Modal - Modern POS Design -->
+<div id="table-assignment-modal" class="modal">
+  <div class="table-assignment-modal__overlay">
+    <div class="table-assignment-modal__panel">
+      <div class="table-assignment-modal__header">
+        <div>
+          <h2 class="table-assignment-modal__title">Gestionar Mesas</h2>
+          <p class="table-assignment-modal__subtitle">Asigna o libera mesas desde un solo lugar</p>
+        </div>
+        <div class="table-assignment-modal__header-actions">
+          <button type="button" id="close-table-assignment" class="btn btn--secondary">✕</button>
+        </div>
+      </div>
+
+      <div class="table-assignment-modal__body">
+        <div>
+          <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
+            Mesas Asignadas
+          </h3>
+          <div id="my-tables-container" class="assigned-tables-list">
+            <div class="border-2 border-dashed border-gray-200 rounded-xl px-4 py-6 text-center">
+              <p class="text-sm text-gray-500" style="margin: 0">No hay mesas asignadas aún</p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+              Mesas Disponibles
+            </h3>
+            <select id="zone-filter"
+              class="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all cursor-pointer">
+              <option value="all">Todas las zonas</option>
+            </select>
+          </div>
+
+          <div id="available-tables-container" class="available-tables-grid">
+            <div class="col-span-full text-center py-8 text-gray-400">
+              <p class="text-sm" style="margin: 0">Cargando mesas...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-assign preference -->
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb">
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="auto-assign-table-on-order-accept" checked
+                style="width: 18px; height: 18px; cursor: pointer; accent-color: #ea580c" />
+              <span class="text-sm font-medium text-gray-700">Auto-asignar mesa al aceptar orden</span>
+            </label>
+            <span class="text-xs text-gray-500"
+              title="Cuando aceptas una orden de una mesa, automáticamente se te asignará esa mesa y todas sus órdenes pendientes">
+              ℹ️
+            </span>
+          </div>
+          <p class="text-xs text-gray-500 mt-1 ml-6" style="margin-bottom: 0">
+            Al aceptar una orden, se te asignará automáticamente toda la mesa y sus órdenes
+            pendientes
+          </p>
+        </div>
+      </div>
+
+      <div class="table-assignment-modal__footer">
+        <button type="button" id="assign-selected-tables" disabled class="btn btn--secondary">
+          Asignar mesa
+        </button>
+        <button type="button" id="cancel-table-assignment" class="btn btn--secondary">
+          Cancelar
+        </button>
+        <button type="button" id="accept-table-assignment-footer" class="btn btn--primary">
+          ✓ Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Request Modal -->
+<div id="transfer-request-modal" class="modal">
+  <div class="modal-content modal-content--medium">
+    <div class="modal-header">
+      <h5 class="modal-title">Solicitud de Transferencia</h5>
+      <button type="button" class="btn-close" id="close-transfer-modal"></button>
+    </div>
+    <div class="modal-body">
+      <p id="transfer-request-message" class="mb-3"></p>
+      <p id="transfer-request-note" class="text-muted mb-3" style="display: none"></p>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="transfer-orders-checkbox" />
+        <label class="form-check-label" for="transfer-orders-checkbox">
+          ¿Transferir órdenes existentes?
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-danger" id="reject-transfer-btn">Rechazar</button>
+      <button type="button" class="btn btn-success" id="accept-transfer-btn">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer for waiter panel -->
+<footer class="waiter-panel-footer" style="
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 1rem 2rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-top: auto;
+    flex-shrink: 0;
+  ">
+  <div class="footer-links"
+    style="display: flex; justify-content: center; gap: 2rem; align-items: center; flex-wrap: wrap">
+    <span style="color: #94a3b8">© 2025 Cafetería-Test</span>
+    <a href="javascript:void(0)" class="footer-homepage-link" style="
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #64748b;
+        text-decoration: none;
+        transition: color 0.2s;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+      ">
+      <svg class="footer-homepage-icon" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+      <span>Establecer como inicio</span>
+    </a>
+  </div>
+</footer>
+
+{% endif %}
+
+<!-- SECCIÓN BRANDING (NUEVA) -->
+
+<!-- SECCIONES ADMINISTRACIÓN ADICIONALES -->
+{% if has_permission(Permission.CONFIG_EDIT) %}
+
+
+
+
+{% endif %} {% if has_permission(Permission.EMPLOYEES_VIEW) %}
+
+
+<section class="section" id="empleados-section" data-menu-title="Empleados" data-menu-group="🏢 ADMINISTRACIÓN">
+  <header class="section__header" style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h2>👥 Gestión de Empleados</h2>
+      <p>Administra los usuarios y roles del sistema.</p>
+    </div>
+    <button id="btn-add-employee" class="btn btn--white" style="color: #333; font-weight: 600;">
+      <span style="margin-right:0.5rem">➕</span> Nuevo Empleado
+    </button>
+  </header>
+
+  <div class="table-wrapper">
+    <table class="table" id="employees-table">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- JS inyectará filas aquí -->
+        <tr>
+          <td colspan="5" style="text-align:center; padding: 3rem; color: #64748b;">
+            Cargando empleados...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Modal CRUD Empleado -->
+<div class="modal" id="employee-modal"
+  style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div class="modal-content"
+    style="background:white; padding:2rem; border-radius:16px; width:100%; max-width:500px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+    <div class="modal-header"
+      style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h3 class="modal-title" style="margin:0; font-size:1.5rem; font-weight:700;">Nuevo Empleado</h3>
+      <button class="close-modal-btn"
+        style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    <form id="employee-form">
+      <div style="margin-bottom:1rem;">
+        <label style="display:block; font-weight:600; margin-bottom:0.5rem;">Nombre</label>
+        <input type="text" id="emp-name" class="input"
+          style="width:100%; padding:0.75rem; border:1px solid #e2e8f0; border-radius:8px;" required>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label style="display:block; font-weight:600; margin-bottom:0.5rem;">Email</label>
+        <input type="email" id="emp-email" class="input"
+          style="width:100%; padding:0.75rem; border:1px solid #e2e8f0; border-radius:8px;" required>
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label style="display:block; font-weight:600; margin-bottom:0.5rem;">Rol</label>
+        <select id="emp-role" class="select"
+          style="width:100%; padding:0.75rem; border:1px solid #e2e8f0; border-radius:8px;" required>
+          <option value="waiter">Mesero</option>
+          <option value="chef">Cocinero</option>
+          <option value="cashier">Cajero</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="admin_roles">Administrador</option>
+        </select>
+      </div>
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block; font-weight:600; margin-bottom:0.5rem;">Contraseña</label>
+        <input type="password" id="emp-password" class="input"
+          style="width:100%; padding:0.75rem; border:1px solid #e2e8f0; border-radius:8px;" placeholder="Contraseña">
+        <small style="color:#64748b; font-size:0.85rem;">Dejar vacío si no se desea cambiar (al editar)</small>
+      </div>
+      <div class="form-actions" style="display:flex; gap:1rem; justify-content:flex-end;">
+        <button type="button" class="btn btn--secondary close-modal-btn"
+          style="background:#f1f5f9; padding:0.75rem 1.5rem; border-radius:8px; border:none; cursor:pointer;">Cancelar</button>
+        <button type="submit" class="btn btn--primary"
+          style="background:#0f172a; color:white; padding:0.75rem 1.5rem; border-radius:8px; border:none; cursor:pointer;">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<style>
+  /* Global Override to fix "shrinked" config forms */
+  .section,
+  .section>div,
+  .config-container,
+  form {
+    max-width: 100% !important;
+  }
+
+  .input,
+  .select,
+  textarea {
+    max-width: 100% !important;
+  }
+
+  #business-info {
+    max-width: 100% !important;
+  }
+</style>
+{% endif %}
+
+<!-- SECCIÓN ROLES Y PERMISOS UNIFICADA -->
+{% if has_permission(Permission.EMPLOYEES_MANAGE_PERMISSIONS) %}
+<section class="section" id="role-permissions" data-menu-title="Roles y Permisos" data-menu-group="🛡️ SEGURIDAD">
+  <header class="section__header">
+    <div class="header-content">
+      <h2>🔑 Gestión de Roles</h2>
+      <p>Define los roles del sistema y sus permisos.</p>
+    </div>
+    <button class="btn btn--primary" id="btn-create-role">
+      <span class="btn__icon">➕</span> Nuevo Rol
+    </button>
+  </header>
+
+  <div class="table-container card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Rol</th>
+          <th>Tipo</th>
+          <th>Descripción</th>
+          <th>Permisos</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="roles-table-body">
+        <tr>
+          <td colspan="5" class="text-center p-4">Cargando roles...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Modal Gestión de Roles -->
+<dialog id="roles-modal" class="modal">
+  <div class="modal__content modal__content--large">
+    <header class="modal__header">
+      <h3 id="roles-modal-title">Gestión de Rol</h3>
+      <button type="button" class="btn-icon close-roles-modal">✕</button>
+    </header>
+    <form id="roles-form">
+      <div class="modal__body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="role_name" class="form-label">Nombre Técnico (ID)</label>
+            <input type="text" name="name" id="role_name" class="form-input" required pattern="[a-zA-Z0-9_]+"
+              placeholder="ej: gerente_turno">
+            <p class="form-hint">Usado internamente. Solo letras, números y guiones bajos.</p>
+          </div>
+          <div class="form-group">
+            <label for="role_display_name" class="form-label">Nombre Visible</label>
+            <input type="text" name="display_name" id="role_display_name" class="form-input" required
+              placeholder="ej: Gerente de Turno">
+          </div>
+          <div class="form-group full-width">
+            <label for="role_description" class="form-label">Descripción</label>
+            <textarea name="description" id="role_description" class="form-input" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="permissions-section mt-6">
+          <h4 class="text-lg font-semibold mb-3 border-b pb-2">Permisos Asignados</h4>
+          <div id="roles-permissions-container" class="permissions-grid bg-gray-50 dark:bg-gray-800 p-4 rounded-lg"
+            style="max-height: 400px; overflow-y: auto;">
+            <div class="text-center text-gray-500">Cargando catálogo de permisos...</div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal__footer">
+        <button type="button" class="btn btn--secondary close-roles-modal">Cancelar</button>
+        <button type="submit" class="btn btn--primary" id="roles-save-btn">Guardar Rol</button>
+      </footer>
+    </form>
+  </div>
+</dialog>
+{% endif %}
+
+{# MODULE: ADITAMENTOS / MODIFIERS #}
+{% include 'includes/_aditamentos.html' %}
+
+
+
+<!-- SECCIÓN FEEDBACK -->
+<section class="section" id="feedback-section" data-menu-title="Feedback" data-menu-group="⭐ Feedback">
+  <header class="section__header">
+    <h2>⭐ Feedback de Clientes</h2>
+    <p>Revisa calificaciones y comentarios.</p>
+  </header>
+  <div class="empty-state">
+    <div class="empty-state__icon">⭐</div>
+    <h3>Próximamente</h3>
+  </div>
+</section>
+
+<!-- SECCIONES CONFIGURACIÓN -->
+{% if employee_role in ['super_admin'] %}
+<section class="section" id="business-info" data-menu-title="Información del Negocio"
+  data-menu-group="⚙️ Configuración">
+  <header class="section__header">
+    <h2>🏢 Información del Negocio</h2>
+    <p>Datos generales, dirección y contacto.</p>
+  </header>
+  <div class="empty-state">
+    <div class="empty-state__icon">🚧</div>
+    <h3>Sección en construcción</h3>
+  </div>
+</section>
+
+<section class="section" id="business-hours" data-menu-title="Horarios de Atención" data-menu-group="⚙️ Configuración">
+  <header class="section__header">
+    <h2>🕒 Horarios de Atención</h2>
+    <p>Configura los horarios de apertura y cierre.</p>
+  </header>
+  <div class="empty-state">
+    <div class="empty-state__icon">🚧</div>
+    <h3>Sección en construcción</h3>
+  </div>
+</section>
+
+<section class="section" id="system-params" data-menu-title="Parámetros del Sistema" data-menu-group="⚙️ Configuración">
+  <header class="section__header">
+    <h2>⚙️ Parámetros del Sistema</h2>
+    <p>Configuraciones técnicas y preferencias globales.</p>
+  </header>
+  <div class="empty-state">
+    <div class="empty-state__icon">🚧</div>
+    <h3>Sección en construcción</h3>
+  </div>
+</section>
+
+<section class="section" id="feedback-settings" data-menu-title="Feedback Settings" data-menu-group="⚙️ Configuración">
+  <header class="section__header">
+    <h2>💬 Configuración de Feedback</h2>
+    <p>Personaliza las preguntas y opciones de feedback.</p>
+  </header>
+  <div class="empty-state">
+    <div class="empty-state__icon">🚧</div>
+    <h3>Sección en construcción</h3>
+  </div>
+</section>
+{% endif %}
+
+{% endblock %} {% block scripts %}
+<!-- Socket.io for real-time notifications (Disabled: Using Redis Polling) -->
+<!-- <script src="{{ url_for('static', filename='assets/lib/socket.io.min.js') }}"></script> -->

@@ -1,0 +1,44 @@
+{% if not employee_id %} {% set should_redirect = True %}
+<script>
+  console.warn('[SERVER-SIDE AUTH] No JWT context - redirecting to login');
+  window.location.href = '/';
+</script>
+{% else %} {% set should_redirect = False %} {% endif %}
+
+<link rel="stylesheet" href="{{ assets_css_employees }}/waiter.css" />
+
+{# Debug: Check session info from JWT #}
+<script>
+  console.log('[DEBUG] jwt.employee_id:', '{{ employee_id }}');
+  console.log('[DEBUG] jwt.active_scope:', '{{ app_context }}');
+</script>
+
+{# REMOVED: Diagnostic div causing blank dashboard issue
+<div
+  id="main-status"
+  style="padding: 20px; margin: 20px 0; background: #1e293b; border-radius: 8px"
+>
+  <p><strong>Estado Actual:</strong> Se redirige a login cuando no hay sesión (CORRECTO)</p>
+  <p>
+    <a href="/SYSTEM_STATUS.html" style="color: #3b82f6; text-decoration: underline"
+      >Abrir página de diagnóstico completo del sistema</a
+    >
+  </p>
+</div>
+#} {% if not employee_id or app_context|lower != app_context|lower %}
+<script>
+  // This check is redundant with JWT Scope Guard but keeps frontend logic safe
+  // Note: app_context vs active_scope is handled by context processor
+</script>
+{% else %} {% set should_redirect = False %} {% endif %}
+
+<link rel="stylesheet" href="{{ assets_css_employees }}/waiter.css" />
+<link rel="stylesheet" href="{{ assets_css_employees }}/waiter-pos-modern.css" />
+<link rel="stylesheet" href="{{ assets_css_employees }}/reports.css" />
+<!-- New Design System Components -->
+<link rel="stylesheet" href="{{ assets_css_employees }}/tokens.css" />
+<link rel="stylesheet" href="{{ assets_css_employees }}/components/cards.css" />
+<link rel="stylesheet" href="{{ assets_css_employees }}/components/toast.css" />
+<link rel="stylesheet" href="{{ assets_css_employees }}/components/loading.css" />
+<link rel="stylesheet" href="{{ assets_css_employees }}/components/empty-state.css" />
+<link rel="stylesheet" href="{{ assets_css_employees }}/components/panel-upgrades.css" />

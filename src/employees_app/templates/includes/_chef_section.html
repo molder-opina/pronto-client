@@ -1,0 +1,164 @@
+{% if has_permission(Permission.KITCHEN_VIEW) and (app_context|lower == 'chef' or
+app_context|lower == 'admin') %}
+<section class="section" id="panel-cocina" data-menu-title="Cocina" data-menu-group="🏠 OPERACIÓN" data-kitchen-root>
+  <!-- Unified Header (same style as meseros) -->
+  <div class="waiter-unified-header">
+    <div class="waiter-unified-header__left">
+      <h1 class="waiter-page-title">Órdenes en Cocina</h1>
+    </div>
+    <div class="waiter-unified-header__right">
+      <div class="designated-tables-area" style="justify-content: flex-end">
+        <button type="button" class="btn btn--secondary" id="call-admin-btn-chef"
+          onclick="window.callAdmin && window.callAdmin()" title="Llamar Administrador" style="margin-right: 0.5rem;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            style="margin-right: 4px;">
+            <path d="M2 18h20v2H2z"></path>
+            <path d="M12 4a9 9 0 0 1 9 9v1H3v-1a9 9 0 0 1 9-9z"></path>
+            <circle cx="12" cy="2" r="2"></circle>
+          </svg>
+          Llamar Admin
+        </button>
+        <button type="button" class="btn btn--secondary" onclick="
+          if (window.refreshKitchenOrders) window.refreshKitchenOrders();
+          else window.location.reload();
+        " title="Actualizar">
+          🔄 Actualizar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <div class="waiter-pos-container">
+    <!-- Toolbar (copiada de meseros) -->
+    <div class="w-full bg-white border-b border-gray-200 sticky top-16 z-40">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <div class="waiter-toolbar">
+          <div class="waiter-toolbar__search">
+            <div class="waiter-search-box">
+              <svg class="waiter-search-box__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <input type="search" id="kitchen-search-input" class="waiter-search-box__input"
+                placeholder="Buscar por orden #, mesa, cliente o item..." autocomplete="off" />
+              <span class="waiter-search-box__count" id="kitchen-search-count" style="display: none"></span>
+            </div>
+          </div>
+
+          <div class="waiter-toolbar__actions" style="justify-content: flex-end; gap: 0.75rem">
+            <button type="button" class="waiter-toolbar__btn" id="kitchen-open-filters-btn" title="Filtrar órdenes">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 4a1 1 0 0 1 0 2v16a1 1 0 0 1 0 2h18a1 1 0 0 1 0-2V6a1 1 0 0 1 0-2H3zM3 10h18M3 14h18M3 18h18" />
+              </svg>
+              Filtros
+            </button>
+            <div class="waiter-view-toggle" aria-label="Modo de vista de tabla">
+              <button type="button" class="waiter-view-toggle__btn active" id="kitchen-view-normal">
+                Vista normal
+              </button>
+              <button type="button" class="waiter-view-toggle__btn" id="kitchen-view-compact">
+                Vista compacta
+              </button>
+            </div>
+
+            {% if employee_role == 'chef' %}
+            <label class="flex items-center gap-2 cursor-pointer" style="font-size: 0.9rem; color: #475569">
+              <input type="checkbox" id="filter-my-chef-orders" style="width: 18px; height: 18px; cursor: pointer" />
+              <span>Solo mis órdenes</span>
+            </label>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
+      <div class="table-wrapper" id="kitchen-table-wrapper">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th style="width: 32px"></th>
+              <th>Orden</th>
+              <th>Mesa</th>
+              <th>Cliente</th>
+              <th>Detalle</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="kitchen-orders">
+            {% for order in kitchen_orders %}
+            {% set customer_display_name = 'Cliente' %}
+            {% if order.customer %}
+            {% set name = order.customer.name %}
+            {% set email = order.customer.email %}
+            {% if email and email.startswith('anonimo+') %}{% set email = '' %}{% endif %}
+            {% if order.customer_email and order.customer_email.startswith('anonimo+') %}{% set order_email = '' %}{%
+            else %}{% set order_email = order.customer_email %}{% endif %}
+            {% set final_email = email or order_email %}
+
+            {% if final_email and (not name or name|upper in ['INVITADO', 'CLIENTE ANONIMO', 'CLIENTE ANÓNIMO',
+            'ANONIMO', 'ANÓNIMO', 'CLIENTE']) %}
+            {% set customer_display_name = final_email %}
+            {% elif name %}
+            {% set customer_display_name = name %}
+            {% endif %}
+            {% endif %}
+
+            <tr data-order-id="{{ order.id }}" data-status="{{ order.workflow_status }}"
+              data-session-id="{{ order.session_id }}" data-table-number="{{ order.session.table_number or '' }}"
+              data-customer-name="{{ customer_display_name }}" data-customer-email="{{ order.customer_email or '' }}"
+              data-chef-id="{{ order.chef_id or '' }}" data-waiter-id="{{ order.waiter_id or '' }}"
+              data-created-at="{{ order.created_at or '' }}" data-notes="{{ (order.session.notes or '')|e }}"
+              data-waiter-notes="{{ (order.waiter_notes or '')|e }}">
+              <td>
+                <button type="button" class="star-btn" data-order-id="{{ order.id }}" title="Agregar a seguimiento">
+                  <span class="star-icon">☆</span>
+                </button>
+              </td>
+              <td>#{{ order.id }}</td>
+              <td>{{ order.session.table_number or 'N/A' }}</td>
+              <td>{{ customer_display_name }}</td>
+              <td>
+                <ul>
+                  {% for item in order['items'] %}
+                  <li>{{ item.quantity }} x {{ item.name }}</li>
+                  {% endfor %}
+                </ul>
+                {% if order.session.notes %}
+                <div class="kitchen-customer-note">
+                  <p class="kitchen-customer-note-title">
+                    📝 Nota del cliente:
+                  </p>
+                  <p class="kitchen-customer-note-text">
+                    {{ order.session.notes }}
+                  </p>
+                </div>
+                {% endif %}
+              </td>
+              <td>
+                <span class="status status--{{ order.workflow_status }}">{{ order.status_display or
+                  order.workflow_status }}</span>
+              </td>
+              <td class="actions"></td>
+            </tr>
+            {% endfor %} {% if kitchen_orders|length == 0 %}
+            <tr>
+              <td colspan="7">No hay órdenes activas en cocina.</td>
+            </tr>
+            {% endif %}
+            <tr class="orders-filter-empty" data-filter-empty-for="kitchen" style="display: none">
+              <td colspan="7">No encontramos órdenes que coincidan con tu búsqueda.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p id="kitchen-feedback" class="feedback"></p>
+    </div>
+  </div>
+</section>
+{% endif %}

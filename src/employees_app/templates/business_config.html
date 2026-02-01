@@ -1,0 +1,1280 @@
+{% extends "base.html" %} {% block header_branding %}
+<div
+  class="header-summary"
+  style="background: transparent; border: none; box-shadow: none; padding: 0"
+>
+  <h1 class="text-lg font-bold text-gray-900">Configuración del Negocio</h1>
+  <p class="text-xs text-gray-500">Administra la información, horarios y configuración avanzada</p>
+</div>
+{% endblock %} {% block content %}
+<div class="config-container">
+  <section
+    class="section"
+    id="business-info"
+    data-menu-title="Información del Negocio"
+    data-menu-group="Configuración"
+  >
+    <header class="section__header">
+      <h2>Información del Negocio</h2>
+      <p>Administra los datos básicos, logo y configuración regional.</p>
+    </header>
+    <form id="business-info-form" class="config-form">
+      <div class="form-section">
+        <h3>Información Básica</h3>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="business_name">Nombre del Negocio *</label>
+            <input
+              type="text"
+              id="business_name"
+              name="business_name"
+              required
+              readonly
+              value="{{ restaurant_name|title }}"
+            />
+            <small
+              >Este valor se obtiene del ambiente del contenedor y no se puede modificar.</small
+            >
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description">Descripción</label>
+            <textarea id="description" name="description" rows="3"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Teléfono</label>
+            <input type="tel" id="phone" name="phone" />
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="website">Sitio Web</label>
+            <input type="url" id="website" name="website" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Dirección</h3>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="address">Dirección</label>
+            <input type="text" id="address" name="address" />
+          </div>
+
+          <div class="form-group">
+            <label for="city">Ciudad</label>
+            <input type="text" id="city" name="city" />
+          </div>
+
+          <div class="form-group">
+            <label for="state">Estado</label>
+            <input type="text" id="state" name="state" />
+          </div>
+
+          <div class="form-group">
+            <label for="postal_code">Código Postal</label>
+            <input type="text" id="postal_code" name="postal_code" />
+          </div>
+
+          <div class="form-group">
+            <label for="country">País</label>
+            <input type="text" id="country" name="country" value="México" />
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Logo e Imagen</h3>
+
+        <!-- Logo Preview -->
+        <div
+          class="logo-preview-container"
+          id="logo-preview-container"
+          style="margin-bottom: 1.5rem; display: none"
+        >
+          <label>Vista Previa del Logo</label>
+          <div
+            style="
+              background: #f8fafc;
+              border: 2px dashed #cbd5e1;
+              border-radius: 8px;
+              padding: 2rem;
+              text-align: center;
+            "
+          >
+            <img
+              id="logo-preview-img"
+              src=""
+              alt="Logo preview"
+              style="max-width: 200px; max-height: 120px; object-fit: contain"
+            />
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Fuente del Logo</label>
+            <div class="logo-source-selector">
+              <label class="radio-option">
+                <input type="radio" name="logo_source" value="url" checked />
+                <span>URL Externa</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="logo_source" value="upload" />
+                <span>Subir Archivo Local</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="logo_source" value="server" />
+                <span>Ruta del Servidor</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- URL Input -->
+          <div class="form-group full-width" id="logo-url-input">
+            <label for="logo_url">URL del Logo</label>
+            <input
+              type="url"
+              id="logo_url"
+              name="logo_url"
+              placeholder="https://ejemplo.com/logo.png"
+            />
+            <small>Ingresa la URL completa de tu logo (debe ser accesible públicamente)</small>
+          </div>
+
+          <!-- Upload Input -->
+          <div class="form-group full-width" id="logo-upload-input" style="display: none">
+            <label for="logo_file">Archivo de Logo</label>
+            <input
+              type="file"
+              id="logo_file"
+              accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+            />
+            <small>Formatos aceptados: PNG, JPG, SVG, WebP (máx. 2MB)</small>
+            <div id="upload-progress" style="margin-top: 0.5rem; display: none">
+              <div style="background: #e2e8f0; border-radius: 4px; height: 8px; overflow: hidden">
+                <div
+                  id="upload-progress-bar"
+                  style="
+                    background: var(--primary-orange);
+                    height: 100%;
+                    width: 0%;
+                    transition: width 0.3s;
+                  "
+                ></div>
+              </div>
+              <small
+                id="upload-status"
+                style="color: #64748b; margin-top: 0.25rem; display: block"
+              ></small>
+            </div>
+          </div>
+
+          <!-- Server Path Input -->
+          <div class="form-group full-width" id="logo-server-input" style="display: none">
+            <label for="logo_server_path">Ruta del Servidor</label>
+            <input
+              type="text"
+              id="logo_server_path"
+              placeholder="/static/assets/branding/logo.png"
+            />
+            <small>Ruta relativa desde la raíz del servidor de contenido estático</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Configuración Regional</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="currency">Moneda</label>
+            <select id="currency" name="currency">
+              <option value="MXN">MXN - Peso Mexicano</option>
+              <option value="USD">USD - Dólar</option>
+              <option value="EUR">EUR - Euro</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="timezone">Zona Horaria</label>
+            <select id="timezone" name="timezone">
+              <option value="America/Mexico_City">Ciudad de México (CST)</option>
+              <option value="America/Monterrey">Monterrey (CST)</option>
+              <option value="America/Mazatlan">Mazatlán (MST)</option>
+              <option value="America/Tijuana">Tijuana (PST)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="waiter_call_sound">Sonido de Campana</label>
+            <select id="waiter_call_sound" name="waiter_call_sound">
+              <option value="bell1.mp3">Campana Clásica</option>
+              <option value="bell2.mp3">Campana Moderna</option>
+              <option value="ding.mp3">Ding</option>
+              <option value="whistle.mp3">Silbido</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          Guardar Cambios
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section
+    class="section"
+    id="business-schedule"
+    data-menu-title="Horarios de Atención"
+    data-menu-group="Configuración"
+  >
+    <header class="section__header">
+      <h2>Horarios de Atención</h2>
+      <p>Define cuándo está abierto el restaurante y notifica a los clientes fuera de horario.</p>
+    </header>
+    <div class="schedule-container">
+      <div class="schedule-header">
+        <h3>Horarios de Atención</h3>
+        <button id="save-schedule-btn" class="btn btn-primary">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Guardar Horarios
+        </button>
+      </div>
+
+      <p class="help-text" style="margin-bottom: 1.5rem">
+        Configura los horarios de atención del restaurante. Los clientes verán estos horarios en el
+        sitio y recibirán una notificación si intentan ordenar fuera del horario.
+      </p>
+
+      <div class="schedule-list" id="schedule-list">
+        <div class="schedule-item">
+          <div class="day-name">Lunes</div>
+          <div class="schedule-toggle">
+            <div class="toggle-switch" data-day="monday" onclick="toggleDay('monday')"></div>
+            <span class="toggle-label">Abierto</span>
+          </div>
+          <input type="time" class="time-input" id="monday-open" value="09:00" />
+          <input type="time" class="time-input" id="monday-close" value="22:00" />
+          <div class="schedule-duration" id="monday-duration">13 horas</div>
+        </div>
+
+        <div class="schedule-item">
+          <div class="day-name">Martes</div>
+          <div class="schedule-toggle">
+            <div class="toggle-switch" data-day="tuesday" onclick="toggleDay('tuesday')"></div>
+            <span class="toggle-label">Abierto</span>
+          </div>
+          <input type="time" class="time-input" id="tuesday-open" value="09:00" />
+          <input type="time" class="time-input" id="tuesday-close" value="22:00" />
+          <div class="schedule-duration" id="tuesday-duration">13 horas</div>
+        </div>
+
+        <div class="schedule-item">
+          <div class="day-name">Miércoles</div>
+          <div class="schedule-toggle">
+            <div class="toggle-switch" data-day="wednesday" onclick="toggleDay('wednesday')"></div>
+            <span class="toggle-label">Abierto</span>
+          </div>
+          <input type="time" class="time-input" id="wednesday-open" value="09:00" />
+          <input type="time" class="time-input" id="wednesday-close" value="22:00" />
+          <div class="schedule-duration" id="wednesday-duration">13 horas</div>
+        </div>
+
+        <div class="schedule-item">
+          <div class="day-name">Jueves</div>
+          <div class="schedule-toggle">
+            <div class="toggle-switch" data-day="thursday" onclick="toggleDay('thursday')"></div>
+            <span class="toggle-label">Abierto</span>
+          </div>
+          <input type="time" class="time-input" id="thursday-open" value="09:00" />
+          <input type="time" class="time-input" id="thursday-close" value="22:00" />
+          <div class="schedule-duration" id="thursday-duration">13 horas</div>
+        </div>
+
+        <div class="schedule-item">
+          <div class="day-name">Viernes</div>
+          <div class="schedule-toggle">
+            <div class="toggle-switch" data-day="friday" onclick="toggleDay('friday')"></div>
+            <span class="toggle-label">Abierto</span>
+          </div>
+          <input type="time" class="time-input" id="friday-open" value="09:00" />
+          <input type="time" class="time-input" id="friday-close" value="23:00" />
+          <div class="schedule-duration" id="friday-duration">14 horas</div>
+        </div>
+
+        <div class="schedule-item">
+          <div class="day-name">Sábado</div>
+          <div class="schedule-toggle">
+            <div class="toggle-switch" data-day="saturday" onclick="toggleDay('saturday')"></div>
+            <span class="toggle-label">Abierto</span>
+          </div>
+          <input type="time" class="time-input" id="saturday-open" value="09:00" />
+          <input type="time" class="time-input" id="saturday-close" value="23:00" />
+          <div class="schedule-duration" id="saturday-duration">14 horas</div>
+        </div>
+
+        <div class="schedule-item">
+          <div class="day-name">Domingo</div>
+          <div class="schedule-toggle">
+            <div class="toggle-switch" data-day="sunday" onclick="toggleDay('sunday')"></div>
+            <span class="toggle-label">Abierto</span>
+          </div>
+          <input type="time" class="time-input" id="sunday-open" value="09:00" />
+          <input type="time" class="time-input" id="sunday-close" value="21:00" />
+          <div class="schedule-duration" id="sunday-duration">12 horas</div>
+        </div>
+      </div>
+
+      <div
+        class="schedule-actions"
+        style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #f1f5f9"
+      >
+        <button type="button" class="btn btn-secondary" onclick="applyToAll()">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+          Aplicar horario del lunes a todos
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section
+    class="section"
+    id="business-parameters"
+    data-menu-title="Parámetros del Sistema"
+    data-menu-group="Configuración"
+  >
+    <header class="section__header">
+      <h2>Parámetros del Sistema</h2>
+      <p>Gestiona todos los parámetros de configuración del sistema.</p>
+    </header>
+    <div class="settings-container">
+      <div class="settings-header">
+        <div>
+          <h3>Parámetros Operacionales del Sistema</h3>
+          <p style="margin: 0.5rem 0 0 0; color: #64748b; font-size: 0.875rem">
+            Gestiona todos los parámetros de configuración del sistema
+          </p>
+        </div>
+        <div class="settings-search-advanced">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input
+            type="text"
+            id="settings-search"
+            placeholder="Buscar por clave, descripción o valor..."
+          />
+          <div class="search-filters">
+            <button type="button" class="filter-toggle" id="advanced-filters-toggle">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M3 6h18M7 12h10M11 18h2"></path>
+              </svg>
+              Filtros
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Filters Panel -->
+      <div class="advanced-filters-panel" id="advanced-filters-panel" style="display: none">
+        <div class="filter-group">
+          <label>Categoría</label>
+          <div class="settings-categories">
+            <button class="category-btn active" data-category="all">Todas</button>
+            <button class="category-btn" data-category="orders">Pedidos</button>
+            <button class="category-btn" data-category="general">General</button>
+            <button class="category-btn" data-category="payments">Pagos</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Tipo de Valor</label>
+          <select id="type-filter" class="filter-select">
+            <option value="all">Todos los tipos</option>
+            <option value="bool">Booleano</option>
+            <option value="int">Entero</option>
+            <option value="float">Decimal</option>
+            <option value="string">Texto</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <button type="button" class="btn-clear-filters" onclick="clearAllFilters()">
+            Limpiar filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Parameters Table -->
+      <div class="parameters-table-container">
+        <table class="parameters-table" id="parameters-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="key">
+                Clave
+                <span class="sort-icon">⇅</span>
+              </th>
+              <th class="sortable" data-sort="description">
+                Descripción
+                <span class="sort-icon">⇅</span>
+              </th>
+              <th class="sortable" data-sort="category">
+                Categoría
+                <span class="sort-icon">⇅</span>
+              </th>
+              <th class="sortable" data-sort="value_type">
+                Tipo
+                <span class="sort-icon">⇅</span>
+              </th>
+              <th>Valor Actual</th>
+              <th style="width: 100px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="parameters-table-body">
+            <!-- Will be populated by JS -->
+          </tbody>
+        </table>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="empty-state" style="display: none">
+          <svg
+            width="64"
+            height="64"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#cbd5e1"
+            stroke-width="1.5"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <h4>No se encontraron parámetros</h4>
+          <p>Intenta ajustar los filtros de búsqueda</p>
+        </div>
+      </div>
+
+      <!-- Results Info -->
+      <div class="results-info" id="results-info">
+        Mostrando <strong id="results-count">0</strong> parámetros
+      </div>
+    </div>
+  </section>
+
+  <section
+    class="section"
+    id="feedback-config"
+    data-menu-title="Feedback Settings"
+    data-menu-group="Configuración"
+  >
+    <header class="section__header">
+      <h2>Configuración de Feedback</h2>
+      <p>Configura el sistema de feedback post-pago para收集 opiniones de clientes.</p>
+    </header>
+
+    <div class="config-form">
+      <div class="form-section">
+        <h3>Modal de Feedback</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="feedback_prompt_enabled">Habilitar Modal de Feedback</label>
+            <select id="feedback_prompt_enabled" name="feedback_prompt_enabled">
+              <option value="true">Sí, mostrar después del pago</option>
+              <option value="false">No, deshabilitado</option>
+            </select>
+            <small>Muestra el modal de feedback cuando el cliente completa el pago</small>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback_prompt_timeout_seconds">Tiempo del Timer (segundos)</label>
+            <input
+              type="number"
+              id="feedback_prompt_timeout_seconds"
+              name="feedback_prompt_timeout_seconds"
+              min="5"
+              max="60"
+              value="10"
+            />
+            <small>Tiempo antes de enviar email (si no responde)</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Email de Feedback</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="feedback_email_enabled">Habilitar Emails</label>
+            <select id="feedback_email_enabled" name="feedback_email_enabled">
+              <option value="true">Sí, enviar emails</option>
+              <option value="false">No, solo modal</option>
+            </select>
+            <small>Envía email si el cliente no responde en el modal</small>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback_email_token_ttl_hours">TTL del Token (horas)</label>
+            <input
+              type="number"
+              id="feedback_email_token_ttl_hours"
+              name="feedback_email_token_ttl_hours"
+              min="1"
+              max="168"
+              value="24"
+            />
+            <small>Validez del link de feedback en el email</small>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback_email_allow_anonymous_if_email_present"
+              >Capturar Email Anónimo</label
+            >
+            <select
+              id="feedback_email_allow_anonymous_if_email_present"
+              name="feedback_email_allow_anonymous_if_email_present"
+            >
+              <option value="true">Sí, permitir capturar email</option>
+              <option value="false">No, solo usuarios registrados</option>
+            </select>
+            <small>Permitir capturar email de usuarios anónimos en el modal</small>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback_email_throttle_per_order">Throttle por Orden</label>
+            <select id="feedback_email_throttle_per_order" name="feedback_email_throttle_per_order">
+              <option value="true">Sí, solo un email por orden</option>
+              <option value="false">No, permitir múltiples</option>
+            </select>
+            <small>Previene múltiples emails para la misma orden</small>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="feedback_email_subject">Asunto del Email</label>
+            <input
+              type="text"
+              id="feedback_email_subject"
+              name="feedback_email_subject"
+              placeholder="Cuéntanos tu experiencia en {{restaurant_name}}"
+              value="Cuéntanos tu experiencia en {{restaurant_name}}"
+            />
+            <small>Usa {{restaurant_name}} para el nombre del restaurante</small>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="feedback_email_body_template">Plantilla del Email (HTML)</label>
+            <textarea
+              id="feedback_email_body_template"
+              name="feedback_email_body_template"
+              rows="6"
+              placeholder="<h2>Hola!</h2><p>Gracias por visitar...</p>"
+            ></textarea>
+            <small>Usa {{restaurant_name}}, {{order_id}}, {{token_link}} como variables</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-primary" onclick="FeedbackConfigManager.save()">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Guardar Configuración de Feedback
+        </button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  .config-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .config-header {
+    margin-bottom: 2rem;
+  }
+
+  .config-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .subtitle {
+    color: #64748b;
+    margin: 0;
+  }
+
+  .config-form {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .form-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .form-section h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f1f5f9;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-group.full-width {
+    grid-column: 1 / -1;
+    max-width: 600px;
+  }
+
+  .form-group label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus-visible {
+    outline: none;
+    border-color: var(--primary-orange);
+    box-shadow: 0 0 0 3px var(--primary-orange-light);
+  }
+
+  .form-group small {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 1.5rem;
+    border-top: 2px solid #f1f5f9;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--primary-orange);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-orange-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  }
+
+  /* Schedule Styles */
+  .schedule-container {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .schedule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f1f5f9;
+  }
+
+  .schedule-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .schedule-item {
+    display: grid;
+    grid-template-columns: 150px 100px 1fr 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    transition: all 0.2s;
+  }
+
+  .schedule-item:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .schedule-item.closed {
+    opacity: 0.6;
+  }
+
+  .day-name {
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .schedule-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #cbd5e1;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .toggle-switch.active {
+    background: var(--primary-orange);
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s;
+  }
+
+  .toggle-switch.active::after {
+    left: 22px;
+  }
+
+  .toggle-label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .time-input {
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.875rem;
+  }
+
+  .schedule-duration {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+    text-align: right;
+  }
+
+  .btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+  }
+
+  .btn-secondary:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+  }
+
+  /* Settings Styles */
+  .settings-container {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    gap: 2rem;
+  }
+
+  .settings-header h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .settings-search-advanced {
+    position: relative;
+    min-width: 400px;
+  }
+
+  .settings-search-advanced svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    z-index: 1;
+  }
+
+  .settings-search-advanced input {
+    width: 100%;
+    padding: 0.75rem 6rem 0.75rem 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+  }
+
+  .settings-search-advanced input:focus-visible {
+    outline: none;
+    border-color: var(--primary-orange);
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+  }
+
+  .search-filters {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-toggle:hover {
+    border-color: var(--primary-orange);
+    color: var(--primary-orange);
+  }
+
+  .filter-toggle.active {
+    background: var(--primary-orange);
+    color: white;
+    border-color: var(--primary-orange);
+  }
+
+  /* Advanced Filters Panel */
+  .advanced-filters-panel {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-group {
+    margin-bottom: 1rem;
+  }
+
+  .filter-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .filter-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 0.5rem;
+  }
+
+  .filter-select {
+    width: 100%;
+    max-width: 300px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+  }
+
+  .btn-clear-filters {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-clear-filters:hover {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+
+  .settings-categories {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .category-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .category-btn:hover {
+    border-color: var(--primary-orange);
+    color: var(--primary-orange);
+  }
+
+  .category-btn.active {
+    background: var(--primary-orange);
+    color: white;
+    border-color: var(--primary-orange);
+  }
+
+  /* Parameters Table */
+  .parameters-table-container {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+
+  .parameters-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .parameters-table thead {
+    background: #f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .parameters-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+
+  .parameters-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+  }
+
+  .parameters-table th.sortable:hover {
+    background: #f1f5f9;
+    color: var(--primary-orange);
+  }
+
+  .parameters-table th.sortable.sorted-asc .sort-icon::before,
+  .parameters-table th.sortable.sorted-desc .sort-icon::before {
+    color: var(--primary-orange);
+  }
+
+  .sort-icon {
+    margin-left: 0.25rem;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+  }
+
+  .parameters-table tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: all 0.15s;
+  }
+
+  .parameters-table tbody tr:hover {
+    background: #fef3f2;
+  }
+
+  .parameters-table td {
+    padding: 1rem;
+    color: #0f172a;
+  }
+
+  .param-key {
+    font-weight: 600;
+    color: #0f172a;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.8125rem;
+  }
+
+  .param-description {
+    color: #64748b;
+    max-width: 300px;
+    line-height: 1.4;
+  }
+
+  .param-category {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+
+  .param-type {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    background: #dbeafe;
+    color: #1e40af;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: 'Monaco', 'Consolas', monospace;
+  }
+
+  .param-value-cell {
+    max-width: 250px;
+  }
+
+  .param-value-display {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.8125rem;
+    color: #0f172a;
+    padding: 0.375rem 0.625rem;
+    background: #f8fafc;
+    border-radius: 4px;
+    word-break: break-word;
+  }
+
+  .param-value-display.bool-true {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .param-value-display.bool-false {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .param-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .btn-edit-param {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-edit-param:hover {
+    border-color: var(--primary-orange);
+    color: var(--primary-orange);
+    background: #fff7ed;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #94a3b8;
+  }
+
+  .empty-state h4 {
+    font-size: 1.125rem;
+    color: #64748b;
+    margin: 1rem 0 0.5rem 0;
+  }
+
+  .empty-state p {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+
+  /* Results Info */
+  .results-info {
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: #64748b;
+    text-align: center;
+  }
+
+  /* Logo Selection Styles */
+  .logo-source-selector {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  .radio-option:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+
+  .radio-option input[type='radio'] {
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .radio-option input[type='radio']:checked + span {
+    color: var(--primary-orange);
+    font-weight: 600;
+  }
+
+  .radio-option:has(input[type='radio']:checked) {
+    border-color: var(--primary-orange);
+    background: #fff7ed;
+  }
+
+  .logo-preview-container label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 0.5rem;
+  }
+</style>
+
+<script src="{{ assets_js_employees }}/business_config.js"></script>
+{% endblock %}

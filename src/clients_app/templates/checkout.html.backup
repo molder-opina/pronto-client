@@ -1,0 +1,732 @@
+{% extends "base.html" %} {% set currency_symbol = config.get('CURRENCY_SYMBOL', '$') %} {% set
+currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
+<style>
+  body.checkout-page .view-tabs,
+  body.checkout-page .header-actions {
+    display: none !important;
+  }
+
+  /* Ensure checkout is always visible on checkout page */
+  body.checkout-page .checkout-section,
+  body.checkout-page .checkout-page {
+    display: block !important;
+  }
+
+  body.checkout-page .checkout-form,
+  body.checkout-page .checkout-summary {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  body.checkout-page .checkout-container {
+    display: grid !important;
+  }
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.body.classList.add('checkout-page');
+    // Force show checkout section
+    const checkoutSection = document.getElementById('checkout-section');
+    if (checkoutSection) {
+      checkoutSection.style.display = 'block';
+      checkoutSection.style.visibility = 'visible';
+      console.log('[Checkout] Section forced to display: block');
+    }
+    // Show checkout form and summary
+    const checkoutForm = document.getElementById('checkout-form');
+    const checkoutSummary = document.getElementById('checkout-summary');
+    if (checkoutForm) {
+      checkoutForm.style.display = 'block';
+      checkoutForm.style.visibility = 'visible';
+    }
+    if (checkoutSummary) {
+      checkoutSummary.style.display = 'block';
+      checkoutSummary.style.visibility = 'visible';
+    }
+  });
+</script>
+
+<!-- Breadcrumbs Navigation -->
+<nav class="breadcrumbs" aria-label="Navegación de ruta">
+  <div class="breadcrumbs-container">
+    <a href="/" class="breadcrumb-item">
+      <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+        />
+      </svg>
+      Menú
+    </a>
+    <svg class="breadcrumb-separator" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+    <a href="/" class="breadcrumb-item">
+      <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+        />
+      </svg>
+      Carrito
+    </a>
+    <svg class="breadcrumb-separator" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+    <span class="breadcrumb-item breadcrumb-item--active">
+      <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      Checkout
+    </span>
+  </div>
+</nav>
+
+<!-- Checkout Section - Modern 2 Column Layout -->
+<section class="checkout-section checkout-page active" id="checkout-section">
+  <div class="checkout-shell">
+    <div class="checkout-container">
+      <!-- LEFT: Form -->
+      <div class="checkout-form">
+        <div class="checkout-form__header">
+          <button type="button" class="back-to-menu-btn" onclick="window.location.href = '/'">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
+            </svg>
+            Volver al menú
+          </button>
+          <h1 class="checkout-form__title">Finalizar pedido</h1>
+          <p class="checkout-form__subtitle">Completa tu información para confirmar el pedido</p>
+        </div>
+
+        <form id="checkout-form" novalidate>
+          <div class="form-group">
+            <label for="customer-name">
+              Nombre
+              <span class="label-hint" style="color: var(--muted)">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              id="customer-name"
+              name="name"
+              placeholder="Tu nombre"
+              maxlength="100"
+              autocomplete="name"
+            />
+            <span class="form-group__status" id="customer-name-status"></span>
+            <span class="form-group__error" id="customer-name-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="customer-email">
+              Email
+              <span class="label-hint" style="color: var(--muted)"
+                >(opcional - necesario para confirmación y pago digital)</span
+              >
+            </label>
+            <input
+              type="email"
+              id="customer-email"
+              name="email"
+              placeholder="tu@email.com"
+              maxlength="254"
+              autocomplete="email"
+              pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+            />
+            <span class="form-group__status" id="customer-email-status"></span>
+            <span class="form-group__error" id="customer-email-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="customer-phone">
+              Teléfono
+              <span class="label-hint" style="color: var(--muted)">(opcional)</span>
+            </label>
+            <div class="phone-input-group">
+              <select
+                id="phone-country-code"
+                class="phone-country-select"
+                aria-label="Código de país"
+              ></select>
+              <input
+                type="tel"
+                id="customer-phone"
+                name="phone"
+                placeholder="Número de contacto"
+                maxlength="15"
+                autocomplete="tel"
+                pattern="[0-9+\-\s]{7,15}"
+              />
+            </div>
+            <span class="form-group__status" id="customer-phone-status"></span>
+            <span class="form-group__error" id="customer-phone-error"></span>
+          </div>
+
+          <!-- Mesa como Badge Informativo -->
+          <div
+            class="mesa-info-card"
+            style="background: white !important; background-image: none !important"
+          >
+            <div class="mesa-info-card__icon">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </div>
+            <div class="mesa-info-card__content">
+              <h4 class="mesa-info-card__title" id="table-label">Mesa —</h4>
+              <p class="mesa-info-card__text" id="table-subtitle">
+                Asignada automáticamente por código QR
+              </p>
+            </div>
+            <input type="hidden" id="table-number" name="table_number" />
+          </div>
+
+          <!-- Estimated Wait Time -->
+          <div class="estimated-wait-time" id="estimated-wait-time" style="display: none">
+            <svg
+              class="estimated-wait-time__icon"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div class="estimated-wait-time__content">
+              <div class="estimated-wait-time__label">Tiempo estimado de preparación</div>
+              <div class="estimated-wait-time__value" id="wait-time-value">10-15 minutos</div>
+            </div>
+          </div>
+
+          <!-- Auto-save Indicator -->
+          <div class="autosave-indicator" id="autosave-indicator">
+            <span class="autosave-indicator__dot"></span>
+            <span>Guardando automáticamente...</span>
+          </div>
+
+          <div class="form-group">
+            <label for="notes">
+              Notas especiales
+              <span class="label-hint">(opcional)</span>
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows="3"
+              placeholder="Alergias, preferencias, etc."
+              maxlength="500"
+            ></textarea>
+            <span class="form-group__counter" id="notes-counter">0/500</span>
+          </div>
+
+          <div class="feedback-message" id="checkout-feedback"></div>
+        </form>
+      </div>
+
+      <!-- RIGHT: Summary (sticky on desktop) -->
+      <div class="checkout-summary">
+        <div class="checkout-summary-header">
+          <h3 class="checkout-summary__title">Resumen del pedido</h3>
+          <span class="checkout-summary__badge" id="cart-items-count">0 items</span>
+        </div>
+
+        <div class="checkout-summary__items" id="checkout-summary"></div>
+
+        <div class="checkout-summary__divider"></div>
+
+        <div class="checkout-summary__total">
+          <span class="checkout-summary__total-label">Total</span>
+          <span class="checkout-summary__total-amount" id="checkout-total">
+            {{ currency_symbol }}0.00
+          </span>
+        </div>
+
+        <button
+          type="submit"
+          form="checkout-form"
+          class="checkout-submit-btn"
+          id="checkout-submit-btn"
+        >
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          <span class="btn-text">Confirmar pedido</span>
+          <span class="btn-loader" hidden>
+            <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-dasharray="31.4"
+                stroke-dashoffset="10"
+              />
+            </svg>
+          </span>
+        </button>
+
+        <p class="checkout-summary__secure">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
+          </svg>
+          Conexión segura y cifrada
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- All styles are now in menu.css for better maintainability -->
+
+<script>
+  window.APP_CONFIG = {
+    static_base_url: '{{ static_base_url }}',
+    restaurant_assets: '{{ restaurant_assets }}',
+    currency_code: '{{ currency_code }}',
+    currency_symbol: '{{ currency_symbol }}',
+  };
+</script>
+
+<script>
+  (function () {
+    const form = document.getElementById('checkout-form');
+    const submitBtn = document.getElementById('checkout-submit-btn');
+    const notesTextarea = document.getElementById('notes');
+    const notesCounter = document.getElementById('notes-counter');
+    const autosaveIndicator = document.getElementById('autosave-indicator');
+    const estimatedWaitTime = document.getElementById('estimated-wait-time');
+    const waitTimeValue = document.getElementById('wait-time-value');
+
+    const STORAGE_KEY = 'pronto-checkout-draft';
+
+    const validators = {
+      email: (value) => {
+        if (!value) return { valid: true, message: '' };
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          return { valid: false, message: 'Ingresa un email válido' };
+        }
+        return { valid: true, message: '' };
+      },
+      phone: (value) => {
+        if (!value) return { valid: true, message: '' };
+        const phoneRegex = /^[0-9+\-\s]{7,15}$/;
+        if (!phoneRegex.test(value.trim())) {
+          return { valid: false, message: 'Ingresa un teléfono válido (7-15 dígitos)' };
+        }
+        return { valid: true, message: '' };
+      },
+      name: (value) => {
+        if (!value) return { valid: true, message: '' };
+        if (value.trim().length < 2) {
+          return { valid: false, message: 'El nombre debe tener al menos 2 caracteres' };
+        }
+        return { valid: true, message: '' };
+      },
+    };
+
+    const fieldStatus = {
+      name: 'idle',
+      email: 'idle',
+      phone: 'idle',
+    };
+
+    function showError(inputId, message) {
+      const errorEl = document.getElementById(`${inputId}-error`);
+      const inputEl = document.getElementById(inputId);
+      const statusEl = document.getElementById(`${inputId}-status`);
+
+      if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.add('form-group__error--visible');
+      }
+      if (inputEl) {
+        inputEl.classList.add('input--error');
+        inputEl.classList.remove('input--success');
+      }
+      if (statusEl) {
+        statusEl.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`;
+        statusEl.className = 'form-group__status form-group__status--error';
+      }
+      fieldStatus[inputId] = 'error';
+    }
+
+    function showSuccess(inputId) {
+      const errorEl = document.getElementById(`${inputId}-error`);
+      const inputEl = document.getElementById(inputId);
+      const statusEl = document.getElementById(`${inputId}-status`);
+
+      if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.classList.remove('form-group__error--visible');
+      }
+      if (inputEl) {
+        inputEl.classList.remove('input--error');
+        inputEl.classList.add('input--success');
+      }
+      if (statusEl) {
+        statusEl.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+        statusEl.className = 'form-group__status form-group__status--success';
+      }
+      fieldStatus[inputId] = 'valid';
+    }
+
+    function showIdle(inputId) {
+      const errorEl = document.getElementById(`${inputId}-error`);
+      const inputEl = document.getElementById(inputId);
+      const statusEl = document.getElementById(`${inputId}-status`);
+
+      if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.classList.remove('form-group__error--visible');
+      }
+      if (inputEl) {
+        inputEl.classList.remove('input--error', 'input--success');
+      }
+      if (statusEl) {
+        statusEl.innerHTML = '';
+        statusEl.className = 'form-group__status';
+      }
+      fieldStatus[inputId] = 'idle';
+    }
+
+    function validateField(input) {
+      const value = input.value.trim();
+      const type = input.type;
+      const inputId = input.id;
+
+      if (type === 'email') {
+        const result = validators.email(value);
+        if (!result.valid) {
+          showError(inputId, result.message);
+          return false;
+        }
+        if (value) {
+          showSuccess(inputId);
+          return true;
+        }
+      }
+
+      if (type === 'tel') {
+        const result = validators.phone(value);
+        if (!result.valid) {
+          showError(inputId, result.message);
+          return false;
+        }
+        if (value) {
+          showSuccess(inputId);
+          return true;
+        }
+      }
+
+      if (inputId === 'customer-name') {
+        const result = validators.name(value);
+        if (!result.valid) {
+          showError(inputId, result.message);
+          return false;
+        }
+        if (value) {
+          showSuccess(inputId);
+          return true;
+        }
+      }
+
+      showIdle(inputId);
+      return true;
+    }
+
+    function validateForm() {
+      const emailInput = document.getElementById('customer-email');
+      const phoneInput = document.getElementById('customer-phone');
+      const nameInput = document.getElementById('customer-name');
+      let isValid = true;
+
+      if (emailInput && !validateField(emailInput)) isValid = false;
+      if (phoneInput && !validateField(phoneInput)) isValid = false;
+      if (nameInput && !validateField(nameInput)) isValid = false;
+
+      updateSubmitButton(isValid);
+      return isValid;
+    }
+
+    function updateSubmitButton(isValid) {
+      if (!submitBtn) return;
+
+      // Check if any field has an error (not just if all are touched)
+      const hasErrors = Object.values(fieldStatus).some((status) => status === 'error');
+
+      // Enable button if valid and no errors (fields are optional, so don't require all to be touched)
+      if (isValid && !hasErrors) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('btn--disabled');
+        submitBtn.classList.add('btn--ready');
+      } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('btn--disabled');
+        submitBtn.classList.remove('btn--ready');
+      }
+    }
+
+    function handleFieldBlur(event) {
+      const input = event.target;
+      validateField(input);
+    }
+
+    function handleFieldInput(event) {
+      const input = event.target;
+      if (input.type === 'email' || input.type === 'tel' || input.id === 'customer-name') {
+        if (fieldStatus[input.id] === 'error' || fieldStatus[input.id] === 'valid') {
+          validateField(input);
+        }
+        autoSaveDraft();
+      }
+    }
+
+    function handleNotesInput() {
+      if (notesTextarea && notesCounter) {
+        const count = notesTextarea.value.length;
+        notesCounter.textContent = `${count}/500`;
+      }
+      autoSaveDraft();
+    }
+
+    function autoSaveDraft() {
+      if (!form) return;
+
+      const formData = new FormData(form);
+      const draft = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        notes: formData.get('notes'),
+        timestamp: Date.now(),
+      };
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+
+      if (autosaveIndicator) {
+        autosaveIndicator.classList.add('autosave-indicator--visible');
+        setTimeout(() => {
+          autosaveIndicator.classList.remove('autosave-indicator--visible');
+        }, 2000);
+      }
+    }
+
+    function loadDraft() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return;
+
+        const draft = JSON.parse(saved);
+
+        if (draft.name) {
+          const input = document.getElementById('customer-name');
+          if (input) input.value = draft.name;
+        }
+        if (draft.email) {
+          const input = document.getElementById('customer-email');
+          if (input) input.value = draft.email;
+        }
+        if (draft.phone) {
+          const input = document.getElementById('customer-phone');
+          if (input) input.value = draft.phone;
+        }
+        if (draft.notes) {
+          const input = document.getElementById('notes');
+          if (input) input.value = draft.notes;
+          handleNotesInput();
+        }
+
+        Object.keys(fieldStatus).forEach((fieldId) => {
+          const input = document.getElementById(fieldId);
+          if (input && input.value) validateField(input);
+        });
+
+        console.log('[Checkout] Draft loaded from localStorage');
+      } catch (error) {
+        console.warn('[Checkout] Error loading draft:', error);
+      }
+    }
+
+    function calculateEstimatedWaitTime(cartItemCount) {
+      if (!estimatedWaitTime || !waitTimeValue) return;
+
+      let minutes;
+      if (cartItemCount <= 2) {
+        minutes = '5-10';
+      } else if (cartItemCount <= 5) {
+        minutes = '10-15';
+      } else if (cartItemCount <= 10) {
+        minutes = '15-20';
+      } else {
+        minutes = '20-30';
+      }
+
+      waitTimeValue.textContent = `${minutes} minutos`;
+      estimatedWaitTime.style.display = 'flex';
+    }
+
+    form?.addEventListener('blur', handleFieldBlur, true);
+    form?.addEventListener('input', handleFieldInput, true);
+    notesTextarea?.addEventListener('input', handleNotesInput);
+
+    form?.addEventListener('submit', async function (event) {
+      // ALWAYS prevent default to avoid GET form submission
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Validate all fields before allowing submission
+      Object.keys(fieldStatus).forEach((fieldId) => {
+        const input = document.getElementById(fieldId);
+        if (input) validateField(input);
+      });
+
+      if (!validateForm()) {
+        const firstError = form.querySelector('.input--error');
+        if (firstError) {
+          firstError.focus();
+        }
+        return;
+      }
+
+      // Get cart from CartPersistence
+      const cart = typeof window.getCartItems === 'function' ? window.getCartItems() : [];
+      if (!cart || cart.length === 0) {
+        window.showNotification?.('Tu carrito está vacío', 'warning');
+        return;
+      }
+
+      // Show loading state
+      const feedbackEl = document.getElementById('checkout-feedback');
+      if (feedbackEl) {
+        feedbackEl.textContent = 'Enviando pedido...';
+        feedbackEl.className = 'feedback-message';
+      }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('btn--loading');
+      }
+
+      // Build payload
+      const formData = new FormData(form);
+      const phoneCode = document.getElementById('phone-country-code')?.value || '+52';
+      const phoneNumber = (formData.get('phone') || '').toString().trim();
+      const phoneDigits = phoneNumber.replace(/\D/g, '');
+
+      const payload = {
+        customer: {
+          name: (formData.get('name') || '').toString().trim() || 'Cliente Anónimo',
+          email: (formData.get('email') || '').toString().trim() || undefined,
+          phone: phoneDigits ? `${phoneCode}${phoneDigits}` : undefined,
+        },
+        notes: formData.get('notes'),
+        table_number: formData.get('table_number'),
+        items: cart.map((item) => ({
+          menu_item_id: item.id,
+          quantity: item.quantity,
+          modifiers: item.modifiers || [],
+        })),
+      };
+
+      // Get anonymous client ID if no email
+      if (!payload.customer.email) {
+        const anonId = localStorage.getItem('pronto-anonymous-client-id');
+        if (anonId) payload.anonymous_client_id = anonId;
+      }
+
+      try {
+        const response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Error al crear el pedido');
+        }
+
+        // Clear draft and cart on success
+        localStorage.removeItem(STORAGE_KEY);
+        if (typeof window.clearCart === 'function') {
+          window.clearCart();
+        }
+
+        // Calculate total for redirect
+        const total = cart.reduce(
+          (sum, item) => sum + (item.price + (item.extrasTotal || 0)) * item.quantity,
+          0
+        );
+
+        // Redirect to Thank You page
+        window.location.href = `/thanks?session_id=${data.session_id}&total=${total}`;
+      } catch (error) {
+        if (feedbackEl) {
+          feedbackEl.textContent = error.message || 'Error al enviar el pedido';
+          feedbackEl.className = 'feedback-message error';
+        }
+        window.showNotification?.(error.message || 'Error al enviar el pedido', 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('btn--loading');
+        }
+      }
+    });
+
+    loadDraft();
+    handleNotesInput();
+    validateForm();
+
+    if (typeof window.updateCartCount === 'function') {
+      const cartCount = window.updateCartCount() || 0;
+      calculateEstimatedWaitTime(cartCount);
+    }
+  })();
+</script>
+
+<script type="module" src="{{ url_for('static', filename='js/dist/clients/menu.js') }}"></script>
+{% endblock %}

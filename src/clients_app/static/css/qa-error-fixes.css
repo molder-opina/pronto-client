@@ -1,0 +1,40 @@
+/* Inserted CSS Fix for QA Errors #1 & #2 - Checkout Button & Modal Clicks */
+
+/* ERROR #1: Ensure checkout button is always visible */
+.checkout-submit-btn {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: inline-flex !important;
+  position: relative !important;
+  z-index: 10 !important;
+  pointer-events: auto !important;
+}
+
+.checkout-submit-btn:disabled {
+  pointer-events: auto !important;
+}
+
+#checkout-btn {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* ERROR #2: Modal overlay should not block form interactions */
+#item-modal .modal-overlay {
+  pointer-events: none !important;
+}
+
+#item-modal .modal-body,
+#item-modal .modal-footer {
+  pointer-events: auto !important;
+  z-index: 101 !important;
+}
+
+#item-modal .modal-body input,
+#item-modal .modal-body label,
+#item-modal .modal-footer button,
+.modal-add-to-cart {
+  pointer-events: auto !important;
+  z-index: 102 !important;
+}

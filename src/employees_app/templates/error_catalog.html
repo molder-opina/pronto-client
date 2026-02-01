@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="section">
+    <div class="section__header">
+        <h1>Centro de Control y Errores</h1>
+        <p>Catálogo de códigos de error, diagnósticos y estado del servicio 6081.</p>
+    </div>
+
+    <!-- Info Servicio 6081 -->
+    <div
+        style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem;">
+        <h2 style="color: var(--primary-orange); display: flex; align-items: center; gap: 0.5rem; margin-top: 0;">
+            <span style="font-size: 1.5rem;">🔌</span> {{ service_info.name }}
+        </h2>
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            <div>
+                <strong
+                    style="display: block; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Estado</strong>
+                <span class="status confirm"
+                    style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-weight: 600;">{{
+                    service_info.status }}</span>
+            </div>
+            <div>
+                <strong
+                    style="display: block; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Puerto</strong>
+                <code style="font-size: 1.1rem;">:{{ service_info.port }}</code>
+            </div>
+            <div>
+                <strong
+                    style="display: block; color: #64748b; font-size: 0.8rem; text-transform: uppercase;">Tecnología</strong>
+                <span>{{ service_info.tech_stack }}</span>
+            </div>
+        </div>
+        <p style="margin-top: 1rem; color: #475569; line-height: 1.5;">
+            {{ service_info.description }}
+        </p>
+        <div style="margin-top: 1rem;">
+            <strong
+                style="display: block; color: #64748b; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.5rem;">Módulos
+                Activos</strong>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                {% for mod in service_info.modules %}
+                <span
+                    style="background: #fff; border: 1px solid #cbd5e1; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; color: #334155;">{{
+                    mod }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Catálogo -->
+    <h2 style="margin-bottom: 1rem; color: #1e293b;">Catálogo de Errores Controlados</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 100px;">Código</th>
+                    <th>Título</th>
+                    <th>Descripción Técnica</th>
+                    <th style="width: 80px;">HTTP</th>
+                    <th>Solución Sugerida</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for code, details in catalog.items() %}
+                <tr>
+                    <td>
+                        <span
+                            style="font-family: monospace; font-weight: 700; background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px;">{{
+                            code }}</span>
+                    </td>
+                    <td><strong>{{ details.title }}</strong></td>
+                    <td style="color: #475569;">{{ details.description }}</td>
+                    <td><code
+                            style="background: #f1f5f9; padding: 2px 5px; border-radius: 3px;">{{ details.http_code }}</code>
+                    </td>
+                    <td style="color: #059669; font-style: italic;">{{ details.solution }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

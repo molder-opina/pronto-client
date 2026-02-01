@@ -1,0 +1,76 @@
+{% if has_permission(Permission.ORDERS_VIEW) %}
+<!-- Global notifications panel for waiter calls -->
+<div class="notifications-panel" id="notifications-panel" style="display: none">
+  <div class="notifications-panel__header">
+    <h3>🔔 Llamadas de clientes</h3>
+    <div class="notifications-panel__actions">
+      {% if has_permission(Permission.EMPLOYEES_VIEW) %}
+      <button type="button" class="notifications-panel__clear" id="clear-notifications-btn">
+        🧹 Limpiar
+      </button>
+      {% endif %}
+      <button class="notifications-panel__close" onclick="window.EmployeeBell.toggleNotificationsPanel()">
+        ✕
+      </button>
+    </div>
+  </div>
+  <div class="notifications-panel__content" id="notifications-content">
+    <p class="notifications-empty">No hay llamadas pendientes</p>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const clearBtn = document.getElementById('clear-notifications-btn');
+    if (!clearBtn) return;
+
+    clearBtn.addEventListener('click', async () => {
+      if (clearBtn.disabled) return;
+      const originalLabel = clearBtn.textContent || '🧹 Limpiar';
+      clearBtn.disabled = true;
+      clearBtn.textContent = 'Limpiando...';
+
+      try {
+        const response = await fetch('/api/notifications/clear', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(
+            data.error || data.message || 'No se pudieron limpiar las notificaciones'
+          );
+        }
+
+        const content = document.getElementById('notifications-content');
+        if (content) {
+          content.innerHTML = '<p class="notifications-empty">No hay llamadas pendientes</p>';
+        }
+
+        if (window.WaiterPanel?.clearPendingCalls) {
+          window.WaiterPanel.clearPendingCalls();
+        }
+        if (window.EmployeeBell) {
+          window.EmployeeBell.setCount(0);
+          window.EmployeeBell.setState('idle');
+        }
+      } catch (error) {
+        console.error('[Notificaciones] Error al limpiar notificaciones', error);
+        clearBtn.textContent = 'Reintentar';
+      } finally {
+        setTimeout(() => {
+          clearBtn.disabled = false;
+          if (
+            !clearBtn.textContent ||
+            clearBtn.textContent === 'Limpiando...' ||
+            clearBtn.textContent === 'Reintentar'
+          ) {
+            clearBtn.textContent = originalLabel;
+          }
+        }, 400);
+      }
+    });
+  });
+</script>
+
+{% endif %}

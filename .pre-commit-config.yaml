@@ -1,0 +1,395 @@
+# Pre-commit hooks configuration
+# Ver: https://pre-commit.com/hooks.html
+# Ver: https://pre-commit.com/
+
+# Para instalar: pre-commit install
+# Para correr manualmente: pre-commit run --all-files
+# Para actualizar hooks: pre-commit autoupdate
+
+# Excluir directorios que no necesitan linting
+exclude: '^(node_modules/|.venv/|venv/|env/)'
+
+default_language_version:
+  python: python3
+
+repos:
+  # ==========================================================================
+  # Pre-commit hooks integrados
+  # ==========================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # Chequeos generales
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-yaml
+        args: ['--unsafe'] # Permitir tags personalizados
+      - id: check-json
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+      # Python específico
+      - id: check-ast # Validar sintaxis Python
+      - id: check-builtin-literals # Usar [] en vez de list()
+      - id: check-docstring-first # Docstring debe ser primero
+      - id: debug-statements # No dejar pdb, ipdb, etc.
+      - id: name-tests-test # Tests deben llamarse test_*.py
+        args: ['--pytest-test-first']
+
+      # Limpieza de archivos
+      - id: end-of-file-fixer # Archivo debe terminar con newline
+      - id: trailing-whitespace # Eliminar espacios al final
+        args: [--markdown-linebreak-ext=md]
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+      # Seguridad
+      - id: detect-private-key # No commitear claves privadas
+
+  # ==========================================================================
+  # Ruff - Linter y Formatter ultra-rápido
+  # ==========================================================================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.15
+    hooks:
+      # Linting con auto-fix
+      - id: ruff
+        args:
+          - --fix
+          - --exit-non-zero-on-fix
+        types_or: [python, pyi]
+
+      # Formateo (alternativa a black)
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  # ==========================================================================
+  # Black - Formateador (si prefieres black sobre ruff-format)
+  # Descomenta esta sección si quieres usar black en vez de ruff-format
+  # ==========================================================================
+  # - repo: https://github.com/psf/black
+  #   rev: 24.1.0
+  #   hooks:
+  #     - id: black
+  #       language_version: python3.9
+  #       args: ['--line-length=100']
+
+  # ==========================================================================
+  # MyPy - Chequeo de tipos estáticos
+  # Deshabilitado temporalmente hasta corregir los 86 errores de tipo
+  # ==========================================================================
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.8.0
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies:
+  #         - types-requests
+  #         - types-python-dateutil
+  #       args:
+  #         - --config-file=pyproject.toml
+  #         - --ignore-missing-imports
+  #       # Excluir archivos que no tienen tipos todavía
+  #       exclude: |
+  #         (?x)(
+  #             ^tests/|
+  #             ^migrations/|
+  #             ^scripts/
+  #         )
+
+  # ==========================================================================
+  # Bandit - Análisis de seguridad
+  # ==========================================================================
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args:
+          - -c
+          - pyproject.toml
+        additional_dependencies:
+          - 'bandit[toml]'
+        # No chequear tests (tienen asserts y otros patrones inseguros)
+        exclude: ^tests/
+
+  # ==========================================================================
+  # Pydocstyle - Linting de docstrings
+  # Habilitado con reglas prácticas (ignorando formato estético)
+  # ==========================================================================
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args:
+          - --convention=google
+          # Ignorar reglas de formato estético que requieren cambios masivos
+          - --add-ignore=D100,D101,D102,D103,D104,D105,D107,D200,D205,D212,D415,D202,D417
+        exclude: |
+          (?x)(
+              ^tests/|
+              ^migrations/|
+              ^scripts/
+          )
+
+  # ==========================================================================
+  # Seguridad adicional - Safety (chequeo de vulnerabilidades)
+  # ==========================================================================
+  # Nota: safety puede ser lento, considera correrlo solo en CI
+  # - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+  #   rev: v1.3.3
+  #   hooks:
+  #     - id: python-safety-dependencies-check
+  #       files: requirements.*\.txt$
+
+  # ==========================================================================
+  # Vulture - Detección de código muerto
+  # ==========================================================================
+  # Nota: puede tener falsos positivos, mejor correrlo manualmente
+  # - repo: https://github.com/jendrikseipp/vulture
+  #   rev: v2.11
+  #   hooks:
+  #     - id: vulture
+  #       args: ['--min-confidence=80']
+
+  # ==========================================================================
+  # Prettier - Formateo de archivos no-Python (YAML, JSON, MD, etc.)
+  # ==========================================================================
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [yaml, json, markdown]
+        exclude: |
+          (?x)(
+              ^\.github/|
+              ^docs/.*\.md$|
+              ^node_modules/
+          )
+
+  # ==========================================================================
+  # Shellcheck - Linting de scripts bash
+  # ==========================================================================
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        args: ['--severity=warning']
+
+  # ==========================================================================
+  # Gitleaks - Detección de secrets y claves privadas
+  # ==========================================================================
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        args: ['--staged', '--redact']
+
+  # ==========================================================================
+  # Solvent - Pre-commit hook con IA para revisión de seguridad
+  # Requiere configuración de API key (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+  # Nota: Comentar si no tienes API key configurada
+  # ==========================================================================
+  # - repo: https://github.com/mbocevski/solvent
+  #   rev: v0.1.0
+  #   hooks:
+  #     - id: solvent
+  #       args:
+  #         - --model=gpt-4o-mini  # o claude-3-haiku, gemini-flash, etc.
+  #         - --severity=critical
+
+  # ==========================================================================
+  # Semgrep - Análisis de seguridad estático
+  # ==========================================================================
+  - repo: https://github.com/returntocorp/semgrep
+    rev: v1.76.0
+    hooks:
+      - id: semgrep
+        args: ['--config', 'auto', '--error']
+
+  # ==========================================================================
+  # NVIDIA Garak - LLM/RAG Vulnerability Scanner
+  # Detecta vulnerabilidades en aplicaciones con IA/LLM
+  # ==========================================================================
+  # - repo: local
+  #   hooks:
+  #     - id: garak-check
+  #       name: Garak LLM Security Scanner
+  #       entry: bash -c 'pip show garak > /dev/null 2>&1 || pip install garak; garak --verbose'
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [pre-commit]
+
+  # ==========================================================================
+  # RAG Security Scanner - RAG/LLM Security Scanner
+  # Detecta vulnerabilidades en aplicaciones con chatbots y knowledge retrieval
+  # ==========================================================================
+  # - repo: local
+  #   hooks:
+  #     - id: rag-security-check
+  #       name: RAG Security Scanner
+  #       entry: bash -c 'python3 -m pip show rag-security-scanner > /dev/null 2>&1 || pip install git+https://github.com/olegnazarov/rag-security-scanner.git; rag_security_scanner scan'
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [pre-commit]
+
+  # ==========================================================================
+  # LLM Security Checker - LLM Endpoint Security Assessment
+  # Detecta prompt injection, data exfiltration, etc.
+  # ==========================================================================
+  # - repo: local
+  #   hooks:
+  #     - id: llm-security-check
+  #       name: LLM Security Checker
+  #       entry: bash -c 'python3 -m pip show llm-security-checker > /dev/null 2>&1 || pip install git+https://github.com/bolbolabadi/llm-security-checker.git'
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [pre-commit]
+
+  # ==========================================================================
+  # Hooks locales personalizados
+  # ==========================================================================
+  - repo: local
+    hooks:
+      # Prevenir commits a main/master directamente
+      - id: prevent-main-commit
+        name: Prevent commits to main/master
+        entry: bash -c 'branch=$(git rev-parse --abbrev-ref HEAD); if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then echo "❌ No se puede commitear directamente a main/master. Usa una rama de feature."; exit 1; fi; exit 0'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # Chequear que no haya prints olvidados en código de producción
+      # - id: no-print-statements
+      #   name: Check for print statements in production code
+      #   entry: bash -c 'grep -r "print(" build/ --include="*.py" || exit 0'
+      #   language: system
+      #   pass_filenames: false
+
+      # ==========================================================================
+      # Agentes Especializados (Review Committee)
+      # ==========================================================================
+      - id: agent-developer
+        name: 👨‍💻 Agente Developer
+        entry: bin/agents/developer.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-designer
+        name: 👩‍🎨 Agente Diseñador
+        entry: bin/agents/designer.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-db-specialist
+        name: 🗄️ Agente DB Specialist
+        entry: bin/agents/db_specialist.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-sysadmin
+        name: 🛡️ Agente Sysadmin
+        entry: bin/agents/sysadmin.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-qa-tester
+        name: 🧪 Agente QA/Tester
+        entry: bin/agents/qa_tester.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-scribe
+        name: ✍️ Agente Scribe
+        entry: bin/agents/scribe.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-container-specialist
+        name: 🐳 Agente Container Specialist
+        entry: bin/agents/container_specialist.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-business-expert
+        name: 🍽️ Agente Experto Negocio
+        entry: bin/agents/business_expert.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-waiter
+        name: 🤵 Agente Mesero
+        entry: bin/agents/waiter_agent.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-admin
+        name: 👨‍💼 Agente Admin
+        entry: bin/agents/admin_agent.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-cashier
+        name: 💰 Agente Cajero
+        entry: bin/agents/cashier_agent.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-super-admin
+        name: 👑 Agente Super Admin
+        entry: bin/agents/super_admin_agent.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-chef
+        name: 👨‍🍳 Agente Chef
+        entry: bin/agents/chef_agent.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: agent-deployment
+        name: 🚀 Agente Deployment
+        entry: bin/agents/deployment_agent.sh
+        language: script
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # 🔍 Audit Agent - Multi-Model Code Review
+      # Performs 3 independent reviews using Claude, Minimax and GLM4
+      # Each model focuses on different aspects:
+      # - Claude: Security and best practices
+      # - Minimax: Performance and optimization
+      # - GLM4: Architecture and maintainability
+      - id: agent-audit
+        name: 🔍 Audit Agent (Multi-Model Review)
+        entry: ./bin/agents/audit_agent.sh
+        language: script
+        pass_filenames: true
+        types: [python, javascript]
+        stages: [pre-commit]
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

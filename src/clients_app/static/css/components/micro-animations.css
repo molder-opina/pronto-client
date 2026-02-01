@@ -1,0 +1,809 @@
+/**
+ * MICRO-ANIMATIONS - Visual Feedback
+ * Micro-interactions and animations for better UX
+ */
+
+/* ===================================================================
+   BUTTON ANIMATIONS
+   =================================================================== */
+
+/* Button press scale effect */
+.btn,
+button,
+[class*='btn-'],
+.cart-btn,
+.quantity-btn,
+.menu-item-card__add {
+  transform: translateY(0);
+  touch-action: manipulation;
+  transition:
+    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.btn:active,
+button:active,
+[class*='btn-']:active,
+.cart-btn:active,
+.quantity-btn:active,
+.menu-item-card__add:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Button hover lift effect */
+.btn:hover,
+button:hover,
+[class*='btn-']:hover {
+  transform: translateY(-2px);
+}
+
+/* Primary button shine effect */
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.35);
+}
+
+.btn-primary:active {
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.25);
+}
+
+/* Icon button pulse on interaction */
+.btn-icon:active {
+  transform: scale(0.92);
+}
+
+/* ===================================================================
+   SUCCESS/ERROR FEEDBACK ANIMATIONS
+   =================================================================== */
+
+/* Success checkmark animation */
+@keyframes checkmarkDraw {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes checkmarkScale {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.success-feedback {
+  animation: checkmarkScale 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.success-feedback svg {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: checkmarkDraw 0.3s ease 0.2s forwards;
+}
+
+/* Error shake animation */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+.error-feedback {
+  animation: shake 0.5s ease-in-out;
+  border-color: var(--color-danger) !important;
+}
+
+/* Error icon pulse */
+@keyframes errorPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.error-feedback .form-group__status {
+  animation: errorPulse 0.3s ease-in-out;
+}
+
+/* ===================================================================
+   QUANTITY CHANGE FEEDBACK
+   =================================================================== */
+
+.quantity-value {
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
+}
+
+.quantity-value--increase {
+  animation: quantityPop 0.3s ease;
+  color: var(--color-success);
+}
+
+.quantity-value--decrease {
+  animation: quantityPop 0.3s ease;
+  color: var(--color-warning);
+}
+
+@keyframes quantityPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.quantity-btn {
+  transition:
+    transform 0.12s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.12s ease;
+}
+
+.quantity-btn--minus:active {
+  transform: scale(0.9);
+}
+
+.quantity-btn--plus:active {
+  transform: scale(0.9);
+}
+
+/* ===================================================================
+   PRICE UPDATE COUNTER ANIMATION
+   =================================================================== */
+
+.price-update {
+  position: relative;
+  display: inline-block;
+}
+
+.price-update__value {
+  transition:
+    transform 0.3s ease,
+    color 0.3s ease;
+}
+
+.price-update--up .price-update__value {
+  color: var(--color-success);
+  animation: priceSlideUp 0.4s ease;
+}
+
+.price-update--down .price-update__value {
+  color: var(--color-warning);
+  animation: priceSlideDown 0.4s ease;
+}
+
+@keyframes priceSlideUp {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes priceSlideDown {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Price flash effect on cart update */
+.cart-total--updating {
+  animation: priceFlash 0.5s ease;
+}
+
+@keyframes priceFlash {
+  0%,
+  100% {
+    color: inherit;
+  }
+  50% {
+    color: var(--color-primary);
+  }
+}
+
+/* ===================================================================
+   ICON TRANSFORMATION ANIMATIONS
+   =================================================================== */
+
+.icon-transform {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-transform--rotate {
+  transform: rotate(90deg);
+}
+
+.icon-transform--spin {
+  animation: iconSpin 0.5s ease;
+}
+
+@keyframes iconSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.icon-transform--bounce {
+  animation: iconBounce 0.5s ease;
+}
+
+@keyframes iconBounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+}
+
+/* Heart/like toggle animation */
+.icon-toggle {
+  transition: transform 0.2s ease;
+}
+
+.icon-toggle--active {
+  transform: scale(1.2);
+  color: #ef4444;
+}
+
+/* Chevron rotation */
+.chevron {
+  transition: transform 0.3s ease;
+}
+
+.chevron--expanded {
+  transform: rotate(180deg);
+}
+
+/* ===================================================================
+   RIPPLE EFFECT FOR TOUCH
+   =================================================================== */
+
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.ripple-effect:active::after {
+  width: 200%;
+  height: 200%;
+  opacity: 1;
+  transition:
+    width 0.4s ease-out,
+    height 0.4s ease-out,
+    opacity 0.4s ease-out;
+}
+
+/* Primary color ripple */
+.ripple-effect--primary::after {
+  background: rgba(255, 107, 53, 0.2);
+}
+
+/* ===================================================================
+   TOAST/SNACKBAR ANIMATIONS
+   =================================================================== */
+
+.toast-animate-in {
+  animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.toast-animate-out {
+  animation: toastSlideOut 0.3s ease forwards;
+}
+
+@keyframes toastSlideIn {
+  0% {
+    transform: translateX(100%) translateY(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastSlideOut {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%) translateY(20px);
+    opacity: 0;
+  }
+}
+
+/* Toast appear */
+.toast-appear {
+  animation: toastAppear 0.3s ease;
+}
+
+@keyframes toastAppear {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ===================================================================
+   CARD INTERACTIONS
+   =================================================================== */
+
+.menu-item-card {
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.menu-item-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.menu-item-card:active {
+  transform: translateY(-2px) scale(0.99);
+}
+
+/* Card selection highlight */
+.menu-item-card--selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+/* Card entrance animation */
+.card-entrance {
+  animation: cardEntrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes cardEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered entrance for grid items */
+.card-entrance--stagger-1 {
+  animation-delay: 0.05s;
+}
+.card-entrance--stagger-2 {
+  animation-delay: 0.1s;
+}
+.card-entrance--stagger-3 {
+  animation-delay: 0.15s;
+}
+.card-entrance--stagger-4 {
+  animation-delay: 0.2s;
+}
+.card-entrance--stagger-5 {
+  animation-delay: 0.25s;
+}
+.card-entrance--stagger-6 {
+  animation-delay: 0.3s;
+}
+
+/* ===================================================================
+   BADGE ANIMATIONS
+   =================================================================== */
+
+.badge-pulse {
+  animation: badgePulse 0.4s ease;
+}
+
+@keyframes badgePulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.badge--new {
+  animation: badgeShine 2s ease-in-out infinite;
+}
+
+@keyframes badgeShine {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Cart badge bounce on update */
+.cart-badge--bounce {
+  animation: cartBadgeBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cartBadgeBounce {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.4);
+  }
+  50% {
+    transform: scale(1);
+  }
+  75% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ===================================================================
+   MODAL ANIMATIONS
+   =================================================================== */
+
+.modal-enter {
+  animation: modalEnter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.modal-exit {
+  animation: modalExit 0.2s ease forwards;
+}
+
+@keyframes modalEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalExit {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+/* Backdrop fade */
+.backdrop-fade-in {
+  animation: backdropFadeIn 0.2s ease forwards;
+}
+
+.backdrop-fade-out {
+  animation: backdropFadeOut 0.2s ease forwards;
+}
+
+@keyframes backdropFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes backdropFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ===================================================================
+   LOADING SKELETON ANIMATIONS
+   =================================================================== */
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-surface-hover) 50%,
+    var(--color-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-pulse {
+  animation: skeletonPulse 2s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ===================================================================
+   CHECKBOX/RADIO ANIMATIONS
+   =================================================================== */
+
+.checkbox-animate {
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.checkbox-animate:checked {
+  animation: checkboxPop 0.2s ease;
+}
+
+@keyframes checkboxPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.radio-animate {
+  transition: transform 0.15s ease;
+}
+
+.radio-animate:checked {
+  animation: radioPop 0.2s ease;
+}
+
+@keyframes radioPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ===================================================================
+   TAB/CATEGORY ANIMATIONS
+   =================================================================== */
+
+.category-tab {
+  transition: all 0.2s ease;
+}
+
+.category-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transition:
+    width 0.2s ease,
+    left 0.2s ease;
+}
+
+.category-tab--active::after {
+  width: 60%;
+  left: 20%;
+}
+
+.category-tab:hover::after {
+  width: 40%;
+  left: 30%;
+}
+
+/* ===================================================================
+   INPUT FIELD ANIMATIONS
+   =================================================================== */
+
+.input-animate {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.input-animate:focus {
+  transform: translateY(-1px);
+}
+
+.input-animate--error {
+  animation: inputShake 0.4s ease;
+}
+
+@keyframes inputShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+/* Floating label animation */
+.form-group--floating label {
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    font-size 0.2s ease;
+}
+
+.form-group--floating input:focus ~ label,
+.form-group--floating input:not(:placeholder-shown) ~ label {
+  transform: translateY(-20px) scale(0.85);
+  color: var(--color-primary);
+}
+
+/* ===================================================================
+   PROGRESS BAR ANIMATIONS
+   =================================================================== */
+
+.progress-bar-fill {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-bar-animated::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 100%
+  );
+  animation: progressShine 2s infinite;
+}
+
+@keyframes progressShine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ===================================================================
+   REDUCED MOTION SUPPORT
+   =================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .card-entrance {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .skeleton-shimmer {
+    animation: none;
+    background: var(--color-surface);
+  }
+}
+
+/* ===================================================================
+   DARK MODE ADJUSTMENTS
+   =================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  .ripple-effect::after {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .ripple-effect--primary::after {
+    background: rgba(255, 107, 53, 0.3);
+  }
+}

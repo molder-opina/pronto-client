@@ -1,0 +1,19 @@
+[Unit]
+Description=Pronto containers (Client + Employee + Static) guard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Ejecuta como usuario pronto
+User=pronto
+WorkingDirectory=/apps/pronto/pronto-app
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/env bash -lc '/apps/pronto/pronto-app/bin/maintenance/pronto_guard.sh'
+Restart=always
+RestartSec=20
+StandardOutput=append:/apps/pronto/pronto-app/logs/systemd/pronto-containers.log
+StandardError=append:/apps/pronto/pronto-app/logs/systemd/pronto-containers.log
+
+[Install]
+WantedBy=default.target

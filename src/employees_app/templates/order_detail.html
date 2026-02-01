@@ -1,0 +1,122 @@
+{% extends "base.html" %} {% block title %}Detalle de Orden #{{ order.id }} - Pronto{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 800px; margin: 2rem auto">
+  <div style="margin-bottom: 2rem">
+    <a href="javascript:history.back()" class="btn btn--secondary">← Volver</a>
+  </div>
+
+  <div class="card">
+    <div
+      class="card__header"
+      style="display: flex; justify-content: space-between; align-items: center"
+    >
+      <div>
+        <h1 style="margin: 0">Orden #{{ order.id }}</h1>
+        <p style="color: var(--muted); margin: 0.5rem 0 0">
+          Cuenta #{{ order.session_id }} &bull; {{ order.created_at.strftime('%d/%m/%Y %H:%M') }}
+        </p>
+      </div>
+      <div class="status-badge status--{{ order.workflow_status }}">
+        {{ order.status_display or order.workflow_status }}
+      </div>
+    </div>
+
+    <div class="card__body">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem">
+        <!-- Cliente / Mesa -->
+        <div>
+          <h3 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">
+            Ubicación
+          </h3>
+          <p class="text-lg font-medium">Mesa {{ order.session.table_number or 'N/A' }}</p>
+          <p class="text-sm text-gray-600">ID Cliente: {{ order.customer_id or 'Anon' }}</p>
+        </div>
+
+        <!-- Estado -->
+        <div>
+          <h3 class="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Tiempos</h3>
+          <ul class="text-sm space-y-1">
+            <li>Creada: {{ order.created_at.strftime('%H:%M:%S') }}</li>
+            {% if order.waiter_accepted_at %}
+            <li>Aceptada (Mesero): {{ order.waiter_accepted_at.strftime('%H:%M:%S') }}</li>
+            {% endif %} {% if order.chef_accepted_at %}
+            <li>En Cocina: {{ order.chef_accepted_at.strftime('%H:%M:%S') }}</li>
+            {% endif %} {% if order.ready_at %}
+            <li>Lista: {{ order.ready_at.strftime('%H:%M:%S') }}</li>
+            {% endif %} {% if order.delivered_at %}
+            <li>Entregada: {{ order.delivered_at.strftime('%H:%M:%S') }}</li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <div style="border-top: 1px solid var(--border); padding-top: 2rem">
+        <h3 style="margin-bottom: 1rem">Productos</h3>
+        <table style="width: 100%; border-collapse: collapse">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border); text-align: left">
+              <th style="padding: 0.5rem">Cant</th>
+              <th style="padding: 0.5rem">Producto</th>
+              <th style="padding: 0.5rem; text-align: right">Precio Unit.</th>
+              <th style="padding: 0.5rem; text-align: right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in order.line_items %}
+            <tr style="border-bottom: 1px solid var(--border)">
+              <td style="padding: 1rem 0.5rem">{{ item.quantity }}</td>
+              <td style="padding: 1rem 0.5rem">
+                <div style="font-weight: 500">{{ item.menu_item.name }}</div>
+                {% if item.modifiers %}
+                <div style="font-size: 0.875rem; color: var(--muted); margin-top: 0.25rem">
+                  {% for mod in item.modifiers %}
+                  <div>+ {{ 1 }} {{ mod.modifier.name }}</div>
+                  {% endfor %}
+                </div>
+                {% endif %} {% if item.special_instructions %}
+                <div style="font-size: 0.875rem; color: #d97706; margin-top: 0.25rem">
+                  Nota: {{ item.special_instructions }}
+                </div>
+                {% endif %}
+              </td>
+              <td style="padding: 1rem 0.5rem; text-align: right">
+                ${{ "%.2f"|format(item.unit_price) }}
+              </td>
+              <td style="padding: 1rem 0.5rem; text-align: right; font-weight: 600">
+                ${{ "%.2f"|format(item.quantity * item.unit_price) }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" style="text-align: right; padding: 1.5rem 0.5rem; font-weight: 700">
+                Total Orden
+              </td>
+              <td
+                style="
+                  text-align: right;
+                  padding: 1.5rem 0.5rem;
+                  font-weight: 700;
+                  font-size: 1.25rem;
+                "
+              >
+                ${{ "%.2f"|format(order.total_amount or 0) }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Notas de Orden -->
+      {% if order.notes %}
+      <div style="margin-top: 2rem; background: #fef3c7; padding: 1rem; border-radius: 8px">
+        <h4 style="margin: 0 0 0.5rem 0; color: #92400e">Notas de la Orden</h4>
+        <p style="margin: 0; color: #78350f">{{ order.notes }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

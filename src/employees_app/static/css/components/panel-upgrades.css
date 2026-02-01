@@ -1,0 +1,199 @@
+/* ==================== GLOBAL PREMIUM DESIGN ==================== */
+/* Diseño moderno y premium unificado para todo el panel de administración */
+
+/* Table Wrapper */
+.table-wrapper {
+    background: #ffffff;
+    border: 1px solid #e5e8ec;
+    border-radius: 18px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.02);
+    padding: 0;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+/* Table Header */
+.section table thead th,
+[data-theme="light"] thead th {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+    color: #f7fafc;
+    border: none;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1.125rem 1.5rem;
+}
+
+.section table thead th:first-child {
+    border-top-left-radius: 18px;
+}
+
+.section table thead th:last-child {
+    border-top-right-radius: 18px;
+}
+
+/* Table Body */
+.section table tbody tr,
+[data-theme="light"] tbody tr {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.section table tbody tr:hover,
+[data-theme="light"] tbody tr:hover {
+    background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
+    transform: scale(1.002);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.section table tbody td,
+[data-theme="light"] tbody td {
+    padding: 1.25rem 1.5rem;
+    color: #1a202c;
+    font-size: 0.9375rem;
+}
+
+/* Section Header - Global Override */
+.section__header,
+.branding-header,
+.page-header {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #1a202c 100%);
+    color: #f7fafc;
+    border-radius: 16px;
+    padding: 1.75rem 2.5rem 1.75rem 3rem;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.section__header::before,
+.branding-header::before,
+.page-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    animation: shimmer 3s infinite;
+}
+
+/* Headlines overriding */
+.section__header h1,
+.section__header h2,
+.branding-header h2,
+.page-header h1 {
+    color: #ffffff !important;
+    background: none !important;
+    /* Override current text gradient */
+    -webkit-text-fill-color: #ffffff !important;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+}
+
+.section__header p,
+.branding-header p,
+.page-header p,
+.page-subtitle {
+    color: #e2e8f0 !important;
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+}
+
+/* Status Badges */
+.status {
+    border-radius: 999px;
+    padding: 0.375rem 0.875rem;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.status:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Buttons */
+.btn {
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* Empty States global style */
+.empty-state {
+    padding: 4rem 2rem;
+    text-align: center;
+    color: #64748b;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e8ec;
+}
+
+.empty-state__icon,
+.empty-state svg {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+    display: block;
+}
+
+/* Animations */
+@keyframes shimmer {
+
+    0%,
+    100% {
+        left: -100%;
+    }
+
+    50% {
+        left: 100%;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+
+    .section__header,
+    .branding-header,
+    .page-header {
+        padding: 1.25rem 1.5rem;
+        border-radius: 12px;
+    }
+
+    .section__header h1,
+    .section__header h2,
+    .branding-header h2,
+    .page-header h1 {
+        font-size: 1.25rem;
+    }
+}

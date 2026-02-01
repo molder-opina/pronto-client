@@ -1,0 +1,221 @@
+/**
+ * CARD COMPONENT
+ * Standardized card layouts for the employee app
+ */
+
+.card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius, 18px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    background-color var(--transition-fast);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Card variants */
+.card--outlined {
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+.card--outlined:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.card--elevated {
+  background: var(--card-bg, #2a1f18);
+  box-shadow: var(--shadow-lg);
+  border: none;
+}
+
+.card--clickable {
+  cursor: pointer;
+}
+
+.card--clickable:hover {
+  cursor: pointer;
+}
+
+/* Card light theme */
+.card[data-theme='light'],
+.card--light {
+  background: var(--color-white);
+  border-color: var(--color-gray-200);
+  color: var(--color-gray-900);
+}
+
+.card--light:hover {
+  background: var(--color-gray-50);
+  box-shadow: var(--shadow-md);
+}
+
+/* Card sections */
+.card__header {
+  padding: var(--space-6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.card--light .card__header {
+  border-bottom-color: var(--color-gray-200);
+}
+
+.card__header-title {
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.card--light .card__header-title {
+  color: var(--color-gray-900);
+}
+
+.card__header-subtitle {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--muted, #b8a89e);
+  margin: var(--space-1) 0 0 0;
+}
+
+.card--light .card__header-subtitle {
+  color: var(--color-gray-500);
+}
+
+.card__header-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.card__body {
+  padding: var(--space-6);
+}
+
+.card__footer {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.card--light .card__footer {
+  border-top-color: var(--color-gray-200);
+  background: var(--color-gray-50);
+}
+
+/* Card with image */
+.card__media {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+
+.card__media + .card__header {
+  border-top: none;
+}
+
+/* Card grid */
+.card-grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.card-grid--small {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.card-grid--large {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+}
+
+/* Stats card */
+.stats-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.15), rgba(255, 107, 53, 0.05));
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.stats-card__icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 53, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  margin-bottom: var(--space-4);
+}
+
+.stats-card__value {
+  font-size: var(--font-size-3xl, 1.875rem);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: var(--space-1);
+}
+
+.stats-card__label {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--muted, #b8a89e);
+}
+
+/* Info card */
+.info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.info-card__icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.info-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.info-card__title {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.info-card__description {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--muted, #b8a89e);
+  margin: 0;
+  line-height: var(--line-height-normal);
+}

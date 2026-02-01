@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-error-container"
+    style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; padding: 2rem;">
+    <div
+        style="background: #fff; padding: 3rem; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 500px; width: 100%;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">⛔</div>
+        <h1 style="color: #ef4444; margin-bottom: 1rem; font-size: 2rem;">Acceso Denegado</h1>
+        <div
+            style="background: #fef2f2; color: #b91c1c; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #fecaca;">
+            <strong>Código de Error: {{ code }}</strong>
+            <p style="margin: 0.5rem 0 0;">{{ message }}</p>
+        </div>
+
+        <p style="color: #64748b; margin-bottom: 2rem; line-height: 1.6;">
+            Lo sentimos, tu usuario actual (<strong>{{ employee_role|default('Desconocido')|title }}</strong>) no
+            tiene los permisos necesarios para realizar esta acción o acceder a esta página.
+        </p>
+
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <a href="javascript:history.back()" class="btn btn--secondary">
+                ← Volver atrás
+            </a>
+            <a href="{{ url_for('employee_dashboard.dashboard') }}" class="btn btn--primary">
+                Ir al Inicio
+            </a>
+        </div>
+
+        {% if from_url %}
+        <div style="margin-top: 2rem; font-size: 0.8rem; color: #94a3b8;">
+            Intento de acceso a: <code>{{ from_url }}</code>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

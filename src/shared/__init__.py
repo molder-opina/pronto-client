@@ -1,0 +1,1 @@
+"""Employee-facing Flask service."""

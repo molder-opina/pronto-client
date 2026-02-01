@@ -1,0 +1,424 @@
+/* Chef Dashboard Dark Mode Styles (#9) */
+/* High contrast dark theme optimized for kitchen environments */
+
+:root[data-dark-mode='true'] {
+  /* Background Colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-hover: #475569;
+
+  /* Text Colors */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-muted: #64748b;
+
+  /* Border Colors */
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --border-hover: #64748b;
+
+  /* Status Colors - Dark Mode */
+  --status-new-bg: #3d1e10;
+  --status-new-text: #fed7aa;
+
+  --status-preparing-bg: #1e3a8a;
+  --status-preparing-text: #93c5fd;
+
+  --status-ready-bg: #14532d;
+  --status-ready-text: #86efac;
+
+  --status-delivered-bg: #1e293b;
+  --status-delivered-text: #cbd5e1;
+
+  --status-cancelled-bg: #3d0a12;
+  --status-cancelled-text: #fca5a5;
+
+  /* Filter Button Colors - Dark Mode */
+  --filter-bg: #1e293b;
+  --filter-hover-bg: #334155;
+  --filter-active-bg: linear-gradient(135deg, #ff6b35 0%, #f97316 100%);
+  --filter-border: #475569;
+  --filter-text: #cbd5e1;
+  --filter-active-text: #ffffff;
+
+  /* Table Colors - Dark Mode */
+  --table-bg: #0f172a;
+  --table-header-bg: #1e293b;
+  --table-border: #334155;
+  --table-hover: #1e293b;
+  --table-stripe: #0f172a;
+
+  /* Note Colors - Dark Mode */
+  --note-bg: #3d1e10;
+  --note-border: #b45309;
+  --note-title: #fed7aa;
+  --note-text: #fdba74;
+}
+
+/* Apply dark mode styles */
+:root[data-dark-mode='true'] #panel-cocina {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Header */
+:root[data-dark-mode='true'] .waiter-unified-header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+:root[data-dark-mode='true'] .waiter-page-title {
+  color: var(--text-primary);
+}
+
+/* Toolbar */
+:root[data-dark-mode='true'] .w-full.bg-white {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+:root[data-dark-mode='true'] .waiter-toolbar {
+  color: var(--text-primary);
+}
+
+/* Search Box */
+:root[data-dark-mode='true'] .waiter-search-box {
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+}
+
+:root[data-dark-mode='true'] .waiter-search-box:focus-within {
+  border-color: #ff6b35;
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+}
+
+:root[data-dark-mode='true'] .waiter-search-box__input {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+:root[data-dark-mode='true'] .waiter-search-box__input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Filter Buttons */
+:root[data-dark-mode='true'] .kds-filter-btn {
+  background: var(--filter-bg);
+  border-color: var(--filter-border);
+  color: var(--filter-text);
+}
+
+:root[data-dark-mode='true'] .kds-filter-btn:hover {
+  background: var(--filter-hover-bg);
+  border-color: var(--border-hover);
+}
+
+:root[data-dark-mode='true'] .kds-filter-btn--active {
+  background: var(--filter-active-bg);
+  border-color: transparent;
+  color: var(--filter-active-text);
+}
+
+:root[data-dark-mode='true'] .kds-filter-count {
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+}
+
+/* Dark Mode Toggle */
+:root[data-dark-mode='true'] .dark-mode-toggle {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+:root[data-dark-mode='true'] .dark-mode-toggle--active {
+  background: var(--filter-active-bg);
+  border-color: transparent;
+  color: var(--filter-active-text);
+}
+
+/* Table */
+:root[data-dark-mode='true'] .orders-table {
+  background: var(--table-bg);
+  border-color: var(--table-border);
+}
+
+:root[data-dark-mode='true'] .orders-table th {
+  background: var(--table-header-bg);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--table-border);
+}
+
+:root[data-dark-mode='true'] .orders-table td {
+  background: var(--table-bg);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--table-border);
+}
+
+:root[data-dark-mode='true'] .orders-table tr:hover td {
+  background: var(--table-hover);
+}
+
+:root[data-dark-mode='true'] .orders-table tbody tr:nth-child(odd) td {
+  background: var(--table-stripe);
+}
+
+/* Status Badges */
+:root[data-dark-mode='true'] .status--new,
+:root[data-dark-mode='true'] .status--queued {
+  background: var(--status-new-bg);
+  color: var(--status-new-text);
+  font-weight: 700;
+}
+
+:root[data-dark-mode='true'] .status--preparing {
+  background: var(--status-preparing-bg);
+  color: var(--status-preparing-text);
+  font-weight: 600;
+}
+
+:root[data-dark-mode='true'] .status--ready {
+  background: var(--status-ready-bg);
+  color: var(--status-ready-text);
+  font-weight: 700;
+}
+
+:root[data-dark-mode='true'] .status--delivered {
+  background: var(--status-delivered-bg);
+  color: var(--status-delivered-text);
+}
+
+:root[data-dark-mode='true'] .status--cancelled {
+  background: var(--status-cancelled-bg);
+  color: var(--status-cancelled-text);
+}
+
+/* Star Button */
+:root[data-dark-mode='true'] .star-btn {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+}
+
+:root[data-dark-mode='true'] .star-btn:hover {
+  background: var(--bg-hover);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
+}
+
+:root[data-dark-mode='true'] .star-btn.starred {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-color: #f59e0b;
+  color: white;
+}
+
+/* Customer Notes */
+:root[data-dark-mode='true'] .kitchen-customer-note {
+  background: var(--note-bg);
+  border-left-color: var(--note-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+:root[data-dark-mode='true'] .kitchen-customer-note-title {
+  color: var(--note-title);
+}
+
+:root[data-dark-mode='true'] .kitchen-customer-note-text {
+  color: var(--note-text);
+}
+
+/* Order ID Links */
+:root[data-dark-mode='true'] .order-id-link {
+  color: #60a5fa;
+}
+
+:root[data-dark-mode='true'] .order-id-link:hover {
+  color: #93c5fd;
+}
+
+/* Table Number Links */
+:root[data-dark-mode='true'] .table-number-link {
+  color: #f97316;
+}
+
+:root[data-dark-mode='true'] .table-number-link:hover {
+  color: #fdba74;
+}
+
+/* Item Icons */
+:root[data-dark-mode='true'] .kitchen-item-icon {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+}
+
+:root[data-dark-mode='true'] .kitchen-item--burger .kitchen-item-icon {
+  background: #3d1e10;
+  color: #fdba74;
+  border-color: #b45309;
+}
+
+:root[data-dark-mode='true'] .kitchen-item--pizza .kitchen-item-icon {
+  background: #3d0a12;
+  color: #fca5a5;
+  border-color: #dc2626;
+}
+
+:root[data-dark-mode='true'] .kitchen-item--taco .kitchen-item-icon {
+  background: #3d260a;
+  color: #fde047;
+  border-color: #ca8a04;
+}
+
+:root[data-dark-mode='true'] .kitchen-item--drink .kitchen-item-icon {
+  background: #1e3a8a;
+  color: #93c5fd;
+  border-color: #2563eb;
+}
+
+:root[data-dark-mode='true'] .kitchen-item--dessert .kitchen-item-icon {
+  background: #3d0a1a;
+  color: #f9a8d4;
+  border-color: #db2777;
+}
+
+:root[data-dark-mode='true'] .kitchen-item--salad .kitchen-item-icon {
+  background: #0d260d;
+  color: #86efac;
+  border-color: #16a34a;
+}
+
+:root[data-dark-mode='true'] .kitchen-item--combo .kitchen-item-icon {
+  background: #260d26;
+  color: #d8b4fe;
+  border-color: #9333ea;
+}
+
+/* Action Buttons */
+:root[data-dark-mode='true'] .btn--secondary {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+:root[data-dark-mode='true'] .btn--secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+:root[data-dark-mode='true'] .kitchen-action {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+:root[data-dark-mode='true'] .kitchen-action:hover {
+  background: var(--filter-active-bg);
+  border-color: transparent;
+  color: white;
+}
+
+/* Toolbar Buttons */
+:root[data-dark-mode='true'] .waiter-toolbar__btn {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+:root[data-dark-mode='true'] .waiter-toolbar__btn:hover {
+  background: var(--bg-hover);
+}
+
+:root[data-dark-mode='true'] .waiter-view-toggle__btn {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+:root[data-dark-mode='true'] .waiter-view-toggle__btn.active {
+  background: var(--filter-active-bg);
+  border-color: transparent;
+  color: white;
+}
+
+/* Feedback Messages */
+:root[data-dark-mode='true'] .feedback {
+  color: var(--text-primary);
+}
+
+:root[data-dark-mode='true'] .feedback.error {
+  color: #fca5a5;
+}
+
+/* Touch Gesture Hint */
+:root[data-dark-mode='true'] .touch-gesture-hint {
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid var(--border-primary);
+}
+
+/* Swipe Hints */
+:root[data-dark-mode='true'] .swipe-hint {
+  color: var(--text-tertiary);
+}
+
+/* Empty States */
+:root[data-dark-mode='true'] .orders-empty {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+}
+
+:root[data-dark-mode='true'] .orders-empty__title {
+  color: var(--text-primary);
+}
+
+:root[data-dark-mode='true'] .orders-empty__text {
+  color: var(--text-secondary);
+}
+
+/* Scrollbar */
+:root[data-dark-mode='true'] .kds-category-filters::-webkit-scrollbar {
+  height: 8px;
+}
+
+:root[data-dark-mode='true'] .kds-category-filters::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+:root[data-dark-mode='true'] .kds-category-filters::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 4px;
+}
+
+:root[data-dark-mode='true'] .kds-category-filters::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Animations - Dark Mode Optimizations */
+:root[data-dark-mode='true'] .kds-filter-btn,
+:root[data-dark-mode='true'] .star-btn,
+:root[data-dark-mode='true'] .order-row-swipeable {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* High Contrast Text for Accessibility */
+:root[data-dark-mode='true'] .kds-filter-btn,
+:root[data-dark-mode='true'] .dark-mode-toggle,
+:root[data-dark-mode='true'] .waiter-toolbar__btn {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Focus States */
+:root[data-dark-mode='true'] *:focus-visible {
+  outline: 2px solid #ff6b35;
+  outline-offset: 2px;
+}
+
+/* Print Styles - Force Light Mode */
+@media print {
+  :root[data-dark-mode='true'] {
+    /* Reset to light mode for printing */
+    background: white;
+    color: black;
+  }
+}

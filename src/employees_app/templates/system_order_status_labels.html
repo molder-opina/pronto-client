@@ -1,0 +1,86 @@
+{% extends "base.html" %} {% block content %}
+<div class="container" style="max-width: 1000px; margin: 24px auto">
+  <h2>Order Status Labels</h2>
+  <p>Editar etiquetas visibles por estado. Solo consola /system.</p>
+
+  <table style="width: 100%; border-collapse: collapse">
+    <thead>
+      <tr>
+        <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px">status_key</th>
+        <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px">client_label</th>
+        <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px">
+          employee_label
+        </th>
+        <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px">admin_desc</th>
+        <th style="text-align: left; border-bottom: 1px solid #ddd; padding: 8px">actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for label in labels %}
+      <tr data-status="{{ label.status_key }}">
+        <td style="padding: 8px">{{ label.status_key }}</td>
+        <td style="padding: 8px">
+          <input
+            type="text"
+            value="{{ label.client_label }}"
+            class="client-label"
+            style="width: 100%"
+          />
+        </td>
+        <td style="padding: 8px">
+          <input
+            type="text"
+            value="{{ label.employee_label }}"
+            class="employee-label"
+            style="width: 100%"
+          />
+        </td>
+        <td style="padding: 8px">
+          <input
+            type="text"
+            value="{{ label.admin_desc }}"
+            class="admin-desc"
+            style="width: 100%"
+          />
+        </td>
+        <td style="padding: 8px">
+          <button class="save-btn">Guardar</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div id="status-message" style="margin-top: 12px"></div>
+</div>
+
+<script>
+  document.querySelectorAll('.save-btn').forEach((btn) => {
+    btn.addEventListener('click', async (event) => {
+      const row = event.target.closest('tr');
+      const statusKey = row.getAttribute('data-status');
+      const clientLabel = row.querySelector('.client-label').value.trim();
+      const employeeLabel = row.querySelector('.employee-label').value.trim();
+      const adminDesc = row.querySelector('.admin-desc').value.trim();
+
+      const response = await fetch(`/system/config/order-status-labels/${statusKey}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_label: clientLabel,
+          employee_label: employeeLabel,
+          admin_desc: adminDesc,
+        }),
+      });
+
+      const messageEl = document.getElementById('status-message');
+      if (response.ok) {
+        messageEl.textContent = `Guardado: ${statusKey}`;
+      } else {
+        const data = await response.json();
+        messageEl.textContent = data.error || 'Error al guardar';
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,1042 @@
+{% if has_permission(Permission.ORDERS_VIEW) and (session.get('active_scope')|lower == 'waiter' or
+session.get('active_scope')|lower == 'admin') %}
+<section
+  class="section"
+  id="panel-meseros"
+  data-menu-title="Meseros"
+  data-menu-group="🏠 OPERACIÓN"
+  data-waiter-root
+  style="max-width: none !important; width: 100%; padding: 0"
+>
+  <!-- Unified Header: 50/50 Split Layout -->
+  <div class="waiter-unified-header">
+    <!-- Left Half: Title -->
+    <div class="waiter-unified-header__left">
+      <h1 class="waiter-page-title">Órdenes en Curso</h1>
+    </div>
+
+    <!-- Right Half: Designated Tables Area -->
+    {% if has_permission(Permission.ORDERS_VIEW) %}
+    <div class="waiter-unified-header__right">
+      <div class="designated-tables-area">
+        <div id="header-tables-badges" class="tables-badges-container">
+          <!-- Table badges will be populated by JavaScript -->
+        </div>
+        <button
+          type="button"
+          id="open-table-assignment"
+          class="btn-add-table"
+          title="Asignar mesas"
+        >
+          +
+        </button>
+      </div>
+    </div>
+
+    <!-- Hidden supervisor call button -->
+    <button type="button" class="btn btn--primary" id="call-supervisor-btn" style="display: none">
+      Llamar Supervisor
+    </button>
+    <div class="supervisor-call-status" id="supervisor-call-status" style="display: none">
+      <span class="supervisor-call-status__label">Última solicitud</span>
+      <p class="supervisor-call-status__details" id="supervisor-call-status-details"></p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Border Bottom Tabs -->
+  <div class="waiter-tabs-container">
+    <div class="waiter-tabs">
+      <button type="button" class="waiter-tab active" data-tab="active">
+        Activas
+        <span class="waiter-tab__badge is-hidden" id="active-count">0</span>
+      </button>
+      <button type="button" class="waiter-tab" data-tab="tracking">
+        Seguimiento
+        <span class="waiter-tab__badge is-hidden" id="tracking-count">0</span>
+      </button>
+      <button type="button" class="waiter-tab" data-tab="paid">
+        Pagadas
+        <span class="waiter-tab__badge is-hidden" id="paid-count">0</span>
+      </button>
+      <button type="button" class="waiter-tab" data-tab="cancelled">
+        Canceladas
+        <span class="waiter-tab__badge is-hidden" id="cancelled-count">0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Container -->
+  <div class="waiter-pos-container" style="max-width: none !important; width: 100%">
+    <!-- Filter Bar: Full Width with Master Container -->
+    <div class="w-full bg-white border-b border-gray-200 sticky top-16 z-40">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <div class="waiter-toolbar">
+          <div class="waiter-toolbar__tabs" style="display: none">
+            <button type="button" class="waiter-tab active" data-tab="active">
+              📋 Órdenes activas
+            </button>
+            <button type="button" class="waiter-tab" data-tab="tracking">
+              ⭐ Seguimiento <span class="waiter-tab__badge" id="tracking-count-old">0</span>
+            </button>
+            <button type="button" class="waiter-tab" data-tab="paid">✅ Órdenes pagadas</button>
+            <button type="button" class="waiter-tab" data-tab="cancelled">❌ Canceladas</button>
+          </div>
+
+          <div class="waiter-toolbar__search">
+            <div class="waiter-search-box">
+              <svg
+                class="waiter-search-box__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <input
+                type="search"
+                id="order-search-input"
+                class="waiter-search-box__input"
+                placeholder="Buscar por orden #, mesa o cliente..."
+                autocomplete="off"
+              />
+              <span
+                class="waiter-search-box__count"
+                id="order-search-count"
+                style="display: none"
+              ></span>
+            </div>
+          </div>
+
+          <div class="waiter-toolbar__actions">
+            <button
+              type="button"
+              class="waiter-toolbar__btn"
+              id="open-filters-btn"
+              title="Filtros avanzados"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              Filtros
+            </button>
+            <span class="waiter-orders-count">0 órdenes</span>
+            <div class="waiter-view-toggle" aria-label="Modo de vista de tabla">
+              <button type="button" class="waiter-view-toggle__btn active" id="waiter-view-normal">
+                Vista normal
+              </button>
+              <button type="button" class="waiter-view-toggle__btn" id="waiter-view-compact">
+                Vista compacta
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters Modal (Hidden by default) - Available for all tabs -->
+    <div class="waiter-filters-modal" id="waiter-filters-modal" style="display: none">
+      <div class="waiter-filters-modal__overlay"></div>
+      <div class="waiter-filters-modal__content">
+        <div class="waiter-filters-modal__header">
+          <h3>Filtrar Órdenes</h3>
+          <button type="button" class="waiter-filters-modal__close" id="close-filters-btn">
+            ✕
+          </button>
+        </div>
+
+        <div class="waiter-filters-modal__body">
+          <p class="modal-hint" style="grid-column: 1 / -1; margin-bottom: 1rem">
+            Por favor selecciona los filtros que deseas aplicar para ver las órdenes:
+          </p>
+          <div class="waiter-filters__section">
+            <h4>Vista de Órdenes</h4>
+            <label><input type="checkbox" id="filter-my-orders" checked /> Mis órdenes</label>
+            <label
+              ><input type="checkbox" id="filter-unassigned-orders" checked /> Sin asignar</label
+            >
+          </div>
+
+          <div class="waiter-filters__section">
+            <h4>Estados de Sesión</h4>
+            <label
+              ><input type="checkbox" name="session-status" value="open" checked /> Abiertas</label
+            >
+            <label
+              ><input type="checkbox" name="session-status" value="awaiting_tip" checked />
+              Esperando propina</label
+            >
+            <label
+              ><input type="checkbox" name="session-status" value="awaiting_payment" checked />
+              Esperando pago</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                name="session-status"
+                value="awaiting_payment_confirmation"
+                checked
+              />
+              Esperando confirmación</label
+            >
+            <label><input type="checkbox" name="session-status" value="closed" /> Cerradas</label>
+          </div>
+
+          <div class="waiter-filters__section">
+            <h4>Estados de Orden</h4>
+            <label
+              ><input type="checkbox" name="workflow-status" value="requested" checked />
+              Solicitada</label
+            >
+            <label
+              ><input type="checkbox" name="workflow-status" value="waiter_accepted" checked />
+              Aceptada</label
+            >
+            <label
+              ><input type="checkbox" name="workflow-status" value="kitchen_in_progress" checked />
+              En cocina</label
+            >
+            <label
+              ><input type="checkbox" name="workflow-status" value="ready_for_delivery" checked />
+              Lista</label
+            >
+            <label
+              ><input type="checkbox" name="workflow-status" value="delivered" checked />
+              Entregada</label
+            >
+          </div>
+
+          <div class="waiter-filters__section">
+            <h4>Rango de fechas</h4>
+            <label><input type="radio" name="date-filter" value="today" checked /> Hoy</label>
+            <label><input type="radio" name="date-filter" value="last7" /> Últimos 7 días</label>
+            <label
+              ><input type="radio" name="date-filter" value="custom" /> Últimos
+              <input
+                type="number"
+                id="date-filter-days"
+                value="7"
+                min="1"
+                style="width: 70px; margin: 0 6px"
+              />
+              días
+            </label>
+            <label><input type="radio" name="date-filter" value="all" /> Todos</label>
+          </div>
+        </div>
+
+        <div class="waiter-filters-modal__footer">
+          <button type="button" class="btn btn--small btn--secondary" id="reset-filters">
+            Resetear filtros
+          </button>
+          <button type="button" class="btn btn--small btn--primary" id="apply-filters-btn">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kitchen Filters Modal (Hidden by default) -->
+    <div class="waiter-filters-modal" id="kitchen-filters-modal" style="display: none">
+      <div class="waiter-filters-modal__overlay"></div>
+      <div class="waiter-filters-modal__content">
+        <div class="waiter-filters-modal__header">
+          <h3>Filtrar Órdenes de Cocina</h3>
+          <button type="button" class="waiter-filters-modal__close" id="kitchen-close-filters-btn">
+            ✕
+          </button>
+        </div>
+
+        <div class="waiter-filters-modal__body">
+          <div class="waiter-filters__section">
+            <h4>Vista de Órdenes</h4>
+            <label
+              ><input type="checkbox" id="kitchen-filter-my-orders" checked /> Mis órdenes</label
+            >
+            <label
+              ><input type="checkbox" id="kitchen-filter-all-orders" checked /> Todas las
+              órdenes</label
+            >
+          </div>
+
+          <div class="waiter-filters__section">
+            <h4>Estados de Orden</h4>
+            <label
+              ><input type="checkbox" name="kitchen-workflow-status" value="requested" checked />
+              Solicitada</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                name="kitchen-workflow-status"
+                value="waiter_accepted"
+                checked
+              />
+              Aceptada</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                name="kitchen-workflow-status"
+                value="kitchen_in_progress"
+                checked
+              />
+              En cocina</label
+            >
+            <label
+              ><input
+                type="checkbox"
+                name="kitchen-workflow-status"
+                value="ready_for_delivery"
+                checked
+              />
+              Lista</label
+            >
+            <label
+              ><input type="checkbox" name="kitchen-workflow-status" value="delivered" checked />
+              Entregada</label
+            >
+          </div>
+
+          <div class="waiter-filters__section">
+            <h4>Rango de fechas</h4>
+            <label
+              ><input type="radio" name="kitchen-date-filter" value="today" checked /> Hoy</label
+            >
+            <label
+              ><input type="radio" name="kitchen-date-filter" value="last7" /> Últimos 7 días</label
+            >
+            <label>
+              <input type="radio" name="kitchen-date-filter" value="custom" /> Últimos
+              <input
+                type="number"
+                id="kitchen-date-filter-days"
+                value="7"
+                min="1"
+                style="width: 70px; margin: 0 6px"
+              />
+              días
+            </label>
+            <label><input type="radio" name="kitchen-date-filter" value="all" /> Todos</label>
+          </div>
+        </div>
+
+        <div class="waiter-filters-modal__footer">
+          <button type="button" class="btn btn--small btn--secondary" id="kitchen-reset-filters">
+            Resetear filtros
+          </button>
+          <button type="button" class="btn btn--small btn--primary" id="kitchen-apply-filters-btn">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Orders Section -->
+
+    <div id="active-orders-section" class="orders-section">
+      <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
+        <!-- Table View (Only View) -->
+        <div class="table-wrapper">
+          <table class="orders-table" data-testid="orders-table">
+            <thead>
+              <tr>
+                <th style="width: 40px">⭐</th>
+                <th>Orden</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Mesero</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Notas</th>
+                <th>Acciones</th>
+                <th style="width: 60px"></th>
+              </tr>
+            </thead>
+            <tbody id="waiter-orders">
+              {% for order in waiter_orders %} {% set customer_name = order.customer.name if
+              order.customer else '' %} {% set raw_customer_email = (order.customer.email or '') if
+              order.customer else '' %} {% if raw_customer_email and
+              raw_customer_email.startswith('anonimo+') %} {% set raw_customer_email = '' %} {%
+              endif %} {% set order_email = order.customer_email or '' %} {% if order_email and
+              order_email.startswith('anonimo+') %} {% set order_email = '' %} {% endif %} {% set
+              customer_email = raw_customer_email or order_email %} {% set customer_name_upper =
+              (customer_name or '')|upper %} {% if customer_email and (not customer_name or
+              customer_name_upper in ['INVITADO', 'CLIENTE ANONIMO', 'CLIENTE ANÓNIMO', 'ANONIMO',
+              'ANÓNIMO', 'CLIENTE']) %} {% set customer_display_name = customer_email %} {% elif
+              customer_name %} {% set customer_display_name = customer_name %} {% else %} {% set
+              customer_display_name = 'Cliente' %} {% endif %}
+              <tr
+                data-order-id="{{ order.id }}"
+                data-status="{{ order.workflow_status }}"
+                data-session-id="{{ order.session_id }}"
+                data-session-status="{{ order.session.status }}"
+                data-paid-at="{{ order.session.closed_at.isoformat() if order.session.closed_at else '' }}"
+                data-created-at="{{ order.created_at }}"
+                data-session-opened="{{ order.session.opened_at }}"
+                data-table-number="{{ order.session.table_number or '' }}"
+                data-customer-id="{{ order.customer.id if order.customer else '' }}"
+                data-customer-name="{{ customer_display_name }}"
+                data-customer-email="{{ customer_email }}"
+                data-customer-phone="{{ order.customer.phone if order.customer else '' }}"
+                data-customer-description="{{ (order.customer.physical_description or '')|e if order.customer else '' }}"
+                data-customer-avatar="{{ order.customer.avatar if order.customer else '' }}"
+                data-waiter-name="{{ order.waiter_name or '' }}"
+                data-waiter-id="{{ order.waiter_id or '' }}"
+                data-chef-id="{{ order.chef_id or '' }}"
+                data-notes="{{ (order.session.notes or '')|e }}"
+                data-waiter-notes="{{ (order.waiter_notes or '')|e }}"
+              >
+                <td>
+                  <button
+                    type="button"
+                    class="star-btn"
+                    data-order-id="{{ order.id }}"
+                    title="Agregar a seguimiento"
+                  >
+                    <span class="star-icon">☆</span>
+                  </button>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="order-id-link"
+                    style="
+                      background: none;
+                      border: none;
+                      color: #3b82f6;
+                      font-weight: 600;
+                      cursor: pointer;
+                      text-decoration: underline;
+                      padding: 0;
+                    "
+                    data-order-detail="{{ order.id }}"
+                    data-table-number="{{ order.session.table_number or '' }}"
+                    data-customer-name="{{ customer_display_name }}"
+                    data-customer-email="{{ customer_email }}"
+                    data-customer-phone="{{ order.customer.phone if order.customer else '' }}"
+                    data-notes="{{ (order.session.notes or '')|e }}"
+                    data-waiter-notes="{{ (order.waiter_notes or '')|e }}"
+                    data-status="{{ order.workflow_status }}"
+                    data-total="{{ order.total_amount }}"
+                  >
+                    #{{ order.id }}
+                  </button>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="table-number-link"
+                    style="
+                      background: none;
+                      border: none;
+                      color: #ea580c;
+                      font-weight: 600;
+                      cursor: pointer;
+                      text-decoration: underline;
+                      padding: 0;
+                    "
+                    data-table-info="{{ order.session.table_number or '' }}"
+                    data-table-number="{{ order.session.table_number or '' }}"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                      style="width: 16px; height: 16px"
+                    >
+                      <path
+                        d="M4 10h16"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      ></path>
+                      <path
+                        d="M6 10v10"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      ></path>
+                      <path
+                        d="M18 10v10"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      ></path>
+                      <path
+                        d="M8 6h8"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      ></path>
+                      <path
+                        d="M7 6V4h10v2"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      ></path>
+                    </svg>
+                    {{ order.session.table_number or 'N/A' }}
+                  </button>
+                </td>
+                <td>{{ customer_display_name }}</td>
+                <td>
+                  {% if order.waiter_name %}
+                  <span class="waiter-badge">👤 {{ order.waiter_name }}</span>
+                  {% else %}
+                  <span class="waiter-badge waiter-badge--unassigned">⚠️ Sin asignar</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="order-total-display">
+                    {{ currency_symbol }}{{ "{:,.2f}".format(order.total_amount) }} {{ currency }}
+                  </span>
+                </td>
+                <td>
+                  <span class="status status--{{ order.workflow_status }}"
+                    >{{ order.status_display or order.workflow_status }}</span
+                  >
+                </td>
+                <td class="order-notes">
+                  <div class="waiter-note-inline flex items-center gap-2 flex-wrap">
+                    <p class="waiter-note-title">Notas de mesero</p>
+                    {% if order.session.notes %}
+                    <div
+                      class="waiter-note-pill text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-100 flex items-center gap-1"
+                      title="{{ order.session.notes }}"
+                    >
+                      <span class="select-none">👤</span>
+                      <span class="truncate max-w-[150px]">{{ order.session.notes }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="relative flex-1 min-w-[170px]">
+                      <textarea
+                        id="waiter-note-{{ order.id }}"
+                        data-order-note="{{ order.id }}"
+                        class="waiter-note-input w-full text-sm px-3 rounded-md border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 resize-none transition-all placeholder-gray-400 bg-white"
+                        rows="1"
+                        placeholder="Nota..."
+                      >
+{{ order.waiter_notes or '' }}</textarea
+                      >
+                    </div>
+                  </div>
+                </td>
+                <td class="actions"></td>
+                <td class="cancel-action"></td>
+              </tr>
+              {% endfor %} {% if waiter_orders|length == 0 %}
+              <tr class="orders-empty-row">
+                <td colspan="10">
+                  <div class="orders-empty orders-empty--center" role="status" aria-live="polite">
+                    <div class="orders-empty__illustration" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 64 64"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="32" cy="32" r="26" opacity="0.25"></circle>
+                        <path d="M20 36a12 12 0 0 1 24 0"></path>
+                        <path d="M18 40h28"></path>
+                        <path d="M24 24c0-2.2 1.8-4 4-4"></path>
+                        <path d="M36 20c2.2 0 4 1.8 4 4"></path>
+                        <path d="M30 18h4"></path>
+                        <path d="M12 44h40"></path>
+                      </svg>
+                    </div>
+                    <div class="orders-empty__title">¡Todo al día!</div>
+                    <div class="orders-empty__text">
+                      No hay pedidos pendientes. Mantente atento: las nuevas órdenes aparecerán
+                      aquí.
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endif %}
+              <tr class="orders-filter-empty" data-filter-empty-for="waiter" style="display: none">
+                <td colspan="10">No encontramos órdenes que coincidan con tu búsqueda.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="waiter-feedback" class="feedback"></p>
+      </div>
+    </div>
+
+    <!-- Tracking Orders Section (Starred/Favorites) -->
+    <div id="tracking-orders-section" class="orders-section" style="display: none">
+      <div class="w-full px-2 sm:px-3 lg:px-4 py-4">
+        <div class="waiter-header" style="display: none">
+          <div class="waiter-header__left">
+            <h3>⭐ Órdenes en Seguimiento</h3>
+            <span class="tracking-orders-count">0 órdenes</span>
+          </div>
+        </div>
+
+        <!-- Table View (Only View) -->
+        <div class="table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th style="width: 40px">⭐</th>
+                <th>Orden</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Mesero</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+                <th style="width: 60px"></th>
+              </tr>
+            </thead>
+            <tbody id="tracking-orders">
+              <tr class="tracking-empty-state">
+                <td colspan="9" style="text-align: center; padding: 2rem; color: #64748b">
+                  <div style="font-size: 1.5rem; margin-bottom: 0.5rem">⭐</div>
+                  <p style="margin: 0">No tienes órdenes en seguimiento</p>
+                  <p style="margin: 0.5rem 0 0; font-size: 0.9rem">
+                    Haz clic en la estrella ☆ de cualquier orden para agregarla aquí
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="tracking-feedback" class="feedback"></p>
+      </div>
+    </div>
+
+    <!-- Paid Orders Section -->
+    <div id="paid-orders-section" class="orders-section" style="display: none">
+      <div class="w-full px-2 sm:px-3 lg:px-4 py-4">
+        <!-- Table View (Only View) -->
+        <div class="table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Orden</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Mesero</th>
+                <th>Total</th>
+                <th>Método de pago</th>
+                <th>Pagado hace</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="paid-sessions">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 3rem">
+                  <div class="loading-state">
+                    <div class="spinner spinner--medium" style="margin: 0 auto 1rem"></div>
+                    <p style="color: var(--color-gray-500); margin: 0">
+                      Cargando sesiones pagadas...
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="paid-feedback" class="feedback"></p>
+      </div>
+    </div>
+
+    <!-- Cancelled Orders Section (hidden by default; shown only on its tab) -->
+    <div id="cancelled-orders-section" class="orders-section" style="display: none">
+      <div class="w-full px-2 sm:px-3 lg:px-4 py-4">
+        <div class="waiter-header" style="display: none">
+          <div class="waiter-header__left">
+            <h3>❌ Órdenes Canceladas</h3>
+            <span class="cancelled-orders-count">0 órdenes</span>
+          </div>
+        </div>
+
+        <!-- Table View (Only View) -->
+        <div class="table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Orden</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Mesero</th>
+                <th>Total</th>
+                <th>Motivo</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody id="cancelled-orders">
+              <!-- Rendered dynamically by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        <p id="cancelled-feedback" class="feedback"></p>
+      </div>
+    </div>
+
+    <div class="floating-panel" id="order-floating-panel" style="display: none">
+      <div class="floating-panel__overlay" data-close-floating></div>
+      <div class="floating-panel__content">
+        <div class="floating-panel__header">
+          <div>
+            <p class="floating-panel__eyebrow" id="floating-panel-subtitle"></p>
+            <h3 class="floating-panel__title" id="floating-panel-title"></h3>
+          </div>
+          <button
+            type="button"
+            class="floating-panel__close"
+            data-close-floating
+            aria-label="Cerrar panel"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="floating-panel__body" id="floating-panel-body"></div>
+      </div>
+    </div>
+
+    <!-- Partial Delivery Modal -->
+    <div id="partial-delivery-modal" class="partial-delivery-modal" style="display: none">
+      <div class="partial-delivery-modal__overlay"></div>
+      <div class="partial-delivery-modal__content">
+        <div class="partial-delivery-modal__header">
+          <h3>Entrega Parcial - Orden #<span id="partial-delivery-order-number"></span></h3>
+          <button type="button" class="partial-delivery-close" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="partial-delivery-modal__body">
+          <p class="partial-delivery-modal__hint">
+            Selecciona los items que vas a entregar ahora. Los items ya entregados aparecen en
+            verde.
+          </p>
+          <div id="partial-delivery-items" class="partial-delivery-items"></div>
+          <div id="partial-delivery-progress" class="partial-delivery-progress"></div>
+        </div>
+        <div class="partial-delivery-modal__footer">
+          <button type="button" id="cancel-partial-delivery" class="btn btn--secondary">
+            Cancelar
+          </button>
+          <button type="button" id="confirm-partial-delivery" class="btn btn--primary">
+            ✓ Confirmar Entrega
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cancel Order Modal -->
+    <div id="cancel-order-modal" class="partial-delivery-modal" style="display: none">
+      <div class="partial-delivery-modal__overlay"></div>
+      <div class="partial-delivery-modal__content">
+        <div class="partial-delivery-modal__header">
+          <h3>Cancelar Orden #<span id="cancel-order-number"></span></h3>
+          <button type="button" class="cancel-order-close" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="partial-delivery-modal__body">
+          <p class="partial-delivery-modal__hint">Por favor indica el motivo de la cancelación:</p>
+          <textarea
+            id="cancel-order-reason"
+            class="cancel-order-reason"
+            placeholder="Ej. Cliente cambió de opinión, error en la orden, etc."
+            rows="4"
+            style="
+              width: 100%;
+              padding: 0.75rem;
+              border: 1px solid #e2e8f0;
+              border-radius: 4px;
+              font-family: inherit;
+              font-size: 0.95rem;
+              resize: vertical;
+            "
+          ></textarea>
+        </div>
+        <div class="partial-delivery-modal__footer">
+          <button type="button" id="cancel-order-modal-close" class="btn btn--secondary">
+            Cerrar
+          </button>
+          <button type="button" id="confirm-cancel-order" class="btn btn--danger">
+            ❌ Confirmar Cancelación
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Close waiter-pos-container -->
+
+  <!-- Hidden legacy header for compatibility -->
+  <header class="section__header" style="display: none">
+    <div style="flex: 1">
+      <h2>🍴 Operación de meseros</h2>
+      <p>Acepta pedidos, entrégalos cuando estén listos. Para cobrar, redirige al cajero.</p>
+    </div>
+    <button
+      type="button"
+      class="btn-refresh"
+      onclick="
+        if (window.refreshWaiterOrders) window.refreshWaiterOrders();
+        else window.location.reload();
+      "
+      title="Actualizar"
+    >
+      🔄
+    </button>
+  </header>
+</section>
+{% if has_permission(Permission.PAYMENTS_VIEW) %}
+<section
+  class="section"
+  id="session-management"
+  data-menu-title="Gestión de Sesiones"
+  data-menu-group="🏢 ADMINISTRACIÓN"
+>
+  <header class="section__header">
+    <div style="flex: 1">
+      <h2>📋 Gestión de Sesiones</h2>
+      <p>
+        Administra todas las sesiones activas del restaurante. Limpia sesiones duplicadas o sin
+        actividad.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap">
+      <label
+        style="
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          user-select: none;
+          font-size: 0.9rem;
+          color: #475569;
+        "
+      >
+        <input
+          type="checkbox"
+          id="filter-signed-in-sessions"
+          style="width: 1.1em; height: 1.1em; cursor: pointer"
+        />
+        <span>Solo usuarios firmados</span>
+      </label>
+      <button
+        type="button"
+        class="btn btn--warning"
+        id="clean-inactive-sessions-btn"
+        title="Eliminar sesiones anónimas sin órdenes o mayores a 24 horas"
+        style="display: inline-flex; align-items: center; gap: 0.5rem"
+      >
+        🧹 Limpiar Inactivas
+      </button>
+      <button
+        type="button"
+        class="btn btn--danger"
+        id="clean-all-sessions-btn"
+        title="Eliminar TODAS las sesiones (usar con precaución)"
+        style="display: inline-flex; align-items: center; gap: 0.5rem"
+      >
+        🗑️ Limpiar Todas
+      </button>
+      <button type="button" class="btn btn--secondary" id="refresh-sessions-btn" title="Actualizar">
+        🔄 Actualizar
+      </button>
+    </div>
+  </header>
+
+  <div class="session-management">
+    <div class="table-wrapper">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Mesa</th>
+            <th>Cliente</th>
+            <th>Estado</th>
+            <th>Órdenes Activas</th>
+            <th>Iniciada</th>
+            <th>Última Orden</th>
+            <th>Total</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="sessions-table-body">
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 3rem">
+              <div class="loading-state">
+                <div class="spinner spinner--medium" style="margin: 0 auto 1rem"></div>
+                <p style="color: var(--color-gray-500); margin: 0">Cargando sesiones...</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p id="sessions-feedback" class="feedback"></p>
+  </div>
+</section>
+
+<script>
+  (function () {
+    let sessionsData = [];
+
+    function formatDateTime(isoString) {
+      if (!isoString) return 'N/A';
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMins < 1) return 'Ahora';
+      if (diffMins < 60) return `Hace ${diffMins} min`;
+      if (diffHours < 24) return `Hace ${diffHours} h`;
+      if (diffDays === 1) return 'Ayer';
+      return `Hace ${diffDays} días`;
+    }
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+      }).format(amount || 0);
+    }
+
+    function getStatusBadge(status) {
+      const statusMap = {
+        open: { label: 'Abierta', class: 'success' },
+        awaiting_tip: { label: 'Esperando propina', class: 'warning' },
+        awaiting_payment: { label: 'Esperando pago', class: 'warning' },
+        awaiting_payment_confirmation: { label: 'Confirmando pago', class: 'warning' },
+        closed: { label: 'Cerrada', class: 'info' },
+        paid: { label: 'Pagada', class: 'success' },
+      };
+      const config = statusMap[status] || { label: status, class: 'default' };
+      return `<span class="badge badge--${config.class}">${config.label}</span>`;
+    }
+
+    async function loadSessions() {
+      const tableBody = document.getElementById('sessions-table-body');
+      if (!tableBody) return;
+      const feedback = document.getElementById('sessions-feedback');
+
+      try {
+        tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 3rem;">
+            <div class="loading-state">
+              <div class="spinner spinner--medium" style="margin: 0 auto 1rem;"></div>
+              <p style="color: var(--color-gray-500); margin: 0;">Cargando sesiones...</p>
+            </div>
+          </td></tr>`;
+
+        const response = await fetch('/api/sessions/all');
+        if (!response.ok) throw new Error('Error al cargar sesiones');
+
+        const data = await response.json();
+        sessionsData = data.sessions || [];
+
+        if (sessionsData.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem;">
+            <div class="empty-state empty-state--table">
+              <p style="color: var(--color-gray-500); margin: 0;">No hay sesiones activas</p>
+            </div>
+          </td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = sessionsData
+          .map(
+            (session) => `
+                <tr>
+                    <td>${session.id}</td>
+                    <td><strong>${session.table_number}</strong></td>
+                    <td>${session.customer_name}</td>
+                    <td>${getStatusBadge(session.status)}</td>
+                    <td style="text-align: center;">
+                        ${session.active_orders_count}
+                        ${
+                          session.orders_count !== session.active_orders_count
+                            ? `<span style="color: #94a3b8; font-size: 0.875rem;"> (${session.orders_count} total)</span>`
+                            : ''
+                        }
+                    </td>
+                    <td>${formatDateTime(session.opened_at)}</td>
+                    <td>${session.last_order_at ? formatDateTime(session.last_order_at) : 'Sin órdenes'}</td>
+                    <td>${formatCurrency(session.total_amount)}</td>
+                    <td>
+                        <button
+                            class="btn btn--small btn--danger"
+                            onclick="closeSession(${session.id}, '${session.table_number}')"
+                            ${session.status === 'paid' ? 'disabled' : ''}>
+                            🗑️ Cerrar
+                        </button>
+                    </td>
+                </tr>
+            `
+          )
+          .join('');
+      } catch (error) {
+        console.error('Error loading sessions:', error);
+        tableBody.innerHTML =
+          '<tr><td colspan="9" style="text-align: center; padding: 2rem; color: #ef4444;">Error al cargar sesiones. Intenta de nuevo.</td></tr>';
+        feedback.textContent = 'Error al cargar sesiones';
+        feedback.className = 'feedback feedback--error';
+        feedback.style.display = 'block';
+      }
+    }
+
+    window.closeSession = async function (sessionId, tableNumber) {
+      if (
+        !confirm(
+          `¿Estás seguro de que quieres cerrar la sesión de ${tableNumber}? Esto cancelará todas las órdenes activas.`
+        )
+      ) {
+        return;
+      }
+
+      const feedback = document.getElementById('sessions-feedback');
+
+      try {
+        const response = await fetch(`/api/sessions/${sessionId}/close`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          feedback.textContent = `Sesión cerrada exitosamente. ${result.cancelled_orders} órdenes canceladas.`;
+          feedback.className = 'feedback feedback--success';
+          feedback.style.display = 'block';
+          setTimeout(() => (feedback.style.display = 'none'), 5000);
+          loadSessions();
+        } else {
+          throw new Error(result.error || 'Error al cerrar sesión');
+        }
+      } catch (error) {
+        console.error('Error closing session:', error);
+        feedback.textContent = error.message || 'Error al cerrar sesión';
+        feedback.className = 'feedback feedback--error';
+        feedback.style.display = 'block';
+      }
+    };
+
+    // Event listeners
+    const refreshBtn = document.getElementById('refresh-sessions-btn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', loadSessions);
+    }
+
+    // Load sessions on page load
+    if (document.getElementById('sessions-table-body')) {
+      loadSessions();
+      // Auto refresh every 30 seconds
+      setInterval(loadSessions, 30000);
+    }
+  })();
+</script>
+{% endif %}

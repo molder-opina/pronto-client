@@ -1,0 +1,3 @@
+# Ignore actual static assets; populate this folder outside of git.
+*
+!.gitignore

@@ -1,0 +1,511 @@
+{% endif %} {% if has_permission(Permission.PAYMENTS_PROCESS) and (app_context|lower == 'cashier' or app_context|lower
+== 'admin') %}
+<section class="section" id="caja" data-menu-title="Caja" data-menu-group="🏠 OPERACIÓN" data-cashier-root
+  style="max-width: none !important; width: 100%; padding: 0">
+  <div class="waiter-unified-header waiter-unified-header--cashier">
+    <div class="waiter-unified-header__left">
+      <h1 class="waiter-page-title">Operación de caja</h1>
+    </div>
+    <div class="waiter-unified-header__right">
+      <button type="button" class="waiter-toolbar__btn" onclick="
+          if (window.refreshCashierOrders) window.refreshCashierOrders();
+          else window.location.reload();
+        " title="Actualizar">
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="waiter-tabs-container">
+    <div class="waiter-tabs">
+      <button type="button" class="waiter-tab active" data-tab="active">
+        Activas
+        <span class="waiter-tab__badge is-hidden" id="cashier-active-count">0</span>
+      </button>
+      <button type="button" class="waiter-tab" data-tab="tracking">
+        Seguimiento
+        <span class="waiter-tab__badge is-hidden" id="cashier-tracking-count">0</span>
+      </button>
+      <button type="button" class="waiter-tab" data-tab="paid">
+        Cerradas
+        <span class="waiter-tab__badge is-hidden" id="cashier-paid-count">0</span>
+      </button>
+      <button type="button" class="waiter-tab" data-tab="cancelled">
+        Canceladas
+        <span class="waiter-tab__badge is-hidden" id="cashier-cancelled-count">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="waiter-pos-container waiter-pos-container--cashier" style="max-width: none !important; width: 100%">
+    <div class="w-full bg-white border-b border-gray-200 sticky top-16 z-40">
+      <div class="w-full px-4 sm:px-6 lg:px-8">
+        <div class="waiter-toolbar">
+          <div class="waiter-toolbar__search">
+            <div class="waiter-search-box">
+              <svg class="waiter-search-box__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <input type="search" id="cashier-search-input" class="waiter-search-box__input"
+                placeholder="Buscar por orden #, mesa o cliente..." autocomplete="off" />
+              <span class="waiter-search-box__count" id="cashier-search-count" style="display: none"></span>
+            </div>
+          </div>
+
+          <div class="waiter-toolbar__actions">
+            <button type="button" class="waiter-toolbar__btn" id="cashier-open-filters-btn" title="Filtros avanzados">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filtros
+            </button>
+            <span class="waiter-orders-count" id="cashier-orders-count">0 órdenes</span>
+            <div class="waiter-view-toggle" aria-label="Modo de vista de tabla">
+              <button type="button" class="waiter-view-toggle__btn active" id="cashier-view-normal">
+                Vista normal
+              </button>
+              <button type="button" class="waiter-view-toggle__btn" id="cashier-view-compact">
+                Vista compacta
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="waiter-filters-modal" id="cashier-filters-modal" style="display: none">
+      <div class="waiter-filters-modal__overlay"></div>
+      <div class="waiter-filters-modal__content">
+        <div class="waiter-filters-modal__header">
+          <h3>Filtrar Órdenes</h3>
+          <button type="button" class="waiter-filters-modal__close" id="cashier-close-filters-btn">
+            ✕
+          </button>
+        </div>
+
+        <div class="waiter-filters-modal__body">
+          <p class="modal-hint" style="grid-column: 1 / -1; margin-bottom: 1rem">
+            Selecciona los filtros para ver únicamente órdenes en proceso de pago.
+          </p>
+          <div class="waiter-filters__section">
+            <h4>Estados de Sesión</h4>
+            <label><input type="checkbox" name="cashier-session-status" value="awaiting_tip" checked />
+              Esperando propina</label>
+            <label><input type="checkbox" name="cashier-session-status" value="awaiting_payment" checked />
+              Esperando pago</label>
+            <label><input type="checkbox" name="cashier-session-status" value="awaiting_payment_confirmation" checked />
+              Esperando confirmación</label>
+            <label><input type="checkbox" name="cashier-session-status" value="closed" />
+              Cerradas</label>
+            <label><input type="checkbox" name="cashier-session-status" value="paid" /> Pagadas</label>
+          </div>
+
+          <div class="waiter-filters__section">
+            <h4>Estados de Orden</h4>
+            <label><input type="checkbox" name="cashier-workflow-status" value="delivered" checked />
+              Entregada</label>
+            <label><input type="checkbox" name="cashier-workflow-status" value="ready_for_delivery" />
+              Lista</label>
+            <label><input type="checkbox" name="cashier-workflow-status" value="kitchen_in_progress" />
+              En cocina</label>
+            <label><input type="checkbox" name="cashier-workflow-status" value="waiter_accepted" />
+              Aceptada</label>
+            <label><input type="checkbox" name="cashier-workflow-status" value="requested" />
+              Solicitada</label>
+          </div>
+
+          <div class="waiter-filters__section">
+            <h4>Rango de fechas</h4>
+            <label><input type="radio" name="cashier-date-filter" value="today" checked /> Hoy</label>
+            <label><input type="radio" name="cashier-date-filter" value="last7" /> Últimos 7 días</label>
+            <label><input type="radio" name="cashier-date-filter" value="custom" /> Últimos
+              <input type="number" id="cashier-date-filter-days" value="7" min="1" style="width: 70px; margin: 0 6px" />
+              días
+            </label>
+            <label><input type="radio" name="cashier-date-filter" value="all" /> Todos</label>
+          </div>
+        </div>
+
+        <div class="waiter-filters-modal__footer">
+          <button type="button" class="btn btn--small btn--secondary" id="cashier-reset-filters">
+            Resetear filtros
+          </button>
+          <button type="button" class="btn btn--small btn--primary" id="cashier-apply-filters-btn">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="cashier-active-orders-section" class="orders-section">
+      <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
+        <div class="table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th style="width: 40px">⭐</th>
+                <th>Orden</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Mesero</th>
+                <th>Total</th>
+                <th>Estado</th>
+
+                <th>Acciones</th>
+                <th style="width: 60px"></th>
+              </tr>
+            </thead>
+            <tbody id="cashier-orders">
+              {% for order in waiter_orders %} {% set customer_name = order.customer.name if
+              order.customer else '' %} {% set raw_customer_email = (order.customer.email or '') if
+              order.customer else '' %} {% if raw_customer_email and
+              raw_customer_email.startswith('anonimo+') %} {% set raw_customer_email = '' %} {%
+              endif %} {% set order_email = order.customer_email or '' %} {% if order_email and
+              order_email.startswith('anonimo+') %} {% set order_email = '' %} {% endif %} {% set
+              customer_email = raw_customer_email or order_email %} {% set customer_name_upper =
+              (customer_name or '')|upper %}
+              {% if customer_email and (not customer_name or customer_name_upper in ['INVITADO',
+              'CLIENTE ANONIMO', 'CLIENTE ANÓNIMO', 'ANONIMO', 'ANÓNIMO', 'CLIENTE']) %} {% set
+              customer_display_name = customer_email %} {% elif customer_name %} {% set
+              customer_display_name = customer_name %} {% else %} {% set customer_display_name =
+              'Cliente' %} {% endif %}
+              <tr data-order-id="{{ order.id }}" data-status="{{ order.workflow_status }}"
+                data-session-id="{{ order.session_id }}" data-session-status="{{ order.session.status }}"
+                data-paid-at="{{ order.session.closed_at.isoformat() if order.session.closed_at else '' }}"
+                data-created-at="{{ order.created_at }}" data-session-opened="{{ order.session.opened_at }}"
+                data-table-number="{{ order.session.table_number or '' }}"
+                data-customer-id="{{ order.customer.id if order.customer else '' }}"
+                data-customer-name="{{ customer_display_name }}" data-customer-email="{{ customer_email }}"
+                data-customer-phone="{{ order.customer.phone if order.customer else '' }}"
+                data-customer-description="{{ (order.customer.physical_description or '')|e if order.customer else '' }}"
+                data-customer-avatar="{{ order.customer.avatar if order.customer else '' }}"
+                data-waiter-name="{{ order.waiter_name or '' }}" data-waiter-id="{{ order.waiter_id or '' }}"
+                data-notes="{{ (order.session.notes or '')|e }}" data-waiter-notes="{{ (order.waiter_notes or '')|e }}">
+                <td>
+                  <button type="button" class="star-btn" data-order-id="{{ order.id }}" title="Agregar a seguimiento">
+                    <span class="star-icon">☆</span>
+                  </button>
+                </td>
+                <td>
+                  <button type="button" class="order-id-link" style="
+                      background: none;
+                      border: none;
+                      color: #3b82f6;
+                      font-weight: 600;
+                      cursor: pointer;
+                      text-decoration: underline;
+                      padding: 0;
+                    " data-order-detail="{{ order.id }}" data-table-number="{{ order.session.table_number or '' }}"
+                    data-customer-name="{{ customer_display_name }}" data-customer-email="{{ customer_email }}"
+                    data-customer-phone="{{ order.customer.phone if order.customer else '' }}"
+                    data-notes="{{ (order.session.notes or '')|e }}"
+                    data-waiter-notes="{{ (order.waiter_notes or '')|e }}" data-status="{{ order.workflow_status }}"
+                    data-total="{{ order.total_amount }}">
+                    #{{ order.id }}
+                  </button>
+                </td>
+                <td>
+                  <button type="button" class="table-number-link" style="
+                      background: none;
+                      border: none;
+                      color: #ea580c;
+                      font-weight: 600;
+                      cursor: pointer;
+                      text-decoration: underline;
+                      padding: 0;
+                    " data-table-info="{{ order.session.table_number or '' }}"
+                    data-table-number="{{ order.session.table_number or '' }}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" style="width: 16px; height: 16px">
+                      <path d="M4 10h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                      <path d="M6 10v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                      <path d="M18 10v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                      <path d="M8 6h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                      <path d="M7 6V4h10v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    </svg>
+                    {{ order.session.table_number or 'N/A' }}
+                  </button>
+                </td>
+                <td>{{ customer_display_name }}</td>
+                <td>
+                  {% if order.waiter_name %}
+                  <span class="waiter-badge">👤 {{ order.waiter_name }}</span>
+                  {% else %}
+                  <span class="waiter-badge waiter-badge--unassigned">⚠️ Sin asignar</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {{ currency_symbol }}{{ "{:,.2f}".format(order.total_amount) }} {{ currency }}
+                </td>
+                <td>
+                  <span class="status status--{{ order.workflow_status }}">{{ order.status_display or
+                    order.workflow_status }}</span>
+                </td>
+
+                <td class="actions"></td>
+                <td></td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="9">Sin órdenes activas.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p id="cashier-feedback" class="feedback"></p>
+      </div>
+    </div>
+
+    <div id="cashier-tracking-orders-section" class="orders-section" style="display: none">
+      <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
+        <div class="table-wrapper tracking-section">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th style="width: 40px">⭐</th>
+                <th>Orden</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cashier-tracking-orders">
+              <tr class="tracking-empty-state">
+                <td colspan="7" style="text-align: center; padding: 1.5rem">
+                  <div style="font-size: 1.5rem; margin-bottom: 0.5rem">⭐</div>
+                  <p style="margin: 0">No tienes órdenes en seguimiento</p>
+                  <small style="color: #64748b">Usa la estrella para fijar órdenes importantes.</small>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="cashier-paid-orders-section" class="orders-section" style="display: none">
+      <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
+        <div class="table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Sesión</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Total</th>
+                <th>Órdenes</th>
+                <th>Método</th>
+                <th>Cerrada</th>
+              </tr>
+            </thead>
+            <tbody id="cashier-paid-sessions">
+              <tr>
+                <td colspan="7" style="text-align: center; padding: 3rem;">
+                  <div class="loading-state">
+                    <div class="spinner spinner--medium" style="margin: 0 auto 1rem;"></div>
+                    <p style="color: var(--color-gray-500); margin: 0;">Cargando sesiones cerradas...</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="cashier-paid-feedback" class="feedback"></p>
+      </div>
+    </div>
+
+    <div id="cashier-cancelled-orders-section" class="orders-section" style="display: none">
+      <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
+        <div class="table-wrapper">
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Orden</th>
+                <th>Mesa</th>
+                <th>Cliente</th>
+                <th>Total</th>
+                <th>Cancelada</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody id="cashier-cancelled-orders">
+              <tr class="cancelled-empty-state">
+                <td colspan="6" style="text-align: center; padding: 1.5rem; color: #64748b">
+                  No hay órdenes canceladas.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% if employee_role in ['super_admin', 'admin_roles'] %}
+<section class="section" id="reportes" data-menu-title="Reportes" data-menu-group="📊 REPORTES">
+  <header class="section__header">
+    <h2>📊 Análisis</h2>
+    <p>Visualiza ventas, productos más vendidos, horarios pico y propinas por mesero.</p>
+  </header>
+
+  <div class="reports-filters">
+    <div class="filter-group">
+      <label for="report-start-date">Desde:</label>
+      <input type="date" id="report-start-date" class="filter-input" />
+    </div>
+    <div class="filter-group">
+      <label for="report-end-date">Hasta:</label>
+      <input type="date" id="report-end-date" class="filter-input" />
+    </div>
+    <div class="filter-group">
+      <label for="report-grouping">Agrupar por:</label>
+      <select id="report-grouping" class="filter-input">
+        <option value="day">Día</option>
+        <option value="week">Semana</option>
+        <option value="month">Mes</option>
+      </select>
+    </div>
+    <button id="refresh-reports-btn" class="btn btn--primary">🔍 Buscar</button>
+    <button id="quick-filters-btn" class="btn btn--secondary">Filtros rápidos ▼</button>
+  </div>
+
+  <div id="quick-filters" class="quick-filters">
+    <button class="quick-filter-btn" data-period="today">Hoy</button>
+    <button class="quick-filter-btn" data-period="week">Esta semana</button>
+    <button class="quick-filter-btn" data-period="month">Este mes</button>
+  </div>
+
+  <!-- Sales Report -->
+  <div class="report-card card card--light">
+    <div class="card__header">
+      <div>
+        <h3 class="card__header-title">📈 Ventas por Período</h3>
+      </div>
+    </div>
+    <div class="card__body">
+      <div class="report-summary">
+        <div class="summary-item">
+          <span class="summary-label">Total Órdenes:</span>
+          <strong id="total-orders">-</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Ingresos Totales:</span>
+          <strong id="total-revenue">-</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Propinas Totales:</span>
+          <strong id="total-tips-summary">-</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Ticket Promedio:</span>
+          <strong id="avg-order-value">-</strong>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="sales-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Products -->
+  <div class="report-card card card--light">
+    <div class="card__header">
+      <div>
+        <h3 class="card__header-title">🏆 Productos Más Vendidos</h3>
+      </div>
+    </div>
+    <div class="card__body">
+      <div class="chart-container">
+        <canvas id="top-products-chart"></canvas>
+      </div>
+      <div class="table-wrapper">
+        <table id="top-products-table" data-theme="light">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Órdenes</th>
+              <th>Ingresos</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peak Hours -->
+  <div class="report-card card card--light">
+    <div class="card__header">
+      <div>
+        <h3 class="card__header-title">🕐 Horarios Pico</h3>
+      </div>
+    </div>
+    <div class="card__body">
+      <div class="peak-hour-info">
+        <strong>Hora más concurrida:</strong>
+        <span id="peak-hour-display">-</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="peak-hours-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waiter Tips -->
+  <div class="report-card card card--light">
+    <div class="card__header">
+      <div>
+        <h3 class="card__header-title">💰 Propinas por Mesero</h3>
+      </div>
+    </div>
+    <div class="card__body">
+      <div class="report-summary">
+        <div class="summary-item">
+          <span class="summary-label">Total Propinas:</span>
+          <strong id="total-tips-waiter">-</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Meseros Activos:</span>
+          <strong id="waiter-count">-</strong>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="waiter-tips-table">
+          <thead>
+            <tr>
+              <th>Mesero</th>
+              <th>Órdenes</th>
+              <th>Propinas Totales</th>
+              <th>Propina Promedio</th>
+              <th>% Propina</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="reports-feedback" class="feedback"></div>
+</section>
+{% endif %}
+
+
+{% if employee_role in ['super_admin', 'admin_roles'] %}
+<section class="section" id="marketing" data-menu-title="Marketing" data-menu-group="📊 REPORTES">
+  <header class="section__header">
+    <h2>📈 Marketing</h2>
+    <p>Campañas, mailing y fidelización.</p>
+  </header>
+  <div class="empty-state">
+    <div class="empty-state__icon">📢</div>
+    <h3>Sección en construcción</h3>
+  </div>
+</section>
+{% endif %}

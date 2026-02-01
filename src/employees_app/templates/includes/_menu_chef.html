@@ -1,0 +1,1104 @@
+{% if has_permission(Permission.MENU_VIEW) %}
+<section
+  class="section"
+  id="menu"
+  data-menu-title="Menú y Productos"
+  data-menu-group="🍽️ MENÚ"
+  data-catalog-root
+>
+  <header class="section__header">
+    <h2>🍽️ Catálogo inteligente de productos</h2>
+    <p>Explora, filtra y actualiza el menú con un panel visual pensado para operaciones.</p>
+  </header>
+
+  <div class="catalog-hero">
+    <div>
+      <p class="catalog-hero__eyebrow">Panel visual</p>
+      <h3 class="catalog-hero__title">Gestiona tu menú en segundos</h3>
+      <p class="catalog-hero__subtitle">
+        Busca, cambia disponibilidad y edita sin perder contexto.
+      </p>
+    </div>
+    <div class="catalog-hero__badges">
+      <span class="hero-pill hero-pill--primary">🔍 Búsqueda instantánea</span>
+      <span class="hero-pill">↕ Vista tarjetas / compacta</span>
+      <span class="hero-pill">⚡ Acciones rápidas sobre la foto</span>
+    </div>
+  </div>
+
+  <link rel="stylesheet" href="{{ assets_css_employees }}/dashboard.css" />
+
+  <style>
+    /* Modern Catalog Sidebar Styles */
+    .modern-catalog-sidebar {
+      background: #ffffff;
+      border-right: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+      padding: 1.5rem;
+      gap: 1.5rem;
+    }
+
+    .modern-catalog-sidebar--dark {
+      background: #111827;
+      border-right-color: rgba(148, 163, 184, 0.15);
+      color: #e2e8f0;
+    }
+
+    .modern-catalog-sidebar--dark .catalog-stats p {
+      color: rgba(226, 232, 240, 0.75);
+    }
+
+    .modern-catalog-sidebar--dark .catalog-stats strong {
+      color: #ffffff;
+    }
+
+    /* Header & Actions */
+    .catalog-header-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .catalog-stats p {
+      color: #64748b;
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    .catalog-stats strong {
+      color: #0f172a;
+      font-size: 1.125rem;
+      font-weight: 700;
+    }
+
+    .btn-modern-primary {
+      background: linear-gradient(135deg, #ff6b35 0%, #ea580c 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 6px -1px rgba(255, 107, 53, 0.2);
+      width: 100%;
+    }
+
+    .btn-modern-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 8px -1px rgba(255, 107, 53, 0.3);
+    }
+
+    .btn-modern-primary .icon {
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .catalog-quick-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .btn-icon-action {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.5rem;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modern-catalog-sidebar--dark .btn-icon-action {
+      background: rgba(148, 163, 184, 0.08);
+      border-color: rgba(148, 163, 184, 0.18);
+      color: #e2e8f0;
+    }
+
+    .btn-icon-action:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+
+    .modern-catalog-sidebar--dark .btn-icon-action:hover:not(:disabled) {
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.24);
+    }
+
+    .btn-icon-action.danger:hover:not(:disabled) {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #ef4444;
+    }
+
+    .btn-icon-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #f1f5f9;
+      display: none;
+      /* Hide disabled actions in waiter view if needed, but this is chef view */
+    }
+
+    /* Search */
+    .modern-search-container {
+      position: relative;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      color: #94a3b8;
+      pointer-events: none;
+      width: 18px;
+      height: 18px;
+    }
+
+    .modern-catalog-sidebar--dark .search-icon {
+      color: rgba(226, 232, 240, 0.72);
+      width: 18px;
+      height: 18px;
+    }
+
+    .modern-search-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f8fafc;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+
+    .modern-catalog-sidebar--dark .modern-search-input {
+      background: rgba(15, 23, 42, 0.55);
+      border-color: rgba(148, 163, 184, 0.18);
+      color: #e2e8f0;
+    }
+
+    .modern-catalog-sidebar--dark .modern-search-input::placeholder {
+      color: rgba(226, 232, 240, 0.55);
+    }
+
+    .modern-search-input:focus-visible {
+      background: white;
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+      outline: none;
+    }
+
+    .modern-catalog-sidebar--dark .modern-search-input:focus-visible {
+      background: rgba(15, 23, 42, 0.65);
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.22);
+    }
+
+    /* Quick filters */
+    .catalog-quick-filters {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .quick-filter-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .quick-filter-btn {
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(148, 163, 184, 0.08);
+      color: #e2e8f0;
+      border-radius: 14px;
+      padding: 0.75rem 0.75rem;
+      min-height: 48px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition:
+        transform 0.12s ease,
+        background 0.12s ease,
+        border-color 0.12s ease;
+    }
+
+    .quick-filter-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .quick-filter-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.24);
+    }
+
+    .quick-filter-btn.active {
+      background: rgba(255, 107, 53, 0.18);
+      border-color: rgba(255, 107, 53, 0.35);
+      color: #ffffff;
+    }
+
+    .quick-filter-btn.active svg {
+      filter: drop-shadow(0 6px 14px rgba(255, 107, 53, 0.25));
+    }
+
+    /* Filters */
+    .modern-filters-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .filter-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .filter-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .modern-catalog-sidebar--dark .filter-title {
+      color: rgba(226, 232, 240, 0.7);
+    }
+
+    .segmented-control-modern {
+      display: flex;
+      background: #f1f5f9;
+      padding: 0.25rem;
+      border-radius: 10px;
+    }
+
+    .modern-catalog-sidebar--dark .segmented-control-modern {
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .segment-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 0.4rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #64748b;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .modern-catalog-sidebar--dark .segment-btn {
+      color: rgba(226, 232, 240, 0.72);
+    }
+
+    .segment-btn.active {
+      background: white;
+      color: #0f172a;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      font-weight: 600;
+    }
+
+    .modern-catalog-sidebar--dark .segment-btn.active {
+      background: linear-gradient(135deg, #ff6b35 0%, #ea580c 100%);
+      border-color: transparent;
+      color: #ffffff;
+      box-shadow: 0 10px 24px rgba(255, 107, 53, 0.25);
+    }
+
+    .checkbox-group-modern {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .checkbox-card {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .checkbox-card:hover {
+      background: #f8fafc;
+    }
+
+    .modern-catalog-sidebar--dark .checkbox-card:hover {
+      background: rgba(148, 163, 184, 0.08);
+    }
+
+    .checkbox-card input[type='checkbox'] {
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 4px;
+      border: 2px solid #cbd5e1;
+      appearance: none;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .checkbox-card input[type='checkbox']:checked {
+      background: #ff6b35;
+      border-color: #ff6b35;
+    }
+
+    .checkbox-card input[type='checkbox']:checked::after {
+      content: '✓';
+      position: absolute;
+      color: white;
+      font-size: 0.8rem;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .checkbox-content {
+      font-size: 0.9rem;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modern-catalog-sidebar--dark .checkbox-content {
+      color: rgba(226, 232, 240, 0.92);
+    }
+
+    /* Footer Stats */
+    .catalog-footer-stats {
+      margin-top: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .modern-catalog-sidebar--dark .catalog-footer-stats {
+      border-top-color: rgba(148, 163, 184, 0.16);
+    }
+
+    .stat-pill {
+      background: #f8fafc;
+      padding: 0.75rem;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .modern-catalog-sidebar--dark .stat-pill {
+      background: rgba(148, 163, 184, 0.08);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .stat-pill span {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .modern-catalog-sidebar--dark .stat-pill span {
+      color: rgba(226, 232, 240, 0.72);
+    }
+
+    .stat-pill strong {
+      font-size: 1.25rem;
+      color: #0f172a;
+    }
+
+    .modern-catalog-sidebar--dark .stat-pill strong {
+      color: #ffffff;
+    }
+
+    .stat-pill.success strong {
+      color: #10b981;
+    }
+  </style>
+
+  <div class="product-manager">
+    <aside class="product-sidebar modern-catalog-sidebar modern-catalog-sidebar--dark">
+      <div class="catalog-header-actions">
+        <div class="catalog-stats">
+          <p>Inventario activo</p>
+          <strong id="product-count-label">{{ menu.categories|length }} categorías</strong>
+        </div>
+
+        {% if has_permission(Permission.MENU_CREATE) %}
+        <div class="catalog-main-actions">
+          <button type="button" class="btn-modern-primary" id="new-product-btn">
+            <span class="icon">+</span> Nuevo Producto
+          </button>
+        </div>
+
+        <div class="catalog-quick-actions">
+          <button
+            type="button"
+            class="btn-icon-action"
+            title="Modificar"
+            id="edit-product-btn"
+            disabled
+          >
+            ✏️
+          </button>
+          <button
+            type="button"
+            class="btn-icon-action"
+            title="Marcar Disponible"
+            id="mark-available-btn"
+            disabled
+          >
+            ✅
+          </button>
+          <button
+            type="button"
+            class="btn-icon-action danger"
+            title="Eliminar"
+            id="delete-product-btn"
+            disabled
+          >
+            🗑️
+          </button>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="modern-search-container">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"></circle>
+            <path d="m21 21-4.3-4.3" stroke="currentColor" stroke-width="2"></path>
+          </svg>
+          <input
+            type="search"
+            id="product-search"
+            placeholder="Buscar productos..."
+            class="modern-search-input"
+          />
+        </div>
+        <div
+          id="product-search-suggestions"
+          class="product-search-suggestions"
+          aria-live="polite"
+        ></div>
+      </div>
+
+      <div class="catalog-quick-filters" aria-label="Filtros rápidos">
+        <h4 class="filter-title">Filtros Rápidos</h4>
+        <div class="quick-filter-buttons">
+          <button type="button" class="quick-filter-btn" data-quick-period="breakfast">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path
+                d="M4.2 8.2 5.6 9.6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M19.8 8.2 18.4 9.6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path d="M4 13h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M6 17h12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <span>Mañana</span>
+          </button>
+          <button type="button" class="quick-filter-btn" data-quick-period="afternoon">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path d="M12 1v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M12 21v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path
+                d="M4.22 4.22 5.64 5.64"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <path
+                d="M18.36 18.36 19.78 19.78"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>Tarde</span>
+          </button>
+          <button type="button" class="quick-filter-btn" data-quick-period="night">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M21 15.5A8.5 8.5 0 0 1 9.5 3a7 7 0 1 0 11.5 12.5Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span>Noche</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modern-filters-container">
+        <!-- Availability Filter -->
+        <div class="filter-section">
+          <h4 class="filter-title">Estado</h4>
+          <div class="segmented-control-modern" id="availability-filter">
+            <button type="button" class="segment-btn active" data-availability="all">Todos</button>
+            <button type="button" class="segment-btn" data-availability="available">Activos</button>
+            <button type="button" class="segment-btn" data-availability="unavailable">
+              Agotados
+            </button>
+          </div>
+        </div>
+
+        <!-- Period Filters -->
+        <div class="filter-section">
+          <h4 class="filter-title">Horarios</h4>
+          <div class="checkbox-group-modern" id="product-period-filters">
+            {% for period in day_periods %}
+            <label class="checkbox-card">
+              <input
+                type="checkbox"
+                class="period-filter-checkbox"
+                data-period-key="{{ period.key }}"
+              />
+              <span class="checkbox-content">
+                <span class="period-icon">{{ period.icon or '🕒' }}</span>
+                <span class="period-name">{{ period.name }}</span>
+              </span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Promo Filters -->
+        <div class="filter-section">
+          <h4 class="filter-title">Promociones</h4>
+          <div class="checkbox-group-modern">
+            <label class="checkbox-card">
+              <input type="checkbox" id="filter-promotion" data-filter-type="promotion" />
+              <span class="checkbox-content">🎉 Con promoción</span>
+            </label>
+            <label class="checkbox-card">
+              <input type="checkbox" id="filter-coupon" data-filter-type="coupon" />
+              <span class="checkbox-content">🎫 Con cupón</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="filter-section">
+          <h4 class="filter-title">Categorías</h4>
+          <div id="product-filter-list" class="product-filter-list"></div>
+        </div>
+      </div>
+
+      <!-- Stats Footer -->
+      <div class="catalog-footer-stats">
+        <div class="stat-pill">
+          <span>Total</span>
+          <strong id="product-total-count">--</strong>
+        </div>
+        <div class="stat-pill success">
+          <span>Activos</span>
+          <strong id="product-available-count">--</strong>
+        </div>
+      </div>
+    </aside>
+
+    <div class="product-content">
+      <div class="product-toolbar">
+        <button
+          type="button"
+          class="catalog-toolbar-btn"
+          id="toggle-product-sidebar"
+          title="Filtros"
+          aria-label="Filtros"
+        >
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 4h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+            <path d="M6 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+            <path d="M10 20h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+          <span>Filtros</span>
+        </button>
+        <div class="product-view-toggle">
+          <button
+            type="button"
+            class="view-toggle-btn"
+            data-product-view-mode="grid"
+            title="Vista tarjetas"
+            aria-label="Vista tarjetas"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect
+                x="3"
+                y="3"
+                width="7"
+                height="7"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="2"
+              ></rect>
+              <rect
+                x="14"
+                y="3"
+                width="7"
+                height="7"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="2"
+              ></rect>
+              <rect
+                x="3"
+                y="14"
+                width="7"
+                height="7"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="2"
+              ></rect>
+              <rect
+                x="14"
+                y="14"
+                width="7"
+                height="7"
+                rx="2"
+                stroke="currentColor"
+                stroke-width="2"
+              ></rect>
+            </svg>
+            <span>Tarjetas</span>
+          </button>
+          <button
+            type="button"
+            class="view-toggle-btn"
+            data-product-view-mode="compact"
+            title="Vista compacta"
+            aria-label="Vista compacta"
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 6h16"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              ></path>
+              <path
+                d="M4 12h16"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              ></path>
+              <path
+                d="M4 18h16"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              ></path>
+            </svg>
+            <span>Compacta</span>
+          </button>
+        </div>
+      </div>
+      <div class="product-grid" id="product-grid"></div>
+      <div id="product-pagination"></div>
+      <div class="product-empty" id="product-empty-state" style="display: none">
+        <h4>Sin coincidencias</h4>
+        <p>Prueba con otra búsqueda o cambia los filtros.</p>
+      </div>
+    </div>
+  </div>
+
+  {% if employee_role in ['system', 'admin', 'content_manager'] %}
+  <div class="product-drawer" id="product-drawer">
+    <div class="product-drawer__content">
+      <div class="product-drawer__header">
+        <h3 id="product-drawer-title">Nuevo producto</h3>
+        <button class="product-drawer__close" type="button" id="close-product-drawer">×</button>
+      </div>
+
+      <!-- Product Form Tabs -->
+      <div class="product-form-tabs">
+        <button type="button" class="product-tab active" data-tab="info">📝 Información</button>
+        <button type="button" class="product-tab" data-tab="image">🖼️ Imagen</button>
+        <button type="button" class="product-tab" data-tab="availability">⏰ Disponibilidad</button>
+        <button type="button" class="product-tab" data-tab="tags">🏷️ Tags</button>
+      </div>
+
+      <form id="product-form">
+        <input type="hidden" id="product-id" />
+        <input type="hidden" id="product-image" />
+
+        <!-- Tab 1: Información Básica -->
+        <div class="product-tab-content active" data-tab-content="info">
+          <div class="product-form__grid">
+            <label
+              >Nombre del producto *
+              <input type="text" id="product-name" required placeholder="Ej: Hamburguesa Clásica" />
+            </label>
+            <label
+              >Precio *
+              <input
+                type="number"
+                id="product-price"
+                min="0"
+                step="0.01"
+                required
+                placeholder="0.00"
+              />
+            </label>
+            <label
+              >Categoría *
+              <input
+                type="text"
+                id="product-category"
+                list="category-options"
+                required
+                placeholder="Ej: Hamburguesas"
+              />
+            </label>
+            <label id="prep-time-field"
+              >Tiempo de preparación (min)
+              <input type="number" id="product-prep-time" min="1" max="180" placeholder="15" />
+              <small style="color: #94a3b8; font-size: 0.75rem; margin-top: 0.25rem"
+                >⏱️ Tiempo estimado de cocina</small
+              >
+            </label>
+          </div>
+
+          <label class="product-field" style="margin-top: 1rem"
+            >Descripción
+            <textarea
+              id="product-description"
+              rows="4"
+              placeholder="Describe los ingredientes, preparación o características especiales..."
+            ></textarea>
+            <small style="color: #94a3b8; margin-top: 0.25rem"
+              >Esta descripción se mostrará a los clientes en el menú</small
+            >
+          </label>
+        </div>
+
+        <!-- Tab 2: Imagen -->
+        <div class="product-tab-content" data-tab-content="image">
+          <div class="image-manager">
+            <div class="image-manager__header">
+              <div>
+                <p>Imagen del producto</p>
+                <small
+                  >Genera con IA, sube una foto o copia una URL. Todo se guarda en el contenedor
+                  estático.</small
+                >
+              </div>
+              <button type="button" class="btn btn--outline btn--small" id="clear-product-image">
+                Quitar
+              </button>
+            </div>
+            <div class="image-manager__preview">
+              <img
+                id="product-image-preview"
+                src="{{ restaurant_assets | replace('http://', 'https://') }}/icons/placeholder.png"
+                alt="Vista previa"
+                data-state="empty"
+              />
+            </div>
+            <div class="image-mode-tabs">
+              <button type="button" class="image-mode-btn active" data-mode="ai-free">
+                IA gratis
+              </button>
+              <button type="button" class="image-mode-btn" data-mode="ai-openai">OpenAI</button>
+              <button type="button" class="image-mode-btn" data-mode="upload">Subir archivo</button>
+              <button type="button" class="image-mode-btn" data-mode="url">URL externa</button>
+            </div>
+            <div class="image-mode-panel active" data-mode="ai-free">
+              <label for="ai-free-prompt">Describe la imagen que quieres generar</label>
+              <textarea
+                id="ai-free-prompt"
+                rows="3"
+                placeholder="Ejemplo: Hamburguesa artesanal con queso derretido, tomate fresco y lechuga, foto profesional de restaurante, fondo blanco limpio"
+              ></textarea>
+              <button type="button" class="btn btn--secondary" id="generate-free-image">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  style="margin-right: 0.5rem"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                Generar Imagen con IA
+              </button>
+              <small class="image-note" style="color: #64748b; display: block; margin-top: 0.5rem">
+                ✨ Generación gratuita usando modelos de código abierto
+              </small>
+            </div>
+            <div class="image-mode-panel" data-mode="ai-openai">
+              <label for="ai-openai-prompt">Describe la imagen para DALL·E</label>
+              <textarea
+                id="ai-openai-prompt"
+                rows="3"
+                placeholder="Descripción detallada para generar con OpenAI DALL·E"
+              ></textarea>
+              <button type="button" class="btn btn--secondary" id="generate-openai-image">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  style="margin-right: 0.5rem"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+                Generar con OpenAI
+              </button>
+              <small class="image-note" style="color: #94a3b8; display: block; margin-top: 0.5rem">
+                ⚠️ Requiere configurar <code>OPENAI_API_KEY</code> en variables de entorno
+              </small>
+            </div>
+            <div class="image-mode-panel" data-mode="upload">
+              <label for="product-image-upload">Sube una imagen desde tu computadora</label>
+              <input
+                type="file"
+                id="product-image-upload"
+                accept=".png,.jpg,.jpeg,.webp,.gif"
+                style="margin: 0.75rem 0"
+              />
+              <small class="image-note" style="color: #64748b; display: block">
+                📁 Formatos permitidos: PNG, JPG, WEBP, GIF
+              </small>
+            </div>
+            <div class="image-mode-panel" data-mode="url">
+              <label for="product-image-url">URL de imagen externa</label>
+              <input
+                type="url"
+                id="product-image-url"
+                placeholder="https://ejemplo.com/imagen-producto.jpg"
+                style="margin: 0.75rem 0"
+              />
+              <div class="image-url-actions" style="display: flex; gap: 0.75rem; margin-top: 1rem">
+                <button
+                  type="button"
+                  class="btn btn--secondary"
+                  id="apply-external-url"
+                  style="flex: 1"
+                >
+                  🔗 Usar URL directamente
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--primary"
+                  id="import-image-url"
+                  style="flex: 1"
+                >
+                  💾 Copiar al servidor
+                </button>
+              </div>
+              <small class="image-note" style="color: #64748b; display: block; margin-top: 0.75rem">
+                💡 Recomendamos copiar al servidor para mayor confiabilidad
+              </small>
+            </div>
+            <p class="image-helper-feedback" id="image-helper-feedback">
+              Aún no has seleccionado imagen.
+            </p>
+          </div>
+        </div>
+
+        <!-- Tab 3: Disponibilidad -->
+        <div class="product-tab-content" data-tab-content="availability">
+          <div class="availability-section">
+            <h4 style="font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 1rem">
+              Estado del Producto
+            </h4>
+
+            <label class="product-field product-checkbox">
+              <input type="checkbox" id="product-availability" checked />
+              <div>
+                <span style="font-weight: 500; color: #1e293b">✅ Disponible en el menú</span>
+                <small style="display: block; color: #64748b; margin-top: 0.25rem"
+                  >Los clientes podrán ver y ordenar este producto</small
+                >
+              </div>
+            </label>
+
+            <label class="product-field product-checkbox">
+              <input type="checkbox" id="product-quick-serve" />
+              <div>
+                <span style="font-weight: 500; color: #1e293b">⚡ Entrega inmediata</span>
+                <small style="display: block; color: #64748b; margin-top: 0.25rem"
+                  >El mesero lo entrega directamente sin pasar por cocina (ideal para bebidas,
+                  postres empacados, etc.)</small
+                >
+              </div>
+            </label>
+          </div>
+
+          <div class="product-availability-periods" style="margin-top: 2rem">
+            <div class="periods-card">
+              <div class="periods-card__header">
+                <div>
+                  <h4>🕐 Horarios de Disponibilidad</h4>
+                  <p>Activa los horarios en los que el producto estará disponible.</p>
+                </div>
+                <div class="periods-card__actions">
+                  <button
+                    type="button"
+                    class="btn btn--outline btn--small"
+                    id="manage-day-periods-btn"
+                  >
+                    ⚙️ Configurar periodos
+                  </button>
+                  <button type="button" class="btn btn--primary btn--small" id="add-day-period-btn">
+                    ➕ Nuevo horario personalizado
+                  </button>
+                </div>
+              </div>
+              <div class="periods-grid" id="product-periods-grid">
+                {% for period in day_periods %} {% set input_id = 'product-period-' ~ period.key %}
+                <label class="period-card" data-period-key="{{ period.key }}">
+                  <input
+                    type="checkbox"
+                    class="product-period-toggle"
+                    id="{{ input_id }}"
+                    data-period-key="{{ period.key }}"
+                    {%
+                    if
+                    period.is_default
+                    %}checked{%
+                    endif
+                    %}
+                  />
+                  <div class="period-card__content">
+                    <span class="period-card__icon">{{ period.icon or '🕒' }}</span>
+                    <div class="period-card__text">
+                      <span class="period-card__title">{{ period.name }}</span>
+                      <span class="period-card__time"
+                        >{{ period.start_time }} - {{ period.end_time }}</span
+                      >
+                    </div>
+                    <span class="period-card__check">✓</span>
+                  </div>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Tags -->
+        <div class="product-tab-content" data-tab-content="tags">
+          <div class="product-tags-section">
+            <h4 style="font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem">
+              🏷️ Etiquetas del Producto
+            </h4>
+            <small style="color: #64748b; margin-bottom: 1rem; display: block">
+              Las etiquetas ayudan a categorizar y filtrar productos. Separa con comas.
+            </small>
+            <label class="product-field">
+              <span style="font-weight: 500">Etiquetas</span>
+              <input
+                type="text"
+                id="product-tags"
+                placeholder="Ejemplos: bebida, caliente, premium, vegano, sin gluten, picante"
+              />
+            </label>
+            <div
+              class="product-tags-display"
+              id="product-tags-display"
+              style="margin-top: 1rem"
+            ></div>
+
+            <div style="margin-top: 1.5rem; padding: 1rem; background: #f1f5f9; border-radius: 8px">
+              <p
+                style="font-size: 0.875rem; color: #475569; font-weight: 500; margin-bottom: 0.5rem"
+              >
+                💡 Sugerencias de tags populares:
+              </p>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem">
+                <button type="button" class="tag-suggestion" data-tag="vegano">🌱 Vegano</button>
+                <button type="button" class="tag-suggestion" data-tag="vegetariano">
+                  🥗 Vegetariano
+                </button>
+                <button type="button" class="tag-suggestion" data-tag="sin gluten">
+                  🌾 Sin Gluten
+                </button>
+                <button type="button" class="tag-suggestion" data-tag="picante">🌶️ Picante</button>
+                <button type="button" class="tag-suggestion" data-tag="premium">⭐ Premium</button>
+                <button type="button" class="tag-suggestion" data-tag="bajo en calorías">
+                  🏃 Bajo en Calorías
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-form__actions">
+          <button type="button" class="btn btn--outline" id="cancel-product-btn">Cancelar</button>
+          <button
+            type="button"
+            class="btn btn--danger"
+            id="delete-product-drawer-btn"
+            style="display: none"
+          >
+            Eliminar
+          </button>
+          <button type="submit" class="btn btn--primary">Guardar</button>
+        </div>
+      </form>
+      <datalist id="category-options">
+        {% for category in menu.categories %}
+        <option value="{{ category.name }}">{% endfor %}</option>
+      </datalist>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endif %}

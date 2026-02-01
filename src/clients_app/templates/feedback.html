@@ -1,0 +1,293 @@
+{% extends "base.html" %} {% block content %}
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
+
+<nav class="breadcrumbs" aria-label="Navegación de ruta">
+  <div class="breadcrumbs-container">
+    <a href="/" class="breadcrumb-item">
+      <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+        />
+      </svg>
+      Menú
+    </a>
+    <svg class="breadcrumb-separator" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+    <span class="breadcrumb-item breadcrumb-item--active">
+      <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M12 4.5l7 3.5-7 3.5-7-3.5 7-3.5zM5 11v5.5l7 3.5 7-3.5V11"
+        />
+      </svg>
+      Feedback
+    </span>
+  </div>
+</nav>
+
+<section class="checkout-page">
+  <div class="checkout-shell">
+    <div class="checkout-container checkout-container--single">
+      <div class="checkout-card feedback-card">
+        <div class="feedback-icon">
+          <svg
+            width="64"
+            height="64"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+
+        <h1>¿Cómo fue tu experiencia?</h1>
+        <p class="subtitle">Tu opinión nos ayuda a mejorar</p>
+
+        <form id="feedback-form">
+          <input type="hidden" id="session_id" name="session_id" value="{{ session_id }}" />
+          <input type="hidden" id="employee_id" name="employee_id" value="{{ employee_id }}" />
+
+          <!-- Waiter Service Rating -->
+          <div class="rating-section">
+            <h3>Servicio del Mesero</h3>
+            <div class="star-rating" data-category="waiter_service">
+              <span class="star" data-rating="1">★</span>
+              <span class="star" data-rating="2">★</span>
+              <span class="star" data-rating="3">★</span>
+              <span class="star" data-rating="4">★</span>
+              <span class="star" data-rating="5">★</span>
+            </div>
+            <input type="hidden" name="waiter_service_rating" id="waiter_service_rating" required />
+          </div>
+
+          <!-- Food Quality Rating -->
+          <div class="rating-section">
+            <h3>Calidad de la Comida</h3>
+            <div class="star-rating" data-category="food_quality">
+              <span class="star" data-rating="1">★</span>
+              <span class="star" data-rating="2">★</span>
+              <span class="star" data-rating="3">★</span>
+              <span class="star" data-rating="4">★</span>
+              <span class="star" data-rating="5">★</span>
+            </div>
+            <input type="hidden" name="food_quality_rating" id="food_quality_rating" required />
+          </div>
+
+          <!-- Food Presentation Rating -->
+          <div class="rating-section">
+            <h3>Presentación de los Platillos</h3>
+            <div class="star-rating" data-category="food_presentation">
+              <span class="star" data-rating="1">★</span>
+              <span class="star" data-rating="2">★</span>
+              <span class="star" data-rating="3">★</span>
+              <span class="star" data-rating="4">★</span>
+              <span class="star" data-rating="5">★</span>
+            </div>
+            <input
+              type="hidden"
+              name="food_presentation_rating"
+              id="food_presentation_rating"
+              required
+            />
+          </div>
+
+          <!-- Overall Experience Rating -->
+          <div class="rating-section">
+            <h3>Experiencia General</h3>
+            <div class="star-rating" data-category="overall_experience">
+              <span class="star" data-rating="1">★</span>
+              <span class="star" data-rating="2">★</span>
+              <span class="star" data-rating="3">★</span>
+              <span class="star" data-rating="4">★</span>
+              <span class="star" data-rating="5">★</span>
+            </div>
+            <input
+              type="hidden"
+              name="overall_experience_rating"
+              id="overall_experience_rating"
+              required
+            />
+          </div>
+
+          <!-- Comment -->
+          <div class="comment-section">
+            <label for="comment">
+              <h3>Comentarios Adicionales (Opcional)</h3>
+            </label>
+            <textarea
+              id="comment"
+              name="comment"
+              rows="4"
+              placeholder="Cuéntanos más sobre tu experiencia..."
+            ></textarea>
+          </div>
+
+          <!-- Anonymous Checkbox -->
+          <div class="anonymous-section">
+            <label class="checkbox-label">
+              <input type="checkbox" id="is_anonymous" name="is_anonymous" />
+              <span>Enviar feedback de forma anónima</span>
+            </label>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="button-group">
+            <button type="button" class="btn btn-skip" onclick="skipFeedback()">Omitir</button>
+            <button type="submit" class="btn btn-submit">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Enviar Feedback
+            </button>
+          </div>
+        </form>
+
+        <p class="thank-you-note">¡Gracias por tu visita! 🎉</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const FEEDBACK_API_BASE_URL =
+    "{{ feedback_api_base_url.rstrip('/') if feedback_api_base_url else '' }}";
+  const FEEDBACK_API_BASE = (FEEDBACK_API_BASE_URL || window.location.origin).replace(/\/$/, '');
+
+  // Star rating interaction
+  document.querySelectorAll('.star-rating').forEach((container) => {
+    const category = container.dataset.category;
+    const stars = container.querySelectorAll('.star');
+    const input = document.getElementById(`${category}_rating`);
+
+    stars.forEach((star, index) => {
+      // Click event
+      star.addEventListener('click', () => {
+        const rating = parseInt(star.dataset.rating);
+        input.value = rating;
+
+        // Update star display
+        stars.forEach((s, i) => {
+          if (i < rating) {
+            s.classList.add('active');
+          } else {
+            s.classList.remove('active');
+          }
+        });
+      });
+
+      // Hover effect
+      star.addEventListener('mouseenter', () => {
+        const rating = parseInt(star.dataset.rating);
+        stars.forEach((s, i) => {
+          if (i < rating) {
+            s.style.color = '#FFA500';
+          } else {
+            s.style.color = '#e2e8f0';
+          }
+        });
+      });
+    });
+
+    // Reset hover
+    container.addEventListener('mouseleave', () => {
+      const currentRating = parseInt(input.value) || 0;
+      stars.forEach((s, i) => {
+        if (i < currentRating) {
+          s.style.color = '#FFA500';
+          s.classList.add('active');
+        } else {
+          s.style.color = '#e2e8f0';
+          s.classList.remove('active');
+        }
+      });
+    });
+  });
+
+  // Form submission
+  document.getElementById('feedback-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Validate all ratings are filled
+    const categories = [
+      'waiter_service',
+      'food_quality',
+      'food_presentation',
+      'overall_experience',
+    ];
+    let allRated = true;
+
+    categories.forEach((category) => {
+      const input = document.getElementById(`${category}_rating`);
+      if (!input.value) {
+        allRated = false;
+      }
+    });
+
+    if (!allRated) {
+      alert('Por favor califica todas las categorías');
+      return;
+    }
+
+    // Gather data
+    const sessionId = document.getElementById('session_id').value;
+    const employeeId = document.getElementById('employee_id').value || null;
+    const comment = document.getElementById('comment').value.trim();
+    const isAnonymous = document.getElementById('is_anonymous').checked;
+
+    const feedbackItems = categories.map((category) => ({
+      category: category,
+      rating: parseInt(document.getElementById(`${category}_rating`).value),
+      comment: comment || null,
+    }));
+
+    try {
+      const response = await fetch(`${FEEDBACK_API_BASE}/api/feedback/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id: parseInt(sessionId),
+          employee_id: employeeId ? parseInt(employeeId) : null,
+          feedback_items: feedbackItems,
+          is_anonymous: isAnonymous,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Show thank you and redirect
+        window.location.href = '/thank-you?feedback=sent';
+      } else {
+        alert('Error al enviar feedback: ' + (result.message || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al enviar feedback');
+    }
+  });
+
+  function skipFeedback() {
+    if (confirm('¿Estás seguro de omitir el feedback?')) {
+      window.location.href = '/thank-you';
+    }
+  }
+</script>
+{% endblock %}

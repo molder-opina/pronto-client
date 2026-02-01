@@ -1,0 +1,164 @@
+/**
+ * COLLAPSIBLE SECTIONS
+ * Collapsible category sections for easy navigation
+ */
+
+.collapsible-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.collapsible-section:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.collapsible-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  user-select: none;
+  -webkit-user-select: none;
+  min-height: 56px;
+}
+
+.collapsible-section__header:hover {
+  background: var(--color-surface-hover);
+}
+
+.collapsible-section__header:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.collapsible-section__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.collapsible-section__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.collapsible-section__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition:
+    transform var(--transition-fast),
+    background var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.collapsible-section__toggle:hover {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.collapsible-section__toggle svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--transition-normal);
+}
+
+.collapsible-section__icon--expanded {
+  transform: rotate(180deg);
+}
+
+.collapsible-section__content {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    max-height var(--transition-normal),
+    padding var(--transition-normal);
+}
+
+.collapsible-section--expanded .collapsible-section__content {
+  max-height: 2000px;
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Compact mode for dense lists */
+.collapsible-section--compact .collapsible-section__header {
+  padding: var(--space-3) var(--space-4);
+  min-height: 48px;
+}
+
+.collapsible-section--compact .collapsible-section__title {
+  font-size: var(--font-size-sm);
+}
+
+.collapsible-section--compact .collapsible-section__toggle {
+  width: 32px;
+  height: 32px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .collapsible-section__header {
+    padding: var(--space-3);
+    min-height: 52px;
+  }
+
+  .collapsible-section__title {
+    font-size: var(--font-size-sm);
+  }
+
+  .collapsible-section--expanded .collapsible-section__content {
+    padding: var(--space-3);
+  }
+}
+
+/* Accessibility */
+.collapsible-section__header[aria-expanded='true'] {
+  background: var(--color-surface-hover);
+}
+
+.collapsible-section__header[aria-expanded='false'] .collapsible-section__toggle {
+  transform: rotate(-90deg);
+}
+
+.collapsible-section__toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .collapsible-section__toggle svg {
+    transition: none;
+  }
+
+  .collapsible-section__content {
+    transition: none;
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "moduleDetection": "force",
+    "strict": true,
+    "jsx": "preserve",
+    "allowJs": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@employees/*": ["src/employees_app/static/js/src/*"],
+      "@clients/*": ["src/clients_app/static/js/src/*"]
+    }
+  },
+  "include": [
+    "src/employees_app/static/js/src/**/*.{ts,tsx,d.ts}",
+    "src/clients_app/static/js/src/**/*.{ts,tsx,d.ts}",
+    "vite.config.ts"
+  ]
+}

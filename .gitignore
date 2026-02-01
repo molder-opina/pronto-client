@@ -1,0 +1,121 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+ *.sqlite
+ *.sqlite3
+
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+config/*.env
+scripts/**/*.env
+k8s/secrets.yaml
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+
+# Code quality tools
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.bandit/
+.pylint.d/
+bandit-report.json
+bandit-report.html
+.vulture_whitelist.py
+.cache/
+
+# Node.js (pre-commit prettier)
+node_modules/
+package-lock.json
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.bak
+
+# Local virtualenvs (tools)
+.venv-precommit/
+.aider*
+pronto_backup_pre_refactor.tar.gz
+
+# AI Assistants
+.claude/
+.cursor/
+.gemini/
+.opencode/
+.sisyphus/
+.Jules/
+.kilocode/
+.agent/
+.agents/
+.codex/
+
+# Backup directories
+build/employees_app_backup/
+
+# QA artifacts
+qa_artifacts/*.png
+qa_artifacts/*.zip
+qa_artifacts/trace.zip
+
+# Test results (large files)
+e2e-tests/playwright-report/data/
+e2e-tests/playwright-report/*.png
+e2e-tests/playwright-report/*.md
+e2e-tests/test-results/*.png
+e2e-tests/test-results/*.md
+qdrant_storage/
+config/backups/
+backups/
+.artifacts/
+archive/

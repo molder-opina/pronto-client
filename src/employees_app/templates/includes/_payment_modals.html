@@ -1,0 +1,191 @@
+<!-- Payment Modals (Required by payments-flow.ts) -->
+
+<!-- 1. Main Payment Modal -->
+<div id="employee-payment-modal" class="partial-delivery-modal" style="display: none;">
+    <div class="partial-delivery-modal__overlay"></div>
+    <div class="partial-delivery-modal__content">
+        <div class="partial-delivery-modal__header">
+            <h3>Cobrar <span id="employee-payment-session-label"></span></h3>
+            <button type="button" id="close-employee-payment" class="partial-delivery-close" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="partial-delivery-modal__body">
+            <!-- Step 1: Method Selection -->
+            <div id="payment-method-selection">
+                <p class="modal-hint">Selecciona el método de pago:</p>
+                <div class="payment-methods-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <button type="button" class="btn btn--secondary payment-method-btn" data-method="cash" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; height: auto;">
+                        <span style="font-size: 2rem;">💵</span>
+                        <span>Efectivo</span>
+                    </button>
+                    <button type="button" class="btn btn--secondary payment-method-btn" data-method="terminal" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; height: auto;">
+                        <span style="font-size: 2rem;">💳</span>
+                        <span>Terminal</span>
+                    </button>
+                    <!--
+                    <button type="button" class="btn btn--secondary payment-method-btn" data-method="stripe" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; height: auto;">
+                        <span style="font-size: 2rem;">📱</span>
+                        <span>Stripe</span>
+                    </button>
+                    <button type="button" class="btn btn--secondary payment-method-btn" data-method="clip" style="padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; height: auto;">
+                        <span style="font-size: 2rem;">🟧</span>
+                        <span>Clip</span>
+                    </button>
+                    -->
+                </div>
+            </div>
+
+            <!-- Step 2: Cash Confirmation -->
+            <div id="payment-cash-confirmation" style="display: none;">
+                <p class="modal-hint">Confirma el pago en efectivo.</p>
+                <div style="text-align: center; padding: 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">💵</div>
+                    <p>Al confirmar, la cuenta se marcará como pagada.</p>
+                </div>
+                <div class="partial-delivery-modal__footer" style="justify-content: space-between;">
+                    <button type="button" id="back-from-cash" class="btn btn--secondary">⬅ Volver</button>
+                    <button type="button" id="confirm-cash-payment" class="btn btn--primary">✓ Confirmar Pago</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Terminal Options -->
+            <div id="payment-terminal-options" style="display: none;">
+                <p class="modal-hint">Ingresa los detalles del pago con tarjeta.</p>
+                <form id="terminal-payment-form">
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div>
+                            <label for="terminal-card-type" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Tipo de Tarjeta</label>
+                            <select id="terminal-card-type" class="waiter-search-box__input" style="height: 40px; border: 1px solid #d1d5db; padding: 0.5rem;">
+                                <option value="visa">Visa</option>
+                                <option value="mastercard">Mastercard</option>
+                                <option value="amex">American Express</option>
+                                <option value="other">Otro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="terminal-reference" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Referencia (opcional)</label>
+                            <input type="text" id="terminal-reference" class="waiter-search-box__input" placeholder="Últimos 4 dígitos o ref." style="height: 40px; border: 1px solid #d1d5db; padding: 0.5rem;">
+                        </div>
+
+                        <!-- Photo Upload -->
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Foto del Voucher (opcional)</label>
+                            <input type="file" id="terminal-receipt-photo" accept="image/*" capture="environment" style="display: none;">
+                            <button type="button" id="terminal-photo-btn" class="btn btn--secondary" style="width: 100%; justify-content: center;">
+                                📷 Tomar foto del ticket
+                            </button>
+                            <div id="terminal-photo-preview" style="display: none; margin-top: 0.5rem; text-align: center;">
+                                <img id="terminal-photo-preview-img" src="" alt="Preview" style="max-height: 150px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="partial-delivery-modal__footer" style="justify-content: space-between; margin-top: 1.5rem;">
+                        <button type="button" id="back-from-terminal" class="btn btn--secondary">⬅ Volver</button>
+                        <button type="submit" class="btn btn--primary">✓ Registrar Pago</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Other Steps (Stripe/Clip) - Placeholders if needed -->
+            <div id="payment-stripe-confirmation" style="display: none;">
+                <p class="modal-hint">Confirma el pago con Stripe.</p>
+                 <div class="partial-delivery-modal__footer" style="justify-content: space-between;">
+                    <button type="button" id="back-from-stripe" class="btn btn--secondary">⬅ Volver</button>
+                    <button type="button" id="confirm-stripe-payment" class="btn btn--primary">✓ Cobrar con Stripe</button>
+                </div>
+            </div>
+
+            <div id="payment-clip-confirmation" style="display: none;">
+                <p class="modal-hint">Confirma el pago con Clip.</p>
+                 <div class="partial-delivery-modal__footer" style="justify-content: space-between;">
+                    <button type="button" id="back-from-clip" class="btn btn--secondary">⬅ Volver</button>
+                    <button type="button" id="confirm-clip-payment" class="btn btn--primary">✓ Cobrar con Clip</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Only show Cancel button on first step -->
+        <div class="partial-delivery-modal__footer" id="payment-main-footer">
+            <button type="button" id="cancel-employee-payment" class="btn btn--secondary">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Tip Modal -->
+<div id="employee-tip-modal" class="partial-delivery-modal" style="display: none;">
+    <div class="partial-delivery-modal__overlay"></div>
+    <div class="partial-delivery-modal__content">
+        <div class="partial-delivery-modal__header">
+            <h3>Agregar Propina <span id="employee-tip-session-label"></span></h3>
+            <button type="button" id="close-employee-tip" class="partial-delivery-close" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="partial-delivery-modal__body">
+            <p class="modal-hint">¿Deseas agregar propina a esta cuenta?</p>
+            <form id="employee-tip-form">
+                <div id="employee-tip-options-modal" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn--secondary tip-chip" data-tip="10">10%</button>
+                    <button type="button" class="btn btn--secondary tip-chip" data-tip="15">15%</button>
+                    <button type="button" class="btn btn--secondary tip-chip" data-tip="20">20%</button>
+                    <button type="button" class="btn btn--secondary tip-chip active" data-tip="0">Sin propina</button>
+                </div>
+                <!-- Custom amount input could go here if needed, relying on chips for now as per JS -->
+                <div class="partial-delivery-modal__footer" style="justify-content: flex-end;">
+                    <button type="button" id="cancel-employee-tip" class="btn btn--secondary">Omitir</button>
+                    <button type="submit" class="btn btn--primary">Guardar Propina</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 3. Ticket Modal -->
+<div id="employee-ticket-modal" class="partial-delivery-modal" style="display: none;">
+    <div class="partial-delivery-modal__overlay"></div>
+    <div class="partial-delivery-modal__content">
+        <div class="partial-delivery-modal__header">
+            <h3>Ticket de Compra <span id="employee-ticket-session-label"></span></h3>
+            <button type="button" id="close-employee-ticket" class="partial-delivery-close" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="partial-delivery-modal__body">
+            <form id="employee-ticket-form">
+                <div style="margin-bottom: 1rem;">
+                    <p style="font-weight: 600; margin-bottom: 0.5rem;">Método de entrega:</p>
+                    <div style="display: flex; gap: 1rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="ticket-delivery" value="physical" checked>
+                            Imprimir Ticket
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="ticket-delivery" value="digital">
+                            Enviar por Correo
+                        </label>
+                    </div>
+                </div>
+
+                <div id="ticket-email-container">
+                    <input type="email" id="ticket-email-input" class="waiter-search-box__input" placeholder="correo@cliente.com" style="display: none; width: 100%; border: 1px solid #d1d5db; padding: 0.5rem; border-radius: 4px;">
+                </div>
+
+                <div style="margin-top: 1rem; border: 1px dashed #cbd5e1; padding: 1rem; background: #f8fafc; border-radius: 4px;">
+                    <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Vista Previa</p>
+                    <div id="ticket-preview-container" style="max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap;">
+                        Cargando...
+                    </div>
+                </div>
+
+                <div class="partial-delivery-modal__footer" style="justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" id="cancel-employee-ticket" class="btn btn--secondary">Cerrar</button>
+                    <button type="submit" class="btn btn--primary">Procesar Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling for active chips */
+    .tip-chip.active {
+        background-color: var(--primary-orange, #ff6b35);
+        color: white;
+        border-color: var(--primary-orange, #ff6b35);
+    }
+</style>

@@ -1,0 +1,680 @@
+<!-- Employee Debug Panel - Only visible when DEBUG_MODE is enabled -->
+{% if config.get('DEBUG_MODE', False) %}
+<style>
+    .debug-panel-employee {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 9999;
+    }
+
+    .debug-toggle-employee {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+        font-size: 1.5rem;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .debug-toggle-employee:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 30px rgba(245, 158, 11, 0.6);
+    }
+
+    .debug-menu-employee {
+        position: absolute;
+        bottom: 80px;
+        left: 0;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        width: 380px;
+        max-height: 650px;
+        overflow-y: auto;
+        display: none;
+    }
+
+    .debug-menu-employee.active {
+        display: block;
+        animation: slideUp 0.3s ease;
+    }
+
+    .debug-header-employee {
+        padding: 1rem;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: white;
+        border-radius: 16px 16px 0 0;
+        font-weight: 700;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .debug-close-employee {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .debug-section-employee {
+        padding: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .debug-section-employee:last-child {
+        border-bottom: none;
+    }
+
+    .debug-section-employee h3 {
+        margin: 0 0 0.75rem 0;
+        font-size: 0.9rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .debug-btn-employee {
+        width: 100%;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #1f2937;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .debug-btn-employee:hover {
+        border-color: #f59e0b;
+        background: #fffbeb;
+        color: #f59e0b;
+    }
+
+    .debug-btn-employee:last-child {
+        margin-bottom: 0;
+    }
+
+    .debug-btn-icon-employee {
+        font-size: 1.2rem;
+    }
+
+    .debug-status-employee {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        display: none;
+    }
+
+    .debug-status-employee.success {
+        display: block;
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .debug-status-employee.error {
+        display: block;
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .debug-status-employee.info {
+        display: block;
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .debug-input-group {
+        margin-bottom: 0.75rem;
+    }
+
+    .debug-input-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #4b5563;
+        margin-bottom: 0.25rem;
+    }
+
+    .debug-input-group input,
+    .debug-input-group select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        box-sizing: border-box;
+        color: #1e293b;
+        background: white;
+    }
+
+    .debug-input-group input:focus,
+    .debug-input-group select:focus-visible {
+        outline: none;
+        border-color: #f59e0b;
+    }
+</style>
+
+<div class="debug-panel-employee">
+    <button class="debug-toggle-employee" onclick="toggleDebugMenuEmployee()" title="Employee Debug Mode">
+        🔧
+    </button>
+
+    <div class="debug-menu-employee" id="debug-menu-employee">
+        <div class="debug-header-employee">
+            <span>🔧 Employee Debug</span>
+            <button class="debug-close-employee" onclick="toggleDebugMenuEmployee()">×</button>
+        </div>
+
+        <!-- Create Test Data -->
+        <div class="debug-section-employee">
+            <h3>📦 Crear Datos de Prueba</h3>
+            <button class="debug-btn-employee" onclick="debugCreateTestOrder()">
+                <span class="debug-btn-icon-employee">🛒</span>
+                <span>Crear orden de prueba</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugCreateTestEmployee()">
+                <span class="debug-btn-icon-employee">👤</span>
+                <span>Crear empleado de prueba</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugCreateTestMenu()">
+                <span class="debug-btn-icon-employee">🍔</span>
+                <span>Crear producto de prueba</span>
+            </button>
+            <div class="debug-status-employee" id="debug-create-status"></div>
+        </div>
+
+        <!-- Order Workflow Simulation -->
+        <div class="debug-section-employee">
+            <h3>🚀 Simular Flujo de Orden</h3>
+            <div class="debug-input-group">
+                <label for="debug-order-id">ID de Orden:</label>
+                <input type="number" id="debug-order-id" placeholder="Ej: 1">
+            </div>
+            <button class="debug-btn-employee" onclick="debugWaiterAccept()">
+                <span class="debug-btn-icon-employee">✅</span>
+                <span>Mesero acepta</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugKitchenStart()">
+                <span class="debug-btn-icon-employee">🍳</span>
+                <span>Cocina inicia</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugKitchenReady()">
+                <span class="debug-btn-icon-employee">🔔</span>
+                <span>Orden lista</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugWaiterDeliver()">
+                <span class="debug-btn-icon-employee">🍽️</span>
+                <span>Mesero entrega</span>
+            </button>
+            <div class="debug-status-employee" id="debug-workflow-status"></div>
+        </div>
+
+        <!-- Reports & Analytics -->
+        <div class="debug-section-employee">
+            <h3>📊 Reportes y Análisis</h3>
+            <button class="debug-btn-employee" onclick="debugGenerateReport()">
+                <span class="debug-btn-icon-employee">📈</span>
+                <span>Generar reporte de prueba</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugFillReportFilters()">
+                <span class="debug-btn-icon-employee">🔍</span>
+                <span>Llenar filtros de reporte</span>
+            </button>
+        </div>
+
+        <!-- Employee Management -->
+        <div class="debug-section-employee">
+            <h3>👥 Gestión de Empleados</h3>
+            <button class="debug-btn-employee" onclick="debugFillEmployeeForm()">
+                <span class="debug-btn-icon-employee">📝</span>
+                <span>Llenar formulario de empleado</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugToggleEmployeeStatus()">
+                <span class="debug-btn-icon-employee">🔄</span>
+                <span>Cambiar estado de empleado</span>
+            </button>
+        </div>
+
+        <!-- Menu & Inventory -->
+        <div class="debug-section-employee">
+            <h3>🍔 Menú e Inventario</h3>
+            <button class="debug-btn-employee" onclick="debugFillMenuItemForm()">
+                <span class="debug-btn-icon-employee">🍕</span>
+                <span>Llenar formulario de producto</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugToggleAvailability()">
+                <span class="debug-btn-icon-employee">✔️</span>
+                <span>Cambiar disponibilidad</span>
+            </button>
+        </div>
+
+        <!-- Complete Flow -->
+        <div class="debug-section-employee">
+            <h3>⚡ Flujo Completo</h3>
+            <button class="debug-btn-employee" onclick="debugCompleteOrderFlow()">
+                <span class="debug-btn-icon-employee">🎯</span>
+                <span>Ejecutar flujo completo</span>
+            </button>
+            <div class="debug-status-employee" id="debug-complete-status"></div>
+        </div>
+
+        <!-- Utilities -->
+        <div class="debug-section-employee">
+            <h3>🛠️ Utilidades</h3>
+            <button class="debug-btn-employee" onclick="debugRefreshData()">
+                <span class="debug-btn-icon-employee">🔄</span>
+                <span>Refrescar datos</span>
+            </button>
+            <button class="debug-btn-employee" onclick="debugClearFilters()">
+                <span class="debug-btn-icon-employee">🧹</span>
+                <span>Limpiar filtros</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle employee debug menu
+    function toggleDebugMenuEmployee() {
+        const menu = document.getElementById('debug-menu-employee');
+        menu.classList.toggle('active');
+    }
+
+    // Get employee ID from session (assuming it's available)
+    function getDebugEmployeeId() {
+        return {{ employee_id or 1 }
+    };
+    }
+
+    // Get order ID from input
+    function getDebugOrderId() {
+        const input = document.getElementById('debug-order-id');
+        return input && input.value ? parseInt(input.value) : null;
+    }
+
+    // Show employee debug status
+    function showDebugStatusEmployee(message, type, statusId = 'debug-workflow-status') {
+        const status = document.getElementById(statusId);
+        if (status) {
+            status.textContent = message;
+            status.className = `debug-status-employee ${type}`;
+
+            if (type !== 'info') {
+                setTimeout(() => {
+                    status.className = 'debug-status-employee';
+                }, 5000);
+            }
+        }
+    }
+
+    // Debug: Create test order
+    async function debugCreateTestOrder() {
+        try {
+            const response = await fetch('/api/debug/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customer: {
+                        name: 'Cliente Debug',
+                        email: 'debug@test.com',
+                        phone: '+52 55 9999 9999'
+                    },
+                    table_number: 'Mesa Debug-' + Date.now(),
+                    items: [
+                        { menu_item_id: 1, quantity: 2 },
+                        { menu_item_id: 2, quantity: 1 }
+                    ]
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                showDebugStatusEmployee(`✅ Orden #${data.order_id} creada`, 'success', 'debug-create-status');
+                document.getElementById('debug-order-id').value = data.order_id;
+            } else {
+                showDebugStatusEmployee('❌ ' + (data.error || 'Error'), 'error', 'debug-create-status');
+            }
+        } catch (error) {
+            showDebugStatusEmployee('❌ ' + (error.message || 'Error de red'), 'error', 'debug-create-status');
+        }
+    }
+
+    // Debug: Create test employee
+    async function debugCreateTestEmployee() {
+        try {
+            const timestamp = Date.now();
+            const response = await fetch('/api/employees', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: `Empleado Debug ${timestamp}`,
+                    email: `employee${timestamp}@test.com`,
+                    role: 'waiter',
+                    password: 'Debug123456'
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                showDebugStatusEmployee(`✅ Empleado #${data.data?.id || data.id} creado`, 'success', 'debug-create-status');
+            } else {
+                showDebugStatusEmployee('❌ ' + (data.error || data.message || 'Error'), 'error', 'debug-create-status');
+            }
+        } catch (error) {
+            showDebugStatusEmployee('❌ ' + error.message, 'error', 'debug-create-status');
+        }
+    }
+
+    // Debug: Create test menu item
+    async function debugCreateTestMenu() {
+        try {
+            const timestamp = Date.now();
+            const response = await fetch('/api/menu-items', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: `Producto Debug ${timestamp}`,
+                    description: 'Producto de prueba creado en modo debug',
+                    price: 99.99,
+                    category: 'Debug',
+                    is_available: true
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                showDebugStatusEmployee(`✅ Producto creado`, 'success', 'debug-create-status');
+            } else {
+                showDebugStatusEmployee('❌ ' + (data.error || 'Error'), 'error', 'debug-create-status');
+            }
+        } catch (error) {
+            showDebugStatusEmployee('❌ ' + error.message, 'error', 'debug-create-status');
+        }
+    }
+
+    // Debug: Waiter accepts order
+    async function debugWaiterAccept() {
+        const orderId = getDebugOrderId();
+        if (!orderId) {
+            showDebugStatusEmployee('❌ Ingresa un ID de orden', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/orders/${orderId}/accept`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: getDebugEmployeeId() })
+            });
+
+            if (response.ok) {
+                showDebugStatusEmployee(`✅ Orden #${orderId} aceptada por mesero`, 'success');
+            } else {
+                const data = await response.json();
+                showDebugStatusEmployee('❌ ' + (data.error || 'Error'), 'error');
+            }
+        } catch (error) {
+            showDebugStatusEmployee('❌ ' + error.message, 'error');
+        }
+    }
+
+    // Debug: Kitchen starts
+    async function debugKitchenStart() {
+        const orderId = getDebugOrderId();
+        if (!orderId) {
+            showDebugStatusEmployee('❌ Ingresa un ID de orden', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/orders/${orderId}/kitchen/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: getDebugEmployeeId() })
+            });
+
+            if (response.ok) {
+                showDebugStatusEmployee(`✅ Orden #${orderId} iniciada en cocina`, 'success');
+            } else {
+                const data = await response.json();
+                showDebugStatusEmployee('❌ ' + (data.error || 'Error'), 'error');
+            }
+        } catch (error) {
+            showDebugStatusEmployee('❌ ' + error.message, 'error');
+        }
+    }
+
+    // Debug: Kitchen ready
+    async function debugKitchenReady() {
+        const orderId = getDebugOrderId();
+        if (!orderId) {
+            showDebugStatusEmployee('❌ Ingresa un ID de orden', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/orders/${orderId}/kitchen/ready`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: getDebugEmployeeId() })
+            });
+
+            if (response.ok) {
+                showDebugStatusEmployee(`✅ Orden #${orderId} lista`, 'success');
+            } else {
+                const data = await response.json();
+                showDebugStatusEmployee('❌ ' + (data.error || 'Error'), 'error');
+            }
+        } catch (error) {
+            showDebugStatusEmployee('❌ ' + error.message, 'error');
+        }
+    }
+
+    // Debug: Waiter delivers
+    async function debugWaiterDeliver() {
+        const orderId = getDebugOrderId();
+        if (!orderId) {
+            showDebugStatusEmployee('❌ Ingresa un ID de orden', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/orders/${orderId}/deliver`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: getDebugEmployeeId() })
+            });
+
+            if (response.ok) {
+                showDebugStatusEmployee(`✅ Orden #${orderId} entregada`, 'success');
+            } else {
+                const data = await response.json();
+                showDebugStatusEmployee('❌ ' + (data.error || 'Error'), 'error');
+            }
+        } catch (error) {
+            showDebugStatusEmployee('❌ ' + error.message, 'error');
+        }
+    }
+
+    // Debug: Generate report
+    function debugGenerateReport() {
+        showDebugStatusEmployee('Generando reporte de prueba...', 'info', 'debug-workflow-status');
+        // Trigger report generation if available
+        if (typeof loadReports === 'function') {
+            loadReports();
+            showDebugStatusEmployee('✅ Reporte generado', 'success', 'debug-workflow-status');
+        }
+    }
+
+    // Debug: Fill report filters
+    function debugFillReportFilters() {
+        const today = new Date().toISOString().split('T')[0];
+        const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        const fields = {
+            'report-start-date': lastWeek,
+            'report-end-date': today,
+            'report-grouping': 'day'
+        };
+
+        for (const [id, value] of Object.entries(fields)) {
+            const field = document.getElementById(id);
+            if (field) {
+                field.value = value;
+            }
+        }
+
+        showDebugStatusEmployee('✅ Filtros llenados', 'success', 'debug-workflow-status');
+    }
+
+    // Debug: Fill employee form
+    function debugFillEmployeeForm() {
+        const timestamp = Date.now();
+        const fields = {
+            'employee-name': 'Juan Pérez Debug',
+            'employee-email': `employee${timestamp}@test.com`,
+            'employee-role': 'waiter',
+            'employee-password': 'Debug123456'
+        };
+
+        for (const [id, value] of Object.entries(fields)) {
+            const field = document.getElementById(id);
+            if (field) {
+                field.value = value;
+            }
+        }
+
+        showDebugStatusEmployee('✅ Formulario llenado', 'success', 'debug-workflow-status');
+    }
+
+    // Debug: Fill menu item form
+    function debugFillMenuItemForm() {
+        const timestamp = Date.now();
+        const fields = {
+            'menu-item-name': 'Producto Debug ' + timestamp,
+            'menu-item-description': 'Descripción de prueba',
+            'menu-item-price': '99.99',
+            'menu-item-category': '1'
+        };
+
+        for (const [id, value] of Object.entries(fields)) {
+            const field = document.getElementById(id);
+            if (field) {
+                field.value = value;
+            }
+        }
+
+        showDebugStatusEmployee('✅ Formulario llenado', 'success', 'debug-workflow-status');
+    }
+
+    // Debug: Complete order flow
+    async function debugCompleteOrderFlow() {
+        try {
+            showDebugStatusEmployee('Iniciando flujo completo...', 'info', 'debug-complete-status');
+
+            // Step 1: Create order
+            const orderResponse = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customer: { name: 'Cliente Debug', email: 'debug@test.com', phone: '+52559999999' },
+                    table_number: 'Debug-' + Date.now(),
+                    items: [{ menu_item_id: 1, quantity: 1 }]
+                })
+            });
+
+            const orderData = await orderResponse.json();
+            const orderId = orderData.order_id;
+
+            showDebugStatusEmployee(`Orden #${orderId} creada...`, 'info', 'debug-complete-status');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Step 2: Waiter accepts
+            await fetch(`/api/orders/${orderId}/waiter-accept`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: getDebugEmployeeId() })
+            });
+            showDebugStatusEmployee(`Mesero aceptó orden #${orderId}...`, 'info', 'debug-complete-status');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Step 3: Kitchen starts
+            await fetch(`/api/orders/${orderId}/kitchen-start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: getDebugEmployeeId() })
+            });
+            showDebugStatusEmployee(`Cocina inició orden #${orderId}...`, 'info', 'debug-complete-status');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Step 4: Kitchen ready
+            await fetch(`/api/orders/${orderId}/kitchen-ready`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: getDebugEmployeeId() })
+            });
+            showDebugStatusEmployee(`Orden #${orderId} lista...`, 'info', 'debug-complete-status');
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Step 5: Waiter delivers
+            await fetch(`/api/orders/${orderId}/deliver`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: getDebugEmployeeId() })
+            });
+
+            showDebugStatusEmployee(`✅ Flujo completo! Orden #${orderId}`, 'success', 'debug-complete-status');
+
+            // Refresh the page after 2 seconds
+            setTimeout(() => location.reload(), 2000);
+
+        } catch (error) {
+            showDebugStatusEmployee('❌ ' + error.message, 'error', 'debug-complete-status');
+        }
+    }
+
+    // Debug: Refresh data
+    function debugRefreshData() {
+        location.reload();
+    }
+
+    // Debug: Clear filters
+    function debugClearFilters() {
+        const filterInputs = document.querySelectorAll('.filter-input');
+        filterInputs.forEach(input => input.value = '');
+        showDebugStatusEmployee('✅ Filtros limpiados', 'success', 'debug-workflow-status');
+    }
+
+    // Close debug menu when clicking outside
+    document.addEventListener('click', (e) => {
+        const panel = document.querySelector('.debug-panel-employee');
+        const menu = document.getElementById('debug-menu-employee');
+        if (menu && menu.classList.contains('active') && !panel.contains(e.target)) {
+            menu.classList.remove('active');
+        }
+    });
+</script>
+{% endif %}

@@ -1,0 +1,410 @@
+/**
+ * MENU ORDERS - Órdenes y Seguimiento
+ * Active orders, order tracking, mini tracker, account details
+ */
+
+/* ===================================================================
+   BASE.HTML INLINE STYLES CLEANUP
+   =================================================================== */
+
+/* Badge Utilities */
+.badge--hidden {
+  display: none;
+}
+
+.badge--visible {
+  display: inline-flex;
+}
+
+/* Active Orders Section */
+.active-orders-section {
+  display: none;
+}
+
+.active-orders-section.visible {
+  display: block;
+}
+
+.single-order-tracker {
+  display: none;
+}
+
+.single-order-tracker.visible {
+  display: block;
+}
+
+.multiple-orders-view {
+  display: none;
+  padding: 2rem 1.5rem;
+}
+
+.multiple-orders-view.visible {
+  display: block;
+}
+
+.multiple-orders-view__header {
+  margin-bottom: 1.5rem;
+}
+
+.active-orders-headline h2 {
+  margin: 0;
+  color: var(--text);
+}
+
+.active-orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 100%;
+}
+
+/* Order Detail Modal */
+.order-detail-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.order-detail-modal.visible {
+  display: flex;
+}
+
+.order-detail-content {
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  position: relative;
+}
+
+.order-detail-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: white;
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-detail-close:hover {
+  background: var(--color-surface);
+  transform: scale(1.05);
+}
+
+/* Account Details Section */
+.account-details-section {
+  display: none;
+  background: white;
+}
+
+.account-details-section.visible {
+  display: block;
+}
+
+.account-details-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.account-details-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.account-details-title {
+  margin: 0 0 0.5rem 0;
+  color: var(--text);
+}
+
+.account-details-subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Mini Tracker */
+.mini-tracker {
+  display: none;
+}
+
+.mini-tracker.visible {
+  display: block;
+}
+
+.mini-tracker-order-select {
+  display: none;
+}
+
+.mini-tracker-order-select.visible {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 200px;
+}
+
+.mini-tracker-delivered-actions {
+  display: none;
+}
+
+.mini-tracker-delivered-actions.visible {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Support Modal */
+.support-modal-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.support-modal-header {
+  margin: 0 0 1rem 0;
+  color: var(--text);
+  font-size: 1.5rem;
+}
+
+.support-modal-description {
+  margin: 0 0 1.5rem 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.support-form-group {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.support-form-full-width {
+  width: 100%;
+}
+
+.file-upload-preview {
+  display: none;
+}
+
+.file-upload-preview.visible {
+  display: block;
+}
+
+.support-success {
+  display: none;
+}
+
+.support-success.visible {
+  display: block;
+}
+
+.support-hint {
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+/* Profile Modal */
+.profile-view {
+  display: none;
+}
+
+.profile-view.visible {
+  display: block;
+}
+
+.profile-form {
+  display: none;
+}
+
+.profile-form.visible {
+  display: block;
+}
+
+.profile-email {
+  color: var(--muted);
+}
+
+.profile-toggle-link {
+  margin-top: 1rem;
+  align-self: flex-start;
+}
+
+.profile-field-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.profile-password-toggle {
+  display: none;
+}
+
+/* Password Recovery Steps */
+.password-recovery-step {
+  display: none;
+}
+
+.password-recovery-step.active {
+  display: block;
+}
+
+.password-recovery-description {
+  color: var(--muted);
+}
+
+.password-recovery-hint {
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.password-strength-toggle {
+  display: none;
+}
+
+/* Order History */
+.order-history-loading {
+  display: none;
+}
+
+.order-history-loading.visible {
+  display: flex;
+}
+
+.order-history-empty {
+  display: none;
+}
+
+.order-history-empty.visible {
+  display: block;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .account-details-container,
+  .support-modal-container {
+    padding: 1.5rem 1rem;
+  }
+
+  .account-details-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-detail-content {
+    max-width: 95%;
+    border-radius: 12px;
+  }
+}
+
+/* Footer Business Hours */
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.business-hours-display {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  display: none;
+}
+
+.business-hours-display.visible {
+  display: block;
+}
+
+.business-hours-title {
+  margin: 0 0 1rem 0;
+  text-align: center;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.business-hours-schedule {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.business-hours-status {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.footer-hours-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.footer-copyright {
+  text-align: center;
+  color: var(--muted);
+}
+
+/* Support Modal Sections */
+.support-modal-section {
+  margin-bottom: 1.5rem;
+}
+
+.support-modal-divider {
+  width: 100%;
+}
+
+.support-image-preview-container {
+  margin-top: 0.5rem;
+}
+
+/* Outside Hours Modal */
+.outside-hours-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+}
+
+.outside-hours-modal.active {
+  display: flex;
+}
+
+.outside-hours-modal-content {
+  background: white;
+  max-width: 500px;
+  width: 90%;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.3s ease;
+}
+
+.outside-hours-continue-btn {
+  width: 100%;
+}

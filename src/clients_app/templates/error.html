@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="row justify_content-center">
+        <div class="col-md-8">
+            <h1 class="display-4 text-danger">Ooops!</h1>
+            <h2 class="mb-4">{{ error|default('Ha ocurrido un error') }}</h2>
+
+            {% if code %}
+            <p class="lead text-muted">Código de error: {{ code }}</p>
+            {% endif %}
+
+            <div class="mt-4">
+                <a href="{{ url_for('client_web.home') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-home me-2"></i>Volver al Menú
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

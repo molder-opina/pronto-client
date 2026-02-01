@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "chrome": {
+      "command": "npx",
+      "args": ["-y", "@eddym06/custom-chrome-mcp"],
+      "env": {
+        "CHROME_PATH": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "HEADLESS": "false",
+        "DEBUG": "false"
+      }
+    }
+  }
+}

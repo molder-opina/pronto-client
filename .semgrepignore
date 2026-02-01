@@ -1,0 +1,11 @@
+# Ignorar archivos de configuración con secrets
+config/*.env
+config/secrets.env
+
+# Ignorar archivos de testing con innerHTML (toast, notifications)
+build/employees_app/static/js/src/core/toast.ts
+build/employees_app/static/js/notifications.js
+build/clients_app/static/js/src/modules/checkout-handler.ts
+
+# Ignorar archivos de backup
+build/employees_app_backup/

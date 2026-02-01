@@ -1,0 +1,902 @@
+<!-- Debug Panel - Only visible when DEBUG_MODE is enabled -->
+{% if config.get('DEBUG_MODE', False) %}
+<style>
+  .debug-panel {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 13000;
+  }
+
+  .debug-toggle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+    font-size: 1.5rem;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .debug-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 30px rgba(139, 92, 246, 0.6);
+  }
+
+  .debug-menu {
+    position: absolute;
+    bottom: 80px;
+    left: 0;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 380px;
+    max-height: 70vh;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .debug-menu.active {
+    display: block;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .debug-header {
+    padding: 1rem;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: white;
+    border-radius: 16px 16px 0 0;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .debug-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .debug-section {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .debug-section:last-child {
+    border-bottom: none;
+  }
+
+  .debug-section h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .debug-btn {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.4rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #374151;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .debug-btn:hover {
+    border-color: #8b5cf6;
+    background: #f5f3ff;
+    color: #7c3aed;
+  }
+
+  .debug-btn:last-child {
+    margin-bottom: 0;
+  }
+
+  .debug-btn-icon {
+    font-size: 1rem;
+    width: 24px;
+    text-align: center;
+  }
+
+  .debug-btn-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .debug-btn-group .debug-btn {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .debug-status {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    display: none;
+  }
+
+  .debug-status.success {
+    display: block;
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .debug-status.error {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .debug-status.info {
+    display: block;
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .debug-status.warning {
+    display: block;
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .debug-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .debug-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    background: white;
+  }
+
+  .debug-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 0.75rem 0;
+  }
+</style>
+
+<div class="debug-panel">
+  <button class="debug-toggle" id="debug-toggle-btn" onclick="toggleDebugMenu()" title="Debug Mode">
+    🐛
+  </button>
+
+  <div class="debug-menu" id="debug-menu">
+    <div class="debug-header">
+      <span>🔧 Debug Mode</span>
+      <button class="debug-close" onclick="toggleDebugMenu()">×</button>
+    </div>
+
+    <!-- 👤 Autenticación -->
+    <div class="debug-section">
+      <h3>👤 Autenticación</h3>
+      <div class="debug-btn-group">
+        <button class="debug-btn" onclick="debugQuickLogin()">
+          <span class="debug-btn-icon">🔐</span>
+          <span>Login rápido</span>
+        </button>
+        <button class="debug-btn" onclick="debugCreateUser()">
+          <span class="debug-btn-icon">➕</span>
+          <span>Crear usuario</span>
+        </button>
+      </div>
+      <button class="debug-btn" onclick="debugOpenProfile()">
+        <span class="debug-btn-icon">👤</span>
+        <span>Abrir perfil</span>
+      </button>
+    </div>
+
+    <!-- 🍽️ Menú y Productos -->
+    <div class="debug-section">
+      <h3>🍽️ Menú y Productos</h3>
+      <button class="debug-btn" onclick="debugLoadFullMenu()">
+        <span class="debug-btn-icon">📋</span>
+        <span>Cargar menú completo</span>
+      </button>
+      <button class="debug-btn" onclick="debugSearchProducts('pizza')">
+        <span class="debug-btn-icon">🔍</span>
+        <span>Buscar: "pizza"</span>
+      </button>
+      <div class="debug-btn-group">
+        <button class="debug-btn" onclick="debugFilterCategory('combos')">
+          <span class="debug-btn-icon">🍔</span>
+          <span>Combos</span>
+        </button>
+        <button class="debug-btn" onclick="debugFilterCategory('bebidas')">
+          <span class="debug-btn-icon">🥤</span>
+          <span>Bebidas</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 🛒 Carrito -->
+    <div class="debug-section">
+      <h3>🛒 Carrito</h3>
+      <div class="debug-btn-group">
+        <button class="debug-btn" onclick="debugAddRandomItems(2)">
+          <span class="debug-btn-icon">➕</span>
+          <span>+2 items</span>
+        </button>
+        <button class="debug-btn" onclick="debugAddRandomItems(5)">
+          <span class="debug-btn-icon">🛒</span>
+          <span>+5 items</span>
+        </button>
+      </div>
+      <button class="debug-btn" onclick="debugClearCart()">
+        <span class="debug-btn-icon">🗑️</span>
+        <span>Vaciar carrito</span>
+      </button>
+      <button class="debug-btn" onclick="debugApplyCoupon('DESCUENTO10')">
+        <span class="debug-btn-icon">🎫</span>
+        <span>Aplicar cupón: DESCUENTO10</span>
+      </button>
+    </div>
+
+    <!-- 📦 Órdenes -->
+    <div class="debug-section">
+      <h3>📦 Órdenes</h3>
+      <button class="debug-btn" onclick="debugCreateOrderFromCart()">
+        <span class="debug-btn-icon">📤</span>
+        <span>Crear orden del carrito</span>
+      </button>
+      <button class="debug-btn" onclick="debugCreateQuickOrder()">
+        <span class="debug-btn-icon">⚡</span>
+        <span>Orden rápida (2 items)</span>
+      </button>
+      <div class="debug-divider"></div>
+      <button class="debug-btn" onclick="debugAdvanceCurrentOrder()">
+        <span class="debug-btn-icon">➡️</span>
+        <span>Avanzar estado orden</span>
+      </button>
+      <button class="debug-btn" onclick="debugAdvanceAllOrders()">
+        <span class="debug-btn-icon">⏩</span>
+        <span>Avanzar todas las órdenes</span>
+      </button>
+    </div>
+
+    <!-- 💰 Pago y Checkout -->
+    <div class="debug-section">
+      <h3>💰 Pago y Checkout</h3>
+      <button class="debug-btn" onclick="debugRequestBill()">
+        <span class="debug-btn-icon">🧾</span>
+        <span>Solicitar cuenta</span>
+      </button>
+      <button class="debug-btn" onclick="debugSimulateCashPayment()">
+        <span class="debug-btn-icon">💵</span>
+        <span>Pago en efectivo</span>
+      </button>
+      <button class="debug-btn" onclick="debugSimulateCardPayment()">
+        <span class="debug-btn-icon">💳</span>
+        <span>Pago con tarjeta</span>
+      </button>
+    </div>
+
+    <!-- 🧑‍🍳 Mesero y Soporte -->
+    <div class="debug-section">
+      <h3>🧑‍🍳 Mesero y Soporte</h3>
+      <button class="debug-btn" onclick="debugCallWaiter()">
+        <span class="debug-btn-icon">🔔</span>
+        <span>Llamar mesero</span>
+      </button>
+      <button class="debug-btn" onclick="debugOpenSupport()">
+        <span class="debug-btn-icon">📞</span>
+        <span>Abrir soporte</span>
+      </button>
+      <button class="debug-btn" onclick="debugSubmitSupportTicket()">
+        <span class="debug-btn-icon">🎫</span>
+        <span>Enviar ticket de prueba</span>
+      </button>
+    </div>
+
+    <!-- 🕐 Horarios -->
+    <div class="debug-section">
+      <h3>🕐 Horarios</h3>
+      <button class="debug-btn" onclick="debugOpenHoursModal()">
+        <span class="debug-btn-icon">🕐</span>
+        <span>Ver horarios</span>
+      </button>
+      <button class="debug-btn" onclick="debugCheckOpenStatus()">
+        <span class="debug-btn-icon">✅</span>
+        <span>Verificar estado actual</span>
+      </button>
+    </div>
+
+    <!-- 🎁 Promociones -->
+    <div class="debug-section">
+      <h3>🎁 Promociones</h3>
+      <button class="debug-btn" onclick="debugViewPromotions()">
+        <span class="debug-btn-icon">🎉</span>
+        <span>Ver promociones</span>
+      </button>
+      <button class="debug-btn" onclick="debugCreateTestPromotion()">
+        <span class="debug-btn-icon">✨</span>
+        <span>Crear promoción test</span>
+      </button>
+    </div>
+
+    <!-- 🔄 Sesión -->
+    <div class="debug-section">
+      <h3>🔄 Sesión</h3>
+      <div class="debug-btn-group">
+        <button class="debug-btn" onclick="debugResetSession()">
+          <span class="debug-btn-icon">🔄</span>
+          <span>Reiniciar</span>
+        </button>
+        <button class="debug-btn" onclick="debugClearAllData()">
+          <span class="debug-btn-icon">🧹</span>
+          <span>Limpiar todo</span>
+        </button>
+      </div>
+      <button class="debug-btn" onclick="debugFullDemoFlow()">
+        <span class="debug-btn-icon">🚀</span>
+        <span>🚀 Demo completo</span>
+      </button>
+    </div>
+
+    <!-- Status Display -->
+    <div class="debug-section" style="background: #f9fafb">
+      <div id="debug-main-status" class="debug-status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============ UTILIDADES ============
+  function toggleDebugMenu() {
+    const menu = document.getElementById('debug-menu');
+    menu.classList.toggle('active');
+    if (menu.classList.contains('active')) {
+      debugRefreshAll();
+    }
+  }
+
+  function showStatus(message, type = 'info', elementId = 'debug-main-status') {
+    const status = document.getElementById(elementId);
+    if (status) {
+      status.textContent = message;
+      status.className = `debug-status ${type}`;
+    }
+  }
+
+  async function getMenu() {
+    try {
+      const res = await fetch('/api/menu');
+      return await res.json();
+    } catch (e) {
+      showStatus('Error cargando menú', 'error');
+      return null;
+    }
+  }
+
+  async function getSession() {
+    const id = localStorage.getItem('pronto-session-id');
+    return id ? parseInt(id) : null;
+  }
+
+  // ============ AUTENTICACIÓN ============
+  async function debugQuickLogin() {
+    showStatus('Iniciando sesión...', 'info');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'debug@test.com',
+          password: 'Debug123456',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('pronto-user', JSON.stringify(data.user));
+        showStatus('✅ Login exitoso', 'success');
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        showStatus('❌ ' + data.error, 'error');
+      }
+    } catch (e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function debugCreateUser() {
+    showStatus('Creando usuario...', 'info');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Usuario Debug ' + Date.now(),
+          email: `debug${Date.now()}@test.com`,
+          phone: '5512345678',
+          password: 'Debug123456',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showStatus('✅ Usuario creado', 'success');
+      } else {
+        showStatus('❌ ' + data.error, 'error');
+      }
+    } catch (e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  function debugOpenProfile() {
+    if (typeof toggleProfile === 'function') {
+      toggleProfile();
+      showStatus('Perfil abierto', 'success');
+    } else {
+      showStatus('No se encontró función toggleProfile', 'error');
+    }
+  }
+
+  // ============ MENÚ Y PRODUCTOS ============
+  async function debugLoadFullMenu() {
+    showStatus('Cargando menú...', 'info');
+    const menu = await getMenu();
+    if (menu && menu.categories) {
+      showStatus(`✅ ${menu.categories.length} categorías cargadas`, 'success');
+    }
+  }
+
+  async function debugSearchProducts(query) {
+    showStatus(`Buscando "${query}"...`, 'info');
+    const input = document.getElementById('menu-search');
+    if (input) {
+      input.value = query;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      showStatus(`✅ Búsqueda: "${query}"`, 'success');
+    } else {
+      showStatus('No se encontró campo de búsqueda', 'error');
+    }
+  }
+
+  async function debugFilterCategory(category) {
+    showStatus(`Filtrando: ${category}`, 'info');
+    const buttons = document.querySelectorAll('[data-category]');
+    for (const btn of buttons) {
+      if (btn.dataset.category === category) {
+        btn.click();
+        showStatus(`✅ Categoría: ${category}`, 'success');
+        return;
+      }
+    }
+    showStatus('No se encontró categoría: ' + category, 'error');
+  }
+
+  // ============ CARRITO ============
+  async function debugAddRandomItems(count) {
+    showStatus(`Agregando ${count} items...`, 'info');
+    const menu = await getMenu();
+    if (!menu || !menu.categories || menu.categories.length === 0) {
+      showStatus('No hay menú disponible', 'error');
+      return;
+    }
+
+    const items = menu.categories[0].items?.slice(0, count) || [];
+    if (items.length === 0) {
+      showStatus('No hay productos disponibles', 'error');
+      return;
+    }
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (typeof openItemModal === 'function') {
+        openItemModal(item);
+        await new Promise((r) => setTimeout(r, 200));
+        if (typeof addToCartFromModal === 'function') {
+          addToCartFromModal();
+        }
+      }
+      await new Promise((r) => setTimeout(r, 300));
+    }
+
+    showStatus(`✅ ${items.length} items agregados al carrito`, 'success');
+  }
+
+  async function debugClearCart() {
+    localStorage.removeItem('pronto-cart');
+    if (typeof window.updateCartBadge === 'function') {
+      window.updateCartBadge();
+    }
+    if (typeof window.renderCartItems === 'function') {
+      window.renderCartItems();
+    }
+    showStatus('✅ Carrito vaciado', 'success');
+  }
+
+  async function debugApplyCoupon(code) {
+    showStatus(`Aplicando cupón: ${code}`, 'info');
+    showStatus('🎫 Cupón aplicado (simulado)', 'success');
+  }
+
+  // ============ ÓRDENES ============
+  async function debugCreateOrderFromCart() {
+    showStatus('Creando orden...', 'info');
+    const cart = JSON.parse(localStorage.getItem('pronto-cart') || '[]');
+    if (cart.length === 0) {
+      showStatus('El carrito está vacío', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: { name: 'Cliente Debug', email: 'debug@test.com', phone: '+525599999999' },
+          table_number: document.getElementById('table-number')?.value || '1',
+          notes: 'Orden de debug',
+          items: cart.map((item) => ({ menu_item_id: item.id, quantity: item.quantity })),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('pronto-session-id', data.session_id);
+        localStorage.removeItem('pronto-cart');
+        showStatus(`✅ Orden #${data.order_id} creada`, 'success');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        showStatus('❌ ' + data.error, 'error');
+      }
+    } catch (e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function debugCreateQuickOrder() {
+    showStatus('Creando orden rápida...', 'info');
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: { name: 'Cliente Quick', email: 'quick@test.com' },
+          table_number: '1',
+          items: [{ menu_item_id: 1, quantity: 2 }],
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('pronto-session-id', data.session_id);
+        showStatus(`✅ Orden rápida #${data.order_id}`, 'success');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        showStatus('❌ ' + data.error, 'error');
+      }
+    } catch (e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function debugAdvanceCurrentOrder() {
+    const sessionId = await getSession();
+    if (!sessionId) {
+      showStatus('No hay sesión activa', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/session/${sessionId}/orders`);
+      const data = await res.json();
+      const activeOrder = data.orders?.find((o) => o.status !== 'delivered');
+      if (activeOrder) {
+        await fetch(`/api/debug/orders/${activeOrder.order_id}/advance`, { method: 'POST' });
+        showStatus(`✅ Orden #${activeOrder.order_id} avanzada`, 'success');
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        showStatus('No hay órdenes activas', 'warning');
+      }
+    } catch (e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function debugAdvanceAllOrders() {
+    const sessionId = await getSession();
+    if (!sessionId) {
+      showStatus('No hay sesión activa', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/session/${sessionId}/orders`);
+      const data = await res.json();
+      const activeOrders = data.orders?.filter((o) => o.status !== 'delivered') || [];
+
+      if (activeOrders.length === 0) {
+        showStatus('No hay órdenes activas', 'warning');
+        return;
+      }
+
+      for (const order of activeOrders) {
+        await fetch(`/api/debug/orders/${order.order_id}/advance`, { method: 'POST' });
+        await new Promise((r) => setTimeout(r, 200));
+      }
+
+      showStatus(`✅ ${activeOrders.length} órdenes avanzadas`, 'success');
+      setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  // ============ PAGO ============
+  async function debugRequestBill() {
+    const sessionId = await getSession();
+    if (!sessionId) {
+      showStatus('No hay sesión activa', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/debug/sessions/${sessionId}/request-checkout`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showStatus(`🧾 Cuenta solicitada: $${data.total_amount?.toFixed(2) || '0.00'}`, 'success');
+      } else {
+        showStatus('❌ ' + data.error, 'error');
+      }
+    } catch (e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function debugSimulateCashPayment() {
+    const sessionId = await getSession();
+    if (!sessionId) {
+      showStatus('No hay sesión activa', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/debug/sessions/${sessionId}/simulate-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_method: 'cash' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showStatus(`✅ Pago en efectivo: $${data.total_amount?.toFixed(2)}`, 'success');
+        localStorage.removeItem('pronto-session-id');
+        setTimeout(() => (location.href = '/thank-you'), 2000);
+      } else {
+        showStatus('❌ ' + data.error, 'error');
+      }
+    } catch (e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function debugSimulateCardPayment() {
+    const sessionId = await getSession();
+    if (!sessionId) {
+      showStatus('No hay sesión activa', 'error');
+      return;
+    }
+
+    showStatus('💳 Redirigiendo a Stripe...', 'info');
+    showStatus('💳 Pago con tarjeta (simulado)', 'success');
+  }
+
+  // ============ MESERO Y SOPORTE ============
+  async function debugCallWaiter() {
+    try {
+      const res = await fetch('/api/waiter-calls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'general', table_number: '1' }),
+      });
+      if (res.ok) {
+        showStatus('🔔 Mesero llamado', 'success');
+      } else {
+        showStatus('Error al llamar mesero', 'error');
+      }
+    } catch (e) {
+      showStatus('🔔 Llamado (simulado)', 'success');
+    }
+  }
+
+  function debugOpenSupport() {
+    const btn = document.querySelector('[data-open-support]');
+    if (btn) {
+      btn.click();
+      showStatus('Modal de soporte abierto', 'success');
+    } else {
+      showStatus('No se encontró botón de soporte', 'error');
+    }
+  }
+
+  async function debugSubmitSupportTicket() {
+    try {
+      const res = await fetch('/api/support-tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Debug User',
+          email: 'debug@test.com',
+          description: 'Ticket de prueba desde debug panel',
+          category: 'suggestion',
+        }),
+      });
+      if (res.ok) {
+        showStatus('🎫 Ticket enviado', 'success');
+      } else {
+        showStatus('Error enviando ticket', 'error');
+      }
+    } catch (e) {
+      showStatus('🎫 Ticket enviado (simulado)', 'success');
+    }
+  }
+
+  // ============ HORARIOS ============
+  function debugOpenHoursModal() {
+    if (typeof openBusinessHoursModal === 'function') {
+      openBusinessHoursModal();
+      showStatus('Modal de horarios abierto', 'success');
+    } else {
+      showStatus('No se encontró función de horarios', 'error');
+    }
+  }
+
+  async function debugCheckOpenStatus() {
+    try {
+      const res = await fetch('/api/business-info');
+      const data = await res.json();
+      const status = data.current_day_schedule?.is_open ? 'ABIERTO' : 'CERRADO';
+      const time = data.current_day_schedule?.is_open
+        ? ` • Cierra a las ${data.current_day_schedule.close_time}`
+        : '';
+      showStatus(
+        `🏪 Estado: ${status}${time}`,
+        data.current_day_schedule?.is_open ? 'success' : 'warning'
+      );
+    } catch (e) {
+      showStatus('Error verificando estado', 'error');
+    }
+  }
+
+  // ============ PROMOCIONES ============
+  async function debugViewPromotions() {
+    showStatus('Cargando promociones...', 'info');
+    try {
+      const res = await fetch('/api/promotions');
+      const data = await res.json();
+      const count = data.promotions?.length || 0;
+      showStatus(`🎉 ${count} promociones encontradas`, 'success');
+    } catch (e) {
+      showStatus('Error cargando promociones', 'error');
+    }
+  }
+
+  async function debugCreateTestPromotion() {
+    showStatus('Las promociones se crean desde panel de empleados', 'info');
+    showStatus('💡 Dirígete a http://localhost:6081/promotions', 'info');
+  }
+
+  // ============ SESIÓN ============
+  async function debugResetSession() {
+    localStorage.removeItem('pronto-session-id');
+    localStorage.removeItem('pronto-user');
+    localStorage.removeItem('pronto-cart');
+    showStatus('✅ Sesión reiniciada', 'success');
+    setTimeout(() => (location.href = '/'), 1000);
+  }
+
+  async function debugClearAllData() {
+    localStorage.clear();
+    showStatus('✅ Todos los datos清除ados', 'success');
+    setTimeout(() => (location.href = '/'), 1000);
+  }
+
+  // ============ DEMO COMPLETO ============
+  async function debugFullDemoFlow() {
+    showStatus('🚀 Iniciando demo completo...', 'info');
+
+    try {
+      // Step 1: Login
+      showStatus('1/6: Autenticando...', 'info');
+      await debugQuickLogin();
+
+      // Step 2: Add items
+      await new Promise((r) => setTimeout(r, 2000));
+      await debugAddRandomItems(3);
+
+      // Step 3: Create order
+      await new Promise((r) => setTimeout(r, 1000));
+      await debugCreateOrderFromCart();
+    } catch (e) {
+      showStatus('Demo completado con advertencias', 'warning');
+    }
+  }
+
+  // ============ REFRESH ============
+  async function debugRefreshAll() {
+    const sessionId = await getSession();
+    const userStr = localStorage.getItem('pronto-user');
+    const user = userStr ? JSON.parse(userStr) : null;
+
+    // Update toggle button text
+    const toggleBtn = document.getElementById('debug-toggle-btn');
+    if (toggleBtn) {
+      if (user?.id) {
+        toggleBtn.textContent = `🐛 ${user.id}`;
+        toggleBtn.title = `Debug Mode - User: ${user.id}`;
+      } else if (sessionId) {
+        toggleBtn.textContent = `🐛 A${sessionId}`;
+        toggleBtn.title = `Debug Mode - Anonymous Session: ${sessionId}`;
+      } else {
+        toggleBtn.textContent = '🐛';
+        toggleBtn.title = 'Debug Mode';
+      }
+    }
+
+    // Update status display
+    if (user?.id) {
+      showStatus(`Usuario: #${user.id} (${user.name || 'Sin nombre'})`, 'success');
+    } else if (sessionId) {
+      showStatus(`Sesión anónima: #${sessionId}`, 'info');
+    } else {
+      showStatus('Sin sesión activa', 'warning');
+    }
+  }
+
+  // Inicialización
+  document.addEventListener('click', (e) => {
+    const panel = document.querySelector('.debug-panel');
+    const menu = document.getElementById('debug-menu');
+    if (menu?.classList.contains('active') && !panel?.contains(e.target)) {
+      menu.classList.remove('active');
+    }
+  });
+</script>
+{% endif %}

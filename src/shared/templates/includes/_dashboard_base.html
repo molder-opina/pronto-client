@@ -1,0 +1,43 @@
+{% if not employee_id %}
+{% set should_redirect = True %}
+<script>
+  console.warn('[SERVER-SIDE AUTH] No session - redirecting to login');
+  window.location.href = "/";
+</script>
+{% else %}
+{% set should_redirect = False %}
+{% endif %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/waiter.css') }}?v={{ range(1, 10000) | random }}" />
+
+{# Debug: Check session info #}
+<script>
+  console.log('[DEBUG] employee_id:', "{{ employee_id }}");
+  console.log('[DEBUG] app_context:', "{{ app_context }}");
+</script>
+
+<div id="main-status" style="padding: 20px; margin: 20px 0; background: #1e293b; border-radius: 8px;">
+  <p><strong>Estado Actual:</strong> Se redirige a login cuando no hay sesión (CORRECTO)</p>
+  <p><a href="/SYSTEM_STATUS.html" style="color: #3b82f6; text-decoration: underline;">Abrir página de diagnóstico
+      completo del sistema</a></p>
+</div>
+{% if not employee_id or app_context|lower != app_context|lower %}
+<script>
+  console.warn('[SERVER-SIDE AUTH] No session or wrong scope - redirecting to login');
+  window.location.href = "{{ url_for(app_context.lower() + '_app.login') }}";
+</script>
+{% else %}
+{% set should_redirect = False %}
+{% endif %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/waiter.css') }}?v={{ range(1, 10000) | random }}" />
+<link rel="stylesheet"
+  href="{{ url_for('static', filename='css/waiter-pos-modern.css') }}?v={{ range(1, 10000) | random }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reports.css') }}?v={{ range(1, 10000) | random }}" />
+<!-- New Design System Components -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/cards.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/toast.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/loading.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/empty-state.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components/panel-upgrades.css') }}" />

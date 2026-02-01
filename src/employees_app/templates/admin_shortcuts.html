@@ -1,0 +1,513 @@
+{% extends "base.html" %} {% block content %}
+<div class="config-container">
+  <div class="config-header">
+    <h1>Atajos de Teclado</h1>
+    <p class="subtitle">
+      Administra los atajos de teclado disponibles en la aplicación de clientes
+    </p>
+  </div>
+
+  <div class="shortcuts-toolbar">
+    <button class="btn btn-primary" onclick="ShortcutsManager.createNew()">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Nuevo Atajo
+    </button>
+    <button class="btn btn-secondary" onclick="ShortcutsManager.reloadFromServer()">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+      </svg>
+      Recargar del Servidor
+    </button>
+    <div class="shortcuts-filter">
+      <input
+        type="text"
+        id="shortcuts-filter"
+        placeholder="Buscar atajos..."
+        oninput="ShortcutsManager.filter()"
+      />
+    </div>
+  </div>
+
+  <div class="shortcuts-grid">
+    {% for shortcut in shortcuts %}
+    <div
+      class="shortcut-card"
+      data-category="{{ shortcut.category }}"
+      data-search="{{ shortcut.combo }} {{ shortcut.description }}"
+    >
+      <div class="shortcut-card-header">
+        <span class="shortcut-combo">{{ shortcut.combo }}</span>
+        <label class="toggle-switch small">
+          <input
+            type="checkbox"
+            {%
+            if
+            shortcut.is_enabled
+            %}checked{%
+            endif
+            %}
+            onchange="ShortcutsManager.toggle({{ shortcut.id }}, this.checked)"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="shortcut-card-body">
+        <p class="shortcut-description">{{ shortcut.description }}</p>
+        <span class="shortcut-category">{{ shortcut.category }}</span>
+      </div>
+      <div class="shortcut-card-actions">
+        <button class="btn-icon" onclick="ShortcutsManager.edit({{ shortcut.id }})" title="Editar">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button
+          class="btn-icon danger"
+          onclick="ShortcutsManager.delete({{ shortcut.id }})"
+          title="Eliminar"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path
+              d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+            ></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="shortcut-modal" class="modal" style="display: none">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Nuevo Atajo de Teclado</h3>
+        <button class="modal-close" onclick="ShortcutsManager.closeModal()">&times;</button>
+      </div>
+      <form id="shortcut-form" onsubmit="ShortcutsManager.save(event)">
+        <input type="hidden" id="shortcut-id" />
+        <div class="form-group">
+          <label for="shortcut-combo">Combinación de teclas *</label>
+          <input
+            type="text"
+            id="shortcut-combo"
+            placeholder="Ej: Ctrl+K, Shift+Enter, g+h"
+            required
+            pattern="[A-Za-z0-9+]+(\+[A-Za-z0-9+]+)*"
+            title="Formato: Tecla+Tecla (ej: Ctrl+K)"
+          />
+          <small>Usa + para combinar teclas. Ej: Ctrl+K, Alt+S, Shift+Enter</small>
+        </div>
+        <div class="form-group">
+          <label for="shortcut-description">Descripción *</label>
+          <input type="text" id="shortcut-description" placeholder="Ej: Ir al inicio" required />
+        </div>
+        <div class="form-group">
+          <label for="shortcut-category">Categoría</label>
+          <select id="shortcut-category">
+            <option value="navigation">Navegación</option>
+            <option value="actions">Acciones</option>
+            <option value="menu">Menú</option>
+            <option value="orders">Pedidos</option>
+            <option value="payment">Pago</option>
+            <option value="other">Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="shortcut-callback">Función de callback</label>
+          <select id="shortcut-callback">
+            <option value="goToHome">Ir al inicio</option>
+            <option value="viewCart">Ver carrito</option>
+            <option value="focusSearch">Buscar</option>
+            <option value="callWaiter">Llamar mesero</option>
+            <option value="requestCheck">Pedir cuenta</option>
+            <option value="toggleLanguage">Cambiar idioma</option>
+            <option value="toggleDarkMode">Modo oscuro</option>
+            <option value="scrollToTop">Ir arriba</option>
+            <option value="goBack">Atrás</option>
+            <option value="refreshPage">Recargar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="toggle-switch">
+            <input type="checkbox" id="shortcut-prevent-default" checked />
+            <span class="toggle-slider"></span>
+          </label>
+          <span>Prevenir comportamiento por defecto</span>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="ShortcutsManager.closeModal()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="{{ assets_js_employees }}/shortcuts_admin.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    window.shortcutsManager = new ShortcutsManager();
+    window.shortcutsManager.init();
+  });
+</script>
+
+<style>
+  .config-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .config-header {
+    margin-bottom: 2rem;
+  }
+
+  .config-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .subtitle {
+    color: #64748b;
+    margin: 0;
+  }
+
+  .shortcuts-toolbar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .shortcuts-filter {
+    flex: 1;
+    min-width: 250px;
+  }
+
+  .shortcuts-filter input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--primary-orange);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-orange-dark);
+  }
+
+  .btn-secondary {
+    background: #e2e8f0;
+    color: #475569;
+  }
+
+  .btn-secondary:hover {
+    background: #cbd5e1;
+  }
+
+  .shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+
+  .shortcut-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s;
+  }
+
+  .shortcut-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .shortcut-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .shortcut-combo {
+    background: #f1f5f9;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e3a5f;
+  }
+
+  .shortcut-card-body {
+    margin-bottom: 1rem;
+  }
+
+  .shortcut-description {
+    margin: 0 0 0.5rem 0;
+    color: #0f172a;
+    font-size: 0.95rem;
+  }
+
+  .shortcut-category {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .shortcut-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .btn-icon {
+    padding: 0.5rem;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s;
+  }
+
+  .btn-icon:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  .btn-icon.danger:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+  }
+
+  .toggle-switch.small {
+    width: 40px;
+    height: 20px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: 0.3s;
+    border-radius: 24px;
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: '';
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  .toggle-switch.small .toggle-slider {
+    height: 20px;
+  }
+
+  .toggle-switch.small .toggle-slider:before {
+    height: 14px;
+    width: 14px;
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background-color: var(--primary-orange);
+  }
+
+  .toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+  }
+
+  .toggle-switch.small input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #64748b;
+  }
+
+  #shortcut-form {
+    padding: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+
+  .form-group small {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    color: #94a3b8;
+  }
+
+  .form-group .toggle-switch {
+    margin-right: 0.5rem;
+  }
+
+  .form-group span {
+    font-size: 0.875rem;
+    color: #475569;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 1.5rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #64748b;
+  }
+
+  .empty-state svg {
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
