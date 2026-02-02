@@ -1197,12 +1197,12 @@
     <div class="header-container">
       <div class="logo-section">
         <a href="/" class="logo-link">
-          <img src="{{ restaurant_assets }}/branding/logo.png" alt="{{ restaurant_name }} logo"
-            onload="this.classList.add('loaded')" onerror="
-                this.classList.add('loaded');
-                this.src =
-                  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23ff6b35%22/%3E%3Ctext x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22white%22 font-family=%22sans-serif%22%3EQ%3C/text%3E%3C/svg%3E';
-              " />
+          <img
+            src="{{ restaurant_assets }}/branding/logo.png"
+            alt="{{ restaurant_name }} logo"
+            data-onload-class="loaded"
+            data-fallback-src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23ff6b35%22/%3E%3Ctext x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22white%22 font-family=%22sans-serif%22%3EQ%3C/text%3E%3C/svg%3E"
+          />
           <span class="brand-name">{{ restaurant_name|title }}</span>
         </a>
       </div>
@@ -1380,7 +1380,7 @@
       <div class="checkout-accordion-list" id="checkout-accordions">
         <!-- 1. Customer Info Accordion -->
         <div class="checkout-accordion" id="accordion-customer">
-          <div class="checkout-accordion-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <div class="checkout-accordion-header" data-action="toggle-parent-class" data-class="collapsed">
             <div class="accordion-title">
               <div class="header-btn-icon">
                 <!-- Avatar -->
@@ -1460,7 +1460,7 @@
 
         <!-- 3. Current Cart Accordion -->
         <div class="checkout-accordion expanded" id="accordion-current-order">
-          <div class="checkout-accordion-header" onclick="this.parentElement.classList.toggle('collapsed')">
+          <div class="checkout-accordion-header" data-action="toggle-parent-class" data-class="collapsed">
             <div class="accordion-title">
               <span class="accordion-icon">🛒</span>
               <span>Orden Actual</span>
@@ -1544,11 +1544,11 @@
           </div>
           <div class="mini-tracker-percentage" id="mini-tracker-percentage">0%</div>
         </div>
-        <button class="mini-tracker-btn" id="view-detail-btn" onclick="viewFullTracker()">
+        <button class="mini-tracker-btn" id="view-detail-btn" data-action="call" data-fn="viewFullTracker">
           Ver detalle
         </button>
         <button class="mini-tracker-btn mini-tracker-btn--primary" id="request-checkout-btn" style="display: none"
-          onclick="requestCheckoutFromTracker()">
+          data-action="call" data-fn="requestCheckoutFromTracker">
           💳 Pedir Cuenta
         </button>
       </div>
@@ -1797,7 +1797,7 @@
           <p class="empty-state-description">
             Tus pedidos aparecerán aquí después de realizar uno.
           </p>
-          <button class="btn btn-primary" onclick="backToMenu()">Ver menú</button>
+          <button class="btn btn-primary" data-action="call" data-fn="backToMenu">Ver menú</button>
         </div>
         <div class="order-history-list" id="order-history-list"></div>
       </div>
@@ -3317,7 +3317,7 @@
           <span class="sticky-cart-bar__items" id="sticky-cart-items">0 artículos</span>
         </div>
       </div>
-      <button class="sticky-cart-bar__btn" id="sticky-cart-btn" onclick="showCart()">
+      <button class="sticky-cart-bar__btn" id="sticky-cart-btn" data-action="call" data-fn="showCart">
         Ver Carrito
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -3381,6 +3381,7 @@
   </script>
 
   {% block scripts %}{% endblock %}
+  <script defer src="{{ url_for('static', filename='js/shared/bindings.js') }}"></script>
   <script>
     // FORCE CONFIG RESTORATION - FIX FOR LEGACY OVERWRITE
     (function () {

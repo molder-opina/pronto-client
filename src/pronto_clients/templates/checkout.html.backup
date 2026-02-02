@@ -99,7 +99,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       <!-- LEFT: Form -->
       <div class="checkout-form">
         <div class="checkout-form__header">
-          <button type="button" class="back-to-menu-btn" onclick="window.location.href = '/'">
+          <button type="button" class="back-to-menu-btn" data-action="navigate" data-href="/">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -372,6 +372,22 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       phone: 'idle',
     };
 
+    function createStatusIcon(pathD) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '16');
+      svg.setAttribute('height', '16');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('stroke-linecap', 'round');
+      path.setAttribute('stroke-linejoin', 'round');
+      path.setAttribute('stroke-width', '2');
+      path.setAttribute('d', pathD);
+      svg.appendChild(path);
+      return svg;
+    }
+
     function showError(inputId, message) {
       const errorEl = document.getElementById(`${inputId}-error`);
       const inputEl = document.getElementById(inputId);
@@ -386,7 +402,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         inputEl.classList.remove('input--success');
       }
       if (statusEl) {
-        statusEl.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`;
+        statusEl.replaceChildren(createStatusIcon('M6 18L18 6M6 6l12 12'));
         statusEl.className = 'form-group__status form-group__status--error';
       }
       fieldStatus[inputId] = 'error';
@@ -406,7 +422,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         inputEl.classList.add('input--success');
       }
       if (statusEl) {
-        statusEl.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+        statusEl.replaceChildren(createStatusIcon('M5 13l4 4L19 7'));
         statusEl.className = 'form-group__status form-group__status--success';
       }
       fieldStatus[inputId] = 'valid';
@@ -425,7 +441,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         inputEl.classList.remove('input--error', 'input--success');
       }
       if (statusEl) {
-        statusEl.innerHTML = '';
+        statusEl.replaceChildren();
         statusEl.className = 'form-group__status';
       }
       fieldStatus[inputId] = 'idle';
@@ -728,5 +744,5 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   })();
 </script>
 
-<script type="module" src="{{ url_for('static', filename='js/dist/clients/menu.js') }}"></script>
+<script type="module" src="{{ assets_js_clients }}/menu.js"></script>
 {% endblock %}

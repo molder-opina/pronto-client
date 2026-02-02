@@ -114,7 +114,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
         <!-- LEFT: Form -->
         <div class="checkout-form">
           <div class="checkout-form__header">
-            <button type="button" class="back-to-menu-btn" onclick="backToMenu()">
+            <button type="button" class="back-to-menu-btn" data-action="call" data-fn="backToMenu">
               ← Volver al menú
             </button>
             <h2 class="checkout-form__title">Finalizar pedido</h2>
@@ -262,7 +262,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
         <span>Total:</span>
         <span id="cart-total">{{ currency_symbol }}0.00</span>
       </div>
-      <button class="checkout-btn" onclick="proceedToCheckout()">Ir a pagar</button>
+      <button class="checkout-btn" data-action="proceed-checkout" data-prevent-default="true">Ir a pagar</button>
     </div>
   </div>
 
@@ -286,7 +286,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     >
       <div class="modal-header">
         <h3 id="modal-item-name"></h3>
-        <button class="modal-close" onclick="closeItemModal()">×</button>
+        <button class="modal-close" data-action="call" data-fn="closeItemModal">×</button>
       </div>
       <div class="modal-body">
         <img id="modal-item-image" class="modal-item-image" src="" alt="" />
@@ -300,13 +300,13 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
         <div class="quantity-selector">
           <span>Cantidad:</span>
           <div class="quantity-selector-controls">
-            <button type="button" class="quantity-btn" onclick="adjustModalQuantity(-1)">-</button>
+            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity" data-arg="-1">-</button>
             <span class="cart-item-quantity" id="modal-quantity">1</span>
-            <button type="button" class="quantity-btn" onclick="adjustModalQuantity(1)">+</button>
+            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity" data-arg="1">+</button>
           </div>
         </div>
 
-        <button class="modal-add-to-cart" onclick="addToCartFromModal()">
+        <button class="modal-add-to-cart" data-action="call" data-fn="addToCartFromModal">
           Agregar al carrito: <span id="modal-total-price">{{ currency_symbol }}0.00</span>
         </button>
       </div>
@@ -346,11 +346,11 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
   <!-- Business Hours Modal -->
   <div class="modal" id="business-hours-modal">
-    <div class="modal__overlay" onclick="closeBusinessHoursModal()"></div>
+    <div class="modal__overlay" data-action="call" data-fn="closeBusinessHoursModal"></div>
     <div class="modal__content modal__content--hours">
       <header class="modal__header">
         <h2>🕒 Horarios de Atención</h2>
-        <button type="button" class="modal__close" onclick="closeBusinessHoursModal()">✕</button>
+        <button type="button" class="modal__close" data-action="call" data-fn="closeBusinessHoursModal">✕</button>
       </header>
       <div class="modal__body" id="business-hours-content">
         <div class="hours-loading">
@@ -399,12 +399,22 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
           renderBusinessHours(data.schedule, data.current_day_schedule);
         }
       } catch (error) {
-        content.innerHTML = `
-                <div style="text-align: center; padding: 2rem; color: #ef4444;">
-                    <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">❌ Error al cargar horarios</p>
-                    <p style="font-size: 0.9rem; color: #64748b;">Intenta nuevamente más tarde</p>
-                </div>
-            `;
+        content.replaceChildren();
+        const errorWrap = document.createElement('div');
+        errorWrap.style.textAlign = 'center';
+        errorWrap.style.padding = '2rem';
+        errorWrap.style.color = '#ef4444';
+        const errorTitle = document.createElement('p');
+        errorTitle.style.fontSize = '1.2rem';
+        errorTitle.style.marginBottom = '0.5rem';
+        errorTitle.textContent = '❌ Error al cargar horarios';
+        const errorMessage = document.createElement('p');
+        errorMessage.style.fontSize = '0.9rem';
+        errorMessage.style.color = '#64748b';
+        errorMessage.textContent = 'Intenta nuevamente más tarde';
+        errorWrap.appendChild(errorTitle);
+        errorWrap.appendChild(errorMessage);
+        content.appendChild(errorWrap);
       }
     } else {
       // Use cached data
@@ -422,61 +432,92 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     const today = new Date().getDay();
     const todayIndex = today === 0 ? 6 : today - 1; // Convert Sunday=0 to our 0-6 format
 
-    content.innerHTML = `
-        <div class="hours-list">
-            ${schedule
-              .map((day, index) => {
-                const isToday = index === todayIndex;
-                const isOpen = day.is_open;
-                const openTime = day.open_time || '--:--';
-                const closeTime = day.close_time || '--:--';
+    content.replaceChildren();
+    const list = document.createElement('div');
+    list.className = 'hours-list';
 
-                return `
-                    <div class="hours-day ${isToday ? 'hours-day--today' : ''} ${!isOpen ? 'hours-day--closed' : ''}">
-                        <div class="hours-day__icon">${dayIcons[index]}</div>
-                        <div class="hours-day__info">
-                            <div class="hours-day__name">
-                                ${day.day_name}
-                                ${isToday ? '<span class="hours-badge hours-badge--today">Hoy</span>' : ''}
-                            </div>
-                            <div class="hours-day__time">
-                                ${isOpen ? `${openTime} - ${closeTime}` : 'Cerrado'}
-                            </div>
-                            ${day.notes ? `<div class="hours-day__notes">${day.notes}</div>` : ''}
-                        </div>
-                        <div class="hours-day__status">
-                            ${isOpen ? '<span class="hours-status hours-status--open">Abierto</span>' : '<span class="hours-status hours-status--closed">Cerrado</span>'}
-                        </div>
-                    </div>
-                `;
-              })
-              .join('')}
-        </div>
+    schedule.forEach((day, index) => {
+      const isToday = index === todayIndex;
+      const isOpen = day.is_open;
+      const openTime = day.open_time || '--:--';
+      const closeTime = day.close_time || '--:--';
 
-        ${
-          currentDaySchedule && currentDaySchedule.is_open
-            ? `
-            <div class="hours-current-info">
-                <div class="hours-current-info__icon">✨</div>
-                <div class="hours-current-info__text">
-                    <strong>Estamos abiertos ahora</strong>
-                    <p>Hoy cerramos a las ${currentDaySchedule.close_time}</p>
-                </div>
-            </div>
-        `
-            : currentDaySchedule
-              ? `
-            <div class="hours-current-info hours-current-info--closed">
-                <div class="hours-current-info__icon">🌙</div>
-                <div class="hours-current-info__text">
-                    <strong>Actualmente cerrado</strong>
-                    <p>Vuelve a visitarnos durante nuestro horario de atención</p>
-                </div>
-            </div>
-        `
-              : ''
-        }
-    `;
+      const dayEl = document.createElement('div');
+      dayEl.className = `hours-day${isToday ? ' hours-day--today' : ''}${!isOpen ? ' hours-day--closed' : ''}`;
+
+      const iconEl = document.createElement('div');
+      iconEl.className = 'hours-day__icon';
+      iconEl.textContent = dayIcons[index];
+      dayEl.appendChild(iconEl);
+
+      const infoEl = document.createElement('div');
+      infoEl.className = 'hours-day__info';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'hours-day__name';
+      nameEl.textContent = day.day_name;
+      if (isToday) {
+        const badge = document.createElement('span');
+        badge.className = 'hours-badge hours-badge--today';
+        badge.textContent = 'Hoy';
+        nameEl.appendChild(badge);
+      }
+      infoEl.appendChild(nameEl);
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'hours-day__time';
+      timeEl.textContent = isOpen ? `${openTime} - ${closeTime}` : 'Cerrado';
+      infoEl.appendChild(timeEl);
+
+      if (day.notes) {
+        const notesEl = document.createElement('div');
+        notesEl.className = 'hours-day__notes';
+        notesEl.textContent = day.notes;
+        infoEl.appendChild(notesEl);
+      }
+
+      dayEl.appendChild(infoEl);
+
+      const statusEl = document.createElement('div');
+      statusEl.className = 'hours-day__status';
+      const statusBadge = document.createElement('span');
+      statusBadge.className = isOpen
+        ? 'hours-status hours-status--open'
+        : 'hours-status hours-status--closed';
+      statusBadge.textContent = isOpen ? 'Abierto' : 'Cerrado';
+      statusEl.appendChild(statusBadge);
+      dayEl.appendChild(statusEl);
+
+      list.appendChild(dayEl);
+    });
+
+    content.appendChild(list);
+
+    if (currentDaySchedule) {
+      const currentInfo = document.createElement('div');
+      currentInfo.className = currentDaySchedule.is_open
+        ? 'hours-current-info'
+        : 'hours-current-info hours-current-info--closed';
+
+      const currentIcon = document.createElement('div');
+      currentIcon.className = 'hours-current-info__icon';
+      currentIcon.textContent = currentDaySchedule.is_open ? '✨' : '🌙';
+      currentInfo.appendChild(currentIcon);
+
+      const currentText = document.createElement('div');
+      currentText.className = 'hours-current-info__text';
+      const currentTitle = document.createElement('strong');
+      currentTitle.textContent = currentDaySchedule.is_open ? 'Estamos abiertos ahora' : 'Actualmente cerrado';
+      const currentMessage = document.createElement('p');
+      currentMessage.textContent = currentDaySchedule.is_open
+        ? `Hoy cerramos a las ${currentDaySchedule.close_time}`
+        : 'Vuelve a visitarnos durante nuestro horario de atención';
+      currentText.appendChild(currentTitle);
+      currentText.appendChild(currentMessage);
+      currentInfo.appendChild(currentText);
+
+      content.appendChild(currentInfo);
+    }
   }
 
   function closeBusinessHoursModal() {
@@ -669,7 +710,11 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
         (t) => t.toLowerCase().startsWith('vip') || t.toUpperCase().startsWith('V-')
       );
 
-      manualSelect.innerHTML = '<option value="">Elige tu mesa</option>';
+      manualSelect.replaceChildren();
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Elige tu mesa';
+      manualSelect.appendChild(placeholder);
       manualSelect.appendChild(createGroup('Mesas', mesas));
       manualSelect.appendChild(createGroup('Terraza', terrazas));
       manualSelect.appendChild(createGroup('Barra', barras));
@@ -764,6 +809,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     }
   })();
 </script>
+
 <script type="module" src="{{ assets_js_clients }}/menu.js"></script>
-<script src="{{ assets_js_shared }}/keyboard-shortcuts.js"></script>
+
 {% endblock %}

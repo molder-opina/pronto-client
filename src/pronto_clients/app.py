@@ -46,7 +46,15 @@ def create_app() -> Flask:
 
     validate_required_env_vars(skip_in_debug=False)
 
-    app = Flask(__name__, template_folder="templates", static_folder="static")
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    pronto_static_root = os.path.abspath(
+        os.path.join(repo_root, "..", "pronto-static", "src", "static_content", "assets")
+    )
+    app = Flask(
+        __name__,
+        template_folder="templates",
+        static_folder=pronto_static_root,
+    )
     config = load_config("pronto-clients")
 
     configure_logging(config.app_name, config.log_level)
@@ -77,8 +85,8 @@ def create_app() -> Flask:
     app.config["DEBUG_AUTO_TABLE"] = config.debug_auto_table
     app.config["AUTO_READY_QUICK_SERVE"] = config.auto_ready_quick_serve
     app.config["EMPLOYEE_API_BASE_URL"] = os.getenv(
-        "EMPLOYEE_API_BASE_URL", "http://localhost:6081"
-    )
+        "PRONTO_EMPLOYEES_BASE_URL", ""
+    ).strip()
 
     configure_security_headers(app)
     register_error_handlers(app)
@@ -124,9 +132,7 @@ def create_app() -> Flask:
     if config.debug_mode or not allowed_origins:
         allowed_origins = [
             "http://localhost:6080",
-            "http://localhost:6081",
             "http://127.0.0.1:6080",
-            "http://127.0.0.1:6081",
         ]
         CORS(
             app,
@@ -146,6 +152,11 @@ def create_app() -> Flask:
         )
 
     csrf_protection.init_app(app)
+
+    @app.context_processor
+    def inject_employees_base_url():
+        base_url = (app.config.get("EMPLOYEE_API_BASE_URL") or "").rstrip("/")
+        return {"employees_base_url": base_url}
 
     from flask_wtf.csrf import CSRFError
 

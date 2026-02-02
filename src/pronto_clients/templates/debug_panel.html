@@ -203,30 +203,30 @@
 </style>
 
 <div class="debug-panel">
-  <button class="debug-toggle" id="debug-toggle-btn" onclick="toggleDebugMenu()" title="Debug Mode">
+  <button class="debug-toggle" id="debug-toggle-btn" data-action="call" data-fn="toggleDebugMenu" title="Debug Mode">
     🐛
   </button>
 
   <div class="debug-menu" id="debug-menu">
     <div class="debug-header">
       <span>🔧 Debug Mode</span>
-      <button class="debug-close" onclick="toggleDebugMenu()">×</button>
+      <button class="debug-close" data-action="call" data-fn="toggleDebugMenu">×</button>
     </div>
 
     <!-- 👤 Autenticación -->
     <div class="debug-section">
       <h3>👤 Autenticación</h3>
       <div class="debug-btn-group">
-        <button class="debug-btn" onclick="debugQuickLogin()">
+        <button class="debug-btn" data-action="call" data-fn="debugQuickLogin">
           <span class="debug-btn-icon">🔐</span>
           <span>Login rápido</span>
         </button>
-        <button class="debug-btn" onclick="debugCreateUser()">
+        <button class="debug-btn" data-action="call" data-fn="debugCreateUser">
           <span class="debug-btn-icon">➕</span>
           <span>Crear usuario</span>
         </button>
       </div>
-      <button class="debug-btn" onclick="debugOpenProfile()">
+      <button class="debug-btn" data-action="call" data-fn="debugOpenProfile">
         <span class="debug-btn-icon">👤</span>
         <span>Abrir perfil</span>
       </button>
@@ -235,20 +235,20 @@
     <!-- 🍽️ Menú y Productos -->
     <div class="debug-section">
       <h3>🍽️ Menú y Productos</h3>
-      <button class="debug-btn" onclick="debugLoadFullMenu()">
+      <button class="debug-btn" data-action="call" data-fn="debugLoadFullMenu">
         <span class="debug-btn-icon">📋</span>
         <span>Cargar menú completo</span>
       </button>
-      <button class="debug-btn" onclick="debugSearchProducts('pizza')">
+      <button class="debug-btn" data-action="call" data-fn="debugSearchProducts" data-arg="pizza">
         <span class="debug-btn-icon">🔍</span>
         <span>Buscar: "pizza"</span>
       </button>
       <div class="debug-btn-group">
-        <button class="debug-btn" onclick="debugFilterCategory('combos')">
+        <button class="debug-btn" data-action="call" data-fn="debugFilterCategory" data-arg="combos">
           <span class="debug-btn-icon">🍔</span>
           <span>Combos</span>
         </button>
-        <button class="debug-btn" onclick="debugFilterCategory('bebidas')">
+        <button class="debug-btn" data-action="call" data-fn="debugFilterCategory" data-arg="bebidas">
           <span class="debug-btn-icon">🥤</span>
           <span>Bebidas</span>
         </button>
@@ -259,20 +259,20 @@
     <div class="debug-section">
       <h3>🛒 Carrito</h3>
       <div class="debug-btn-group">
-        <button class="debug-btn" onclick="debugAddRandomItems(2)">
+        <button class="debug-btn" data-action="call" data-fn="debugAddRandomItems" data-arg="2">
           <span class="debug-btn-icon">➕</span>
           <span>+2 items</span>
         </button>
-        <button class="debug-btn" onclick="debugAddRandomItems(5)">
+        <button class="debug-btn" data-action="call" data-fn="debugAddRandomItems" data-arg="5">
           <span class="debug-btn-icon">🛒</span>
           <span>+5 items</span>
         </button>
       </div>
-      <button class="debug-btn" onclick="debugClearCart()">
+      <button class="debug-btn" data-action="call" data-fn="debugClearCart">
         <span class="debug-btn-icon">🗑️</span>
         <span>Vaciar carrito</span>
       </button>
-      <button class="debug-btn" onclick="debugApplyCoupon('DESCUENTO10')">
+      <button class="debug-btn" data-action="call" data-fn="debugApplyCoupon" data-arg="DESCUENTO10">
         <span class="debug-btn-icon">🎫</span>
         <span>Aplicar cupón: DESCUENTO10</span>
       </button>
@@ -281,20 +281,20 @@
     <!-- 📦 Órdenes -->
     <div class="debug-section">
       <h3>📦 Órdenes</h3>
-      <button class="debug-btn" onclick="debugCreateOrderFromCart()">
+      <button class="debug-btn" data-action="call" data-fn="debugCreateOrderFromCart">
         <span class="debug-btn-icon">📤</span>
         <span>Crear orden del carrito</span>
       </button>
-      <button class="debug-btn" onclick="debugCreateQuickOrder()">
+      <button class="debug-btn" data-action="call" data-fn="debugCreateQuickOrder">
         <span class="debug-btn-icon">⚡</span>
         <span>Orden rápida (2 items)</span>
       </button>
       <div class="debug-divider"></div>
-      <button class="debug-btn" onclick="debugAdvanceCurrentOrder()">
+      <button class="debug-btn" data-action="call" data-fn="debugAdvanceCurrentOrder">
         <span class="debug-btn-icon">➡️</span>
         <span>Avanzar estado orden</span>
       </button>
-      <button class="debug-btn" onclick="debugAdvanceAllOrders()">
+      <button class="debug-btn" data-action="call" data-fn="debugAdvanceAllOrders">
         <span class="debug-btn-icon">⏩</span>
         <span>Avanzar todas las órdenes</span>
       </button>
@@ -303,15 +303,15 @@
     <!-- 💰 Pago y Checkout -->
     <div class="debug-section">
       <h3>💰 Pago y Checkout</h3>
-      <button class="debug-btn" onclick="debugRequestBill()">
+      <button class="debug-btn" data-action="call" data-fn="debugRequestBill">
         <span class="debug-btn-icon">🧾</span>
         <span>Solicitar cuenta</span>
       </button>
-      <button class="debug-btn" onclick="debugSimulateCashPayment()">
+      <button class="debug-btn" data-action="call" data-fn="debugSimulateCashPayment">
         <span class="debug-btn-icon">💵</span>
         <span>Pago en efectivo</span>
       </button>
-      <button class="debug-btn" onclick="debugSimulateCardPayment()">
+      <button class="debug-btn" data-action="call" data-fn="debugSimulateCardPayment">
         <span class="debug-btn-icon">💳</span>
         <span>Pago con tarjeta</span>
       </button>
@@ -320,15 +320,15 @@
     <!-- 🧑‍🍳 Mesero y Soporte -->
     <div class="debug-section">
       <h3>🧑‍🍳 Mesero y Soporte</h3>
-      <button class="debug-btn" onclick="debugCallWaiter()">
+      <button class="debug-btn" data-action="call" data-fn="debugCallWaiter">
         <span class="debug-btn-icon">🔔</span>
         <span>Llamar mesero</span>
       </button>
-      <button class="debug-btn" onclick="debugOpenSupport()">
+      <button class="debug-btn" data-action="call" data-fn="debugOpenSupport">
         <span class="debug-btn-icon">📞</span>
         <span>Abrir soporte</span>
       </button>
-      <button class="debug-btn" onclick="debugSubmitSupportTicket()">
+      <button class="debug-btn" data-action="call" data-fn="debugSubmitSupportTicket">
         <span class="debug-btn-icon">🎫</span>
         <span>Enviar ticket de prueba</span>
       </button>
@@ -337,11 +337,11 @@
     <!-- 🕐 Horarios -->
     <div class="debug-section">
       <h3>🕐 Horarios</h3>
-      <button class="debug-btn" onclick="debugOpenHoursModal()">
+      <button class="debug-btn" data-action="call" data-fn="debugOpenHoursModal">
         <span class="debug-btn-icon">🕐</span>
         <span>Ver horarios</span>
       </button>
-      <button class="debug-btn" onclick="debugCheckOpenStatus()">
+      <button class="debug-btn" data-action="call" data-fn="debugCheckOpenStatus">
         <span class="debug-btn-icon">✅</span>
         <span>Verificar estado actual</span>
       </button>
@@ -350,11 +350,11 @@
     <!-- 🎁 Promociones -->
     <div class="debug-section">
       <h3>🎁 Promociones</h3>
-      <button class="debug-btn" onclick="debugViewPromotions()">
+      <button class="debug-btn" data-action="call" data-fn="debugViewPromotions">
         <span class="debug-btn-icon">🎉</span>
         <span>Ver promociones</span>
       </button>
-      <button class="debug-btn" onclick="debugCreateTestPromotion()">
+      <button class="debug-btn" data-action="call" data-fn="debugCreateTestPromotion">
         <span class="debug-btn-icon">✨</span>
         <span>Crear promoción test</span>
       </button>
@@ -364,16 +364,16 @@
     <div class="debug-section">
       <h3>🔄 Sesión</h3>
       <div class="debug-btn-group">
-        <button class="debug-btn" onclick="debugResetSession()">
+        <button class="debug-btn" data-action="call" data-fn="debugResetSession">
           <span class="debug-btn-icon">🔄</span>
           <span>Reiniciar</span>
         </button>
-        <button class="debug-btn" onclick="debugClearAllData()">
+        <button class="debug-btn" data-action="call" data-fn="debugClearAllData">
           <span class="debug-btn-icon">🧹</span>
           <span>Limpiar todo</span>
         </button>
       </div>
-      <button class="debug-btn" onclick="debugFullDemoFlow()">
+      <button class="debug-btn" data-action="call" data-fn="debugFullDemoFlow">
         <span class="debug-btn-icon">🚀</span>
         <span>🚀 Demo completo</span>
       </button>
@@ -387,6 +387,7 @@
 </div>
 
 <script>
+  const employeesBaseUrl = '{{ employees_base_url }}';
   // ============ UTILIDADES ============
   function toggleDebugMenu() {
     const menu = document.getElementById('debug-menu');
@@ -820,7 +821,11 @@
 
   async function debugCreateTestPromotion() {
     showStatus('Las promociones se crean desde panel de empleados', 'info');
-    showStatus('💡 Dirígete a http://localhost:6081/promotions', 'info');
+    if (employeesBaseUrl) {
+      showStatus(`💡 Dirígete a ${employeesBaseUrl}/promotions`, 'info');
+    } else {
+      showStatus('Panel de empleados no configurado', 'warning');
+    }
   }
 
   // ============ SESIÓN ============
