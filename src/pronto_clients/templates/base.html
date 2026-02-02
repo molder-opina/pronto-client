@@ -1197,12 +1197,9 @@
     <div class="header-container">
       <div class="logo-section">
         <a href="/" class="logo-link">
-          <img
-            src="{{ restaurant_assets }}/branding/logo.png"
-            alt="{{ restaurant_name }} logo"
+          <img src="{{ restaurant_assets }}/branding/logo.jpg" alt="{{ restaurant_name }} logo"
             data-onload-class="loaded"
-            data-fallback-src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23ff6b35%22/%3E%3Ctext x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22white%22 font-family=%22sans-serif%22%3EQ%3C/text%3E%3C/svg%3E"
-          />
+            data-fallback-src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23ff6b35%22/%3E%3Ctext x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22white%22 font-family=%22sans-serif%22%3EQ%3C/text%3E%3C/svg%3E" />
           <span class="brand-name">{{ restaurant_name|title }}</span>
         </a>
       </div>
@@ -3380,33 +3377,31 @@
     })();
   </script>
 
-  {% block scripts %}{% endblock %}
-  <script defer src="{{ url_for('static', filename='js/shared/bindings.js') }}"></script>
-  <script>
-    // FORCE CONFIG RESTORATION - FIX FOR LEGACY OVERWRITE
-    (function () {
-      if (!window.APP_CONFIG) window.APP_CONFIG = {};
+  <script defer src="{{ static_host_url }}/assets/js/shared/bindings.js"></script>
+  // FORCE CONFIG RESTORATION - FIX FOR LEGACY OVERWRITE
+  (function () {
+  if (!window.APP_CONFIG) window.APP_CONFIG = {};
 
-      // Restore values that might have been lost
-      if (!window.APP_CONFIG.static_host_url) {
-        window.APP_CONFIG.static_host_url = '{{ static_host_url }}';
-      }
+  // Restore values that might have been lost
+  if (!window.APP_CONFIG.static_host_url) {
+  window.APP_CONFIG.static_host_url = '{{ static_host_url }}';
+  }
 
-      // Ensure restaurant assets are correct
-      if (!window.APP_CONFIG.restaurant_assets || window.APP_CONFIG.restaurant_assets.includes('undefined')) {
-        window.APP_CONFIG.restaurant_assets = '{{ restaurant_assets }}';
-      }
+  // Ensure restaurant assets are correct
+  if (!window.APP_CONFIG.restaurant_assets || window.APP_CONFIG.restaurant_assets.includes('undefined')) {
+  window.APP_CONFIG.restaurant_assets = '{{ restaurant_assets }}';
+  }
 
-      console.log('[Config Fixer] Restored APP_CONFIG:', window.APP_CONFIG);
-    })();
+  console.log('[Config Fixer] Restored APP_CONFIG:', window.APP_CONFIG);
+  })();
 
-    document.addEventListener('DOMContentLoaded', () => {
-      if (window.Lucide && window.Lucide.createIcons) {
-        window.Lucide.createIcons({ icons: window.Lucide.icons });
-      }
-    });
+  document.addEventListener('DOMContentLoaded', () => {
+  if (window.Lucide && window.Lucide.createIcons) {
+  window.Lucide.createIcons({ icons: window.Lucide.icons });
+  }
+  });
   </script>
-  
+
   <!-- Vue Notification Center for SSE notifications -->
   <div id="notification-center-root"></div>
 </body>

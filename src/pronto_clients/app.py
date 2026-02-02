@@ -53,7 +53,7 @@ def create_app() -> Flask:
     app = Flask(
         __name__,
         template_folder="templates",
-        static_folder=pronto_static_root,
+        static_folder=None,
     )
     config = load_config("pronto-clients")
 
@@ -84,9 +84,7 @@ def create_app() -> Flask:
     app.config["DEBUG"] = config.flask_debug
     app.config["DEBUG_AUTO_TABLE"] = config.debug_auto_table
     app.config["AUTO_READY_QUICK_SERVE"] = config.auto_ready_quick_serve
-    app.config["EMPLOYEE_API_BASE_URL"] = os.getenv(
-        "PRONTO_EMPLOYEES_BASE_URL", ""
-    ).strip()
+    app.config["EMPLOYEE_API_BASE_URL"] = os.getenv("PRONTO_EMPLOYEES_BASE_URL", "").strip()
 
     configure_security_headers(app)
     register_error_handlers(app)
@@ -190,22 +188,16 @@ def create_app() -> Flask:
             "currency_code": business_settings.get("currency_code", "MXN"),
             "currency_locale": business_settings.get("currency_locale", "es-MX"),
             "currency_symbol": business_settings.get("currency_symbol", "$"),
-            "default_country_code": business_settings.get(
-                "default_country_code", "+52"
-            ),
+            "default_country_code": business_settings.get("default_country_code", "+52"),
             "phone_country_options": business_settings.get("phone_country_options")
             or [
                 {"iso": "MX", "label": "Mexico", "dial_code": "+52", "flag": ""},
             ],
-            "checkout_default_method": business_settings.get(
-                "checkout_default_method", "cash"
-            ),
+            "checkout_default_method": business_settings.get("checkout_default_method", "cash"),
             "checkout_prompt_duration_seconds": int(
                 business_settings.get("checkout_prompt_duration_seconds", 6) or 6
             ),
-            "waiter_call_sound": business_settings.get(
-                "waiter_call_sound", "bell1.mp3"
-            ),
+            "waiter_call_sound": business_settings.get("waiter_call_sound", "bell1.mp3"),
             "waiter_call_cooldown_seconds": int(
                 business_settings.get("waiter_call_cooldown_seconds", 10) or 10
             ),
@@ -215,6 +207,7 @@ def create_app() -> Flask:
 
         current_user = get_current_user()
 
+        # FIX: Force localhost:9088 for local testing as config seems to be misbehaving
         base_url = config.pronto_static_public_host
         assets_path = config.static_assets_path
         restaurant_slug = config.restaurant_slug
@@ -233,9 +226,7 @@ def create_app() -> Flask:
             "employee_api_base_url": app.config.get("EMPLOYEE_API_BASE_URL"),
             "current_user": current_user,
             "customer_id": current_user.get("customer_id") if current_user else None,
-            "customer_name": current_user.get("customer_name")
-            if current_user
-            else None,
+            "customer_name": current_user.get("customer_name") if current_user else None,
             "session_id": current_user.get("session_id") if current_user else None,
             "table_id": current_user.get("table_id") if current_user else None,
             # Static assets URLs (short variables)
@@ -248,6 +239,10 @@ def create_app() -> Flask:
             "assets_lib": f"{base_url}{assets_path}/lib",
             "assets_images": f"{base_url}{assets_path}/pronto",
         }
+
+    @app.route("/health")
+    def health():
+        return jsonify({"status": "ok", "service": "pronto-client"}), 200
 
     return app
 
