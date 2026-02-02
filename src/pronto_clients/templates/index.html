@@ -1,0 +1,1068 @@
+{% extends "base.html" %} {% set currency_symbol = config.get('CURRENCY_SYMBOL', '$') %} {% set
+currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
+<style>
+  /* FORCE PROFILE MODAL HIDDEN (DEBUG STRIP FIX) */
+  .profile-modal {
+    display: none !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .profile-modal.active {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+
+  .profile-modal-content {
+    position: relative;
+    background: white;
+    max-width: 480px;
+    width: 90%;
+    border-radius: 16px;
+    padding: 0;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+    overflow: hidden;
+  }
+
+  .profile-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 36px;
+    height: 36px;
+    background: var(--surface);
+    border: none;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-modal-close:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+</style>
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css" />
+
+<div class="menu-page" data-menu-root>
+  <!-- Category Tabs -->
+  <div class="category-tabs" id="category-tabs"></div>
+
+  <!-- Search and Filters (Compressed) -->
+  <div class="menu-filters-wrapper">
+    <div class="smart-search">
+      <div class="smart-search__input">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="m21 21-4.35-4.35m0-6.3a6.3 6.3 0 1 1-12.6 0 6.3 6.3 0 0 1 12.6 0z" />
+        </svg>
+        <input type="search" id="menu-search" placeholder="Busca tu antojo..." autocomplete="off" />
+        <button class="filter-toggle-btn" id="filter-toggle-btn" title="Filtros avanzados">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h7" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="advanced-filters" id="advanced-filters" hidden>
+      <div class="menu-filters__controls">
+        <div class="filter-control">
+          <select id="filters-sort" class="filter-control__input">
+            <option value="recommended">Recomendados</option>
+            <option value="price-asc">Menor precio</option>
+            <option value="price-desc">Mayor precio</option>
+          </select>
+        </div>
+        <div class="filter-control filter-control--range">
+          <input type="number" id="filters-price-min" placeholder="Min $" />
+          <input type="number" id="filters-price-max" placeholder="Max $" />
+        </div>
+        <button type="button" class="filter-clear" id="filters-clear-btn">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Quick Filter Chips (Horizontal Scroll) -->
+    <div class="filter-chips-scroll" style="overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none">
+      <button type="button" class="filter-chip active" data-filter="all">Todas</button>
+      <button type="button" class="filter-chip" data-filter="breakfast">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+          <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+          <line x1="6" y1="1" x2="6" y2="4"></line>
+          <line x1="10" y1="1" x2="10" y2="4"></line>
+          <line x1="14" y1="1" x2="14" y2="4"></line>
+        </svg>
+        Desayuno
+      </button>
+      <button type="button" class="filter-chip" data-filter="afternoon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          <path d="M2 12h20"></path>
+        </svg>
+        Comida
+      </button>
+      <button type="button" class="filter-chip" data-filter="dinner">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        Cena
+      </button>
+      <button type="button" class="filter-chip" data-filter="quick-serve">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        Rápido
+      </button>
+      <button type="button" class="filter-chip" data-filter="promotion">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="2" x2="12" y2="22"></line>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+        Promo
+      </button>
+    </div>
+  </div>
+  <input type="hidden" id="table-number" name="table_number" />
+
+  <!-- Menu Container -->
+  <div class="container">
+    <div class="menu-empty-state" id="menu-empty-state" hidden>
+      <div class="menu-empty-state__icon">🔎</div>
+      <h3 class="menu-empty-state__title">Sin coincidencias</h3>
+      <p class="menu-empty-state__text">Prueba otros filtros o ajusta el rango de precios.</p>
+    </div>
+    <div id="menu-sections"></div>
+  </div>
+
+  <button type="button" class="back-to-top-btn" id="back-to-top" aria-label="Volver al inicio">
+    ↑ Volver
+  </button>
+
+  <!-- Item Customization Modal -->
+  <div class="modal-overlay" id="item-modal">
+    <div class="modal modal--item-customization">
+      <div class="modal-header">
+        <h3 id="modal-item-name"></h3>
+        <button class="modal-close" onclick="closeItemModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-image-wrapper">
+          <img id="modal-item-image" class="modal-item-image" src="" alt="" />
+        </div>
+        <p id="modal-item-description" class="modal-item-description"></p>
+
+        <div class="extras-section extras-section--hidden" id="extras-section">
+          <h4>Extras disponibles</h4>
+          <div id="extras-list"></div>
+        </div>
+      </div>
+      <!-- Fixed Footer containing Prices, Quantity, and Action -->
+      <div class="modal-footer">
+        <!-- Price Breakdown -->
+        <div class="modal-price-breakdown" id="modal-price-breakdown">
+          <div class="modal-price-row">
+            <span>Precio base:</span>
+            <span id="modal-base-price">{{ currency_symbol }}0.00</span>
+          </div>
+          <div class="modal-price-row" id="modal-extras-price-row">
+            <span>Extras:</span>
+            <span id="modal-extras-price">{{ currency_symbol }}0.00</span>
+          </div>
+          <div class="modal-price-row modal-price-row--total">
+            <span>Total:</span>
+            <span id="modal-breakdown-total">{{ currency_symbol }}0.00</span>
+          </div>
+        </div>
+
+        <div class="modal-actions-row">
+          <div class="quantity-selector">
+            <span>Cantidad:</span>
+            <div class="quantity-selector-controls">
+              <button type="button" class="quantity-btn" onclick="adjustModalQuantity(-1)">
+                -
+              </button>
+              <span class="cart-item-quantity" id="modal-quantity">1</span>
+              <button type="button" class="quantity-btn" onclick="adjustModalQuantity(1)">+</button>
+            </div>
+          </div>
+
+          <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn" onclick="addToCartFromModal()">
+            Agregar al carrito: <span id="modal-total-price">{{ currency_symbol }}0.00</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Preference Overlay -->
+  <div class="checkout-preference" id="checkout-preference-overlay" aria-hidden="true">
+    <div class="checkout-preference__card">
+      <div class="checkout-preference__status">
+        <p class="checkout-preference__title">Avisando al mesero…</p>
+        <p class="checkout-preference__subtitle">Elige cómo deseas pagar tu cuenta.</p>
+      </div>
+      <div class="checkout-preference__buttons">
+        <button type="button" class="checkout-preference__btn" data-checkout-method="cash">
+          💵 Pago en efectivo
+        </button>
+        <button type="button" class="checkout-preference__btn" data-checkout-method="terminal">
+          🧾 Terminal
+        </button>
+        <button type="button" class="checkout-preference__btn checkout-preference__btn--digital"
+          data-checkout-method="digital">
+          💳 Pago digital (Stripe)
+        </button>
+      </div>
+      <p class="checkout-preference__helper">
+        Se cerrará en
+        <span id="checkout-preference-timer">{{ app_settings.checkout_prompt_duration_seconds or 6 }}</span>s · Método
+        por defecto: <span id="checkout-preference-default">Efectivo</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Business Hours Modal -->
+  <div class="modal" id="business-hours-modal">
+    <div class="modal__overlay" onclick="closeBusinessHoursModal()"></div>
+    <div class="modal__content modal__content--hours">
+      <header class="modal__header">
+        <h2>🕒 Horarios de Atención</h2>
+        <button type="button" class="modal__close" onclick="closeBusinessHoursModal()">✕</button>
+      </header>
+      <div class="modal__body" id="business-hours-content">
+        <div class="hours-loading">
+          <div class="spinner"></div>
+          <p>Cargando horarios...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block cart_panel %}
+<!-- Cart Backdrop -->
+<div class="cart-backdrop" id="cart-backdrop"></div>
+
+<!-- Cart Panel -->
+<div class="cart-panel" id="cart-panel">
+  <div class="cart-header">
+    <h2>Tu pedido</h2>
+    <button class="cart-close">×</button>
+  </div>
+  <div class="cart-items" id="cart-items">
+    <div class="empty-state">
+      <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="9" cy="21" r="1" />
+        <circle cx="20" cy="21" r="1" />
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+      </svg>
+      <h3 class="empty-state-title">Tu carrito está vacío</h3>
+      <p class="empty-state-description">Agrega algunos platillos deliciosos para empezar</p>
+      <button class="btn btn-primary" onclick="backToMenu()">Ver menú</button>
+    </div>
+  </div>
+  <div class="cart-footer" id="cart-footer">
+    <div class="cart-total">
+      <span>Total:</span>
+      <span id="cart-total">{{ currency_symbol }}0.00</span>
+    </div>
+    <div class="cart-actions">
+      <button class="btn btn-secondary btn--small" id="clear-cart-btn" onclick="window.clearCart()"
+        title="Vaciar carrito">
+        🗑️ Vaciar
+      </button>
+      <button class="checkout-btn btn btn-primary btn--full" id="checkout-btn" onclick="
+          event.preventDefault();
+          window.proceedToCheckout
+            ? window.proceedToCheckout()
+            : (window.location.href = '/checkout');
+        ">
+        Ir a pagar
+      </button>
+    </div>
+  </div>
+  {% endblock %} {% block scripts %}
+
+  <script>
+    // Configuration for menu.js
+    window.APP_CONFIG = {
+      assets_css_clients: '{{ assets_css_clients }}',
+      assets_js_clients: '{{ assets_js_clients }}',
+      restaurant_assets: '{{ restaurant_assets }}',
+      currency_code: '{{ currency_code }}',
+      currency_symbol: '{{ currency_symbol }}',
+      debug_mode: {{ 'true' if config.get('DEBUG') else 'false' }},
+    };
+  </script>
+
+  <script>
+    // Business Hours Modal
+    let businessHoursData = null;
+
+    async function openBusinessHoursModal() {
+      const modal = document.getElementById('business-hours-modal');
+      const content = document.getElementById('business-hours-content');
+
+      if (!modal) return;
+
+      // Show modal immediately
+      modal.classList.add('active');
+
+      // Load hours if not already loaded
+      if (!businessHoursData) {
+        try {
+          const response = await fetch('/api/business-info');
+          const data = await response.json();
+
+          if (data.schedule) {
+            businessHoursData = data.schedule;
+            renderBusinessHours(data.schedule, data.current_day_schedule);
+          }
+        } catch (error) {
+          content.innerHTML = `
+                <div class="hours-error">
+                    <p class="hours-error__title">❌ Error al cargar horarios</p>
+                    <p class="hours-error__message">Intenta nuevamente más tarde</p>
+                </div>
+            `;
+        }
+      } else {
+        // Use cached data
+        renderBusinessHours(businessHoursData);
+      }
+    }
+
+    function renderBusinessHours(schedule, currentDaySchedule) {
+      const content = document.getElementById('business-hours-content');
+      if (!content || !schedule) return;
+
+      const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+      const dayIcons = ['📅', '📅', '📅', '📅', '📅', '📅', '🌟'];
+
+      const today = new Date().getDay();
+      const todayIndex = today === 0 ? 6 : today - 1; // Convert Sunday=0 to our 0-6 format
+
+      content.innerHTML = `
+        <div class="hours-list">
+            ${schedule
+          .map((day, index) => {
+            const isToday = index === todayIndex;
+            const isOpen = day.is_open;
+            const openTime = day.open_time || '--:--';
+            const closeTime = day.close_time || '--:--';
+
+            return `
+                    <div class="hours-day ${isToday ? 'hours-day--today' : ''} ${!isOpen ? 'hours-day--closed' : ''}">
+                        <div class="hours-day__icon">${dayIcons[index]}</div>
+                        <div class="hours-day__info">
+                            <div class="hours-day__name">
+                                ${day.day_name}
+                                ${isToday ? '<span class="hours-badge hours-badge--today">Hoy</span>' : ''}
+                            </div>
+                            <div class="hours-day__time">
+                                ${isOpen ? `${openTime} - ${closeTime}` : 'Cerrado'}
+                            </div>
+                            ${day.notes ? `<div class="hours-day__notes">${day.notes}</div>` : ''}
+                        </div>
+                        <div class="hours-day__status">
+                            ${isOpen ? '<span class="hours-status hours-status--open">Abierto</span>' : '<span class="hours-status hours-status--closed">Cerrado</span>'}
+                        </div>
+                    </div>
+                `;
+          })
+          .join('')}
+        </div>
+
+        ${currentDaySchedule && currentDaySchedule.is_open
+          ? `
+            <div class="hours-current-info">
+                <div class="hours-current-info__icon">✨</div>
+                <div class="hours-current-info__text">
+                    <strong>Estamos abiertos ahora</strong>
+                    <p>Hoy cerramos a las ${currentDaySchedule.close_time}</p>
+                </div>
+            </div>
+        `
+          : currentDaySchedule
+            ? `
+            <div class="hours-current-info hours-current-info--closed">
+                <div class="hours-current-info__icon">🌙</div>
+                <div class="hours-current-info__text">
+                    <strong>Actualmente cerrado</strong>
+                    <p>Vuelve a visitarnos durante nuestro horario de atención</p>
+                </div>
+            </div>
+        `
+            : ''
+        }
+    `;
+    }
+
+    function closeBusinessHoursModal() {
+      const modal = document.getElementById('business-hours-modal');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    }
+
+    // Make functions global
+    window.openBusinessHoursModal = openBusinessHoursModal;
+    window.closeBusinessHoursModal = closeBusinessHoursModal;
+
+    // Remove updateBusinessStatus call from page initialization
+  </script>
+
+  <!-- Checkout Waiting Overlay -->
+  <div class="checkout-waiting-overlay checkout-waiting-overlay--hidden" id="checkout-waiting-overlay">
+    <div class="checkout-waiting-content">
+      <div class="checkout-waiting-icon">
+        <div class="waiter-animation">🧑‍🍳</div>
+      </div>
+      <h2 class="checkout-waiting-title">¡Tu cuenta está en camino!</h2>
+      <p class="checkout-waiting-message">El mesero te atenderá en un momento</p>
+      <div class="checkout-waiting-loader">
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+      </div>
+      <button class="checkout-waiting-continue" id="checkout-waiting-continue">Continuar</button>
+      <p class="checkout-waiting-hint">Presiona ESC para cerrar</p>
+    </div>
+  </div>
+
+  <!-- Payment Confirmed Notification -->
+  <div class="payment-confirmed-notification payment-confirmed-overlay" id="payment-confirmed-notification">
+    <div class="payment-confirmed-content">
+      <div class="payment-confirmed-icon">✅</div>
+      <h3 class="payment-confirmed-title">¡Pago confirmado!</h3>
+      <p class="payment-confirmed-message">Gracias por tu visita</p>
+    </div>
+  </div>
+
+  <!-- Table Selection Modal -->
+  <div class="modal" id="table-selection-modal">
+    <div class="modal__overlay"></div>
+    <div class="modal__content table-selection-modal__content">
+      <header class="modal__header">
+        <h2 class="table-selection-modal__title">Selecciona tu mesa</h2>
+        <button type="button" class="modal__close table-selection-modal__close">✕</button>
+      </header>
+      <div class="modal__body">
+        <p class="table-selection-modal__description">
+          Por favor indica el número de tu mesa para continuar
+        </p>
+        <select id="manual-table-select" class="table-selection-modal__select" style="
+            width: 100%;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+          ">
+          <option value="">Elige tu mesa</option>
+        </select>
+        <button id="confirm-table-btn" class="btn btn--primary table-selection-modal__button" style="width: 100%">
+          Confirmar Mesa
+        </button>
+        <button type="button" class="btn btn--ghost table-selection-modal__button"
+          style="width: 100%; margin-top: 0.5rem" onclick="hideTableSelectionModal()">
+          Continuar sin mesa
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.DEBUG_AUTO_TABLE = {{ 'true' if debug_auto_table else 'false' }};
+  </script>
+  <script>
+    window.__PRONTO_TS_MENU__ = true;
+    window.__PRONTO_TS_MENU_SHORTCUTS__ = true;
+
+    // Auto-assign table number based on QR code or debug mode
+    (function () {
+      const tableLabel = document.getElementById('table-label');
+      const tableSubtitle = document.getElementById('table-subtitle');
+      const urlParams = new URLSearchParams(window.location.search);
+      // Support multiple parameter names for QR codes: mesa, table, m, t
+      const tableFromQR =
+        urlParams.get('mesa') || urlParams.get('table') || urlParams.get('m') || urlParams.get('t');
+      const tableInput = document.getElementById('table-number');
+      const modal = document.getElementById('table-selection-modal');
+      const manualSelect = document.getElementById('manual-table-select');
+      const confirmBtn = document.getElementById('confirm-table-btn');
+      const closeBtn = document.querySelector('.table-selection-modal__close');
+
+      const fallbackBuild = (areaCode, tableNumber) => {
+        const normalizedArea =
+          (areaCode || '')
+            .trim()
+            .replace(/[^A-Za-z0-9]/g, '')
+            .toUpperCase()
+            .slice(0, 3) || 'G';
+        const num = Number(tableNumber);
+        if (!Number.isInteger(num) || num < 1 || num > 99) return '';
+        return `${normalizedArea}-M${String(num).padStart(2, '0')}`;
+      };
+
+      const buildCode = (areaCode, tableNumber) => {
+        try {
+          if (window.ProntoTableCode?.buildTableCode) {
+            return window.ProntoTableCode.buildTableCode(areaCode, tableNumber);
+          }
+        } catch (error) {
+          console.warn('[TABLE] No se pudo construir el código de mesa', error);
+        }
+        return fallbackBuild(areaCode, tableNumber);
+      };
+
+      const DUMMY_TABLES = (() => {
+        const make = (label, areaCode, number) => {
+          const code = buildCode(areaCode, number);
+          return { fullName: label, areaCode, tableNumber: number, code };
+        };
+        const mesas = Array.from({ length: 10 }, (_, i) => make(`Mesa ${i + 1}`, 'M', i + 1));
+        const terrazas = Array.from({ length: 8 }, (_, i) =>
+          make(`Terraza ${i + 11}`, 'T', i + 11)
+        );
+        const barras = Array.from({ length: 4 }, (_, i) => make(`Barra ${i + 1}`, 'B', i + 1));
+        const vips = Array.from({ length: 3 }, (_, i) => make(`VIP ${i + 1}`, 'V', i + 1));
+        return [...mesas, ...terrazas, ...barras, ...vips];
+      })();
+
+      const AREA_LABELS = {
+        M: 'Mesa',
+        T: 'Terraza',
+        B: 'Barra',
+        V: 'VIP',
+      };
+      let tableOptions = [...DUMMY_TABLES];
+      let tableOptionsPromise = null;
+
+      const buildTableEntry = (tableNumberValue, zoneLabel) => {
+        const value = String(tableNumberValue || '').trim();
+        if (!value) return null;
+        const utils = window.ProntoTableCode;
+        const parsedCode = utils?.parseTableCode?.(value);
+        if (parsedCode) {
+          const label = AREA_LABELS[parsedCode.areaCode] || zoneLabel || 'Mesa';
+          return {
+            areaCode: parsedCode.areaCode,
+            tableNumber: parsedCode.tableNumber,
+            code: value,
+            fullName: `${label} ${parsedCode.tableNumber}`,
+          };
+        }
+
+        const digitsMatch = value.match(/(\d{1,2})/);
+        const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
+        const areaCode = (zoneLabel || 'G').trim().slice(0, 1).toUpperCase() || 'G';
+        return {
+          areaCode,
+          tableNumber: tableNumber || 0,
+          code: value,
+          fullName: tableNumber ? `Mesa ${tableNumber}` : value,
+        };
+      };
+
+      const loadTableOptions = () => {
+        if (tableOptionsPromise) return tableOptionsPromise;
+        tableOptionsPromise = fetch('/api/tables', {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+          .then((response) => (response.ok ? response.json() : null))
+          .then((payload) => {
+            const tables = payload?.tables || [];
+            if (!Array.isArray(tables) || tables.length === 0) return;
+            const normalized = tables
+              .map((table) => buildTableEntry(table.table_number, table.zone))
+              .filter(Boolean);
+            if (normalized.length > 0) {
+              tableOptions = normalized;
+            }
+          })
+          .catch(() => undefined);
+        return tableOptionsPromise;
+      };
+
+      function parseIncomingTable(rawValue, preferSavedLabel = '') {
+        console.log('[TABLE] parseIncomingTable called with:', rawValue);
+        if (!rawValue) return null;
+        const value = String(rawValue).trim();
+        if (!value) return null;
+
+        console.log('[TABLE] Trying window.ProntoTableCode.parseTableCode...');
+        const utils = window.ProntoTableCode;
+        const parsedCode = utils?.parseTableCode?.(value);
+        if (parsedCode) {
+          console.log('[TABLE] Parsed using ProntoTableCode:', parsedCode);
+          const friendlyName = preferSavedLabel || `Mesa ${parsedCode.tableNumber}`;
+          return { ...parsedCode, fullName: friendlyName, code: value };
+        }
+
+        console.log('[TABLE] Trying to find in tables list...');
+        const candidate = tableOptions.find(
+          (table) =>
+            table.code.toUpperCase() === value.toUpperCase() ||
+            table.fullName.toUpperCase() === value.toUpperCase()
+        );
+        if (candidate) {
+          console.log('[TABLE] Found in tables list:', candidate);
+          return {
+            areaCode: candidate.areaCode,
+            tableNumber: candidate.tableNumber,
+            code: candidate.code,
+            fullName: candidate.fullName,
+          };
+        }
+
+        console.log('[TABLE] Trying fallback parsing...');
+        const dashMMatch = value.match(/^([A-Za-z0-9]+)-M(\d{1,2})$/);
+        if (dashMMatch) {
+          const areaCode = dashMMatch[1].toUpperCase();
+          const tableNumber = Number(dashMMatch[2]);
+          const code = buildCode(areaCode, tableNumber);
+          if (code) {
+            console.log('[TABLE] Fallback (M- format) result:', {
+              areaCode,
+              tableNumber,
+              code,
+              fullName: value,
+            });
+            return { areaCode, tableNumber, code, fullName: value };
+          }
+        }
+        const digitsMatch = value.match(/(\d{1,2})/);
+        const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
+        const areaCode = utils?.deriveAreaCodeFromLabel?.(value, 'G') || 'G';
+        const code = tableNumber ? buildCode(areaCode, tableNumber) : '';
+        const fullName = preferSavedLabel || value || (tableNumber ? `Mesa ${tableNumber}` : '');
+        console.log('[TABLE] Fallback result:', { areaCode, tableNumber, code, fullName });
+        if (!code) return null;
+        return { areaCode, tableNumber, code, fullName };
+      }
+
+      function formatTableLabel(table) {
+        if (!table) return 'Mesa —';
+        const baseName = table.fullName || (table.tableNumber ? `Mesa ${table.tableNumber}` : '');
+        return table.code ? `${baseName} (${table.code})` : baseName || 'Mesa —';
+      }
+
+      function assignTable(rawTable, source = 'qr') {
+        if (!tableInput) return false;
+        const savedLabel = sessionStorage.getItem('pronto-table-label') || undefined;
+        const tableData = parseIncomingTable(rawTable, savedLabel);
+        if (!tableData) return false;
+
+        tableInput.value = tableData.code;
+        sessionStorage.setItem('pronto-table-number', tableData.code);
+        sessionStorage.setItem('pronto-table-label', tableData.fullName);
+
+        if (tableLabel) {
+          tableLabel.textContent = formatTableLabel(tableData);
+        }
+        if (tableSubtitle) {
+          tableSubtitle.textContent =
+            source === 'qr' ? 'Asignada automáticamente por código QR' : 'Seleccionada manualmente';
+        }
+
+        const menuTableLabel = document.getElementById('menu-table-label');
+        if (menuTableLabel) {
+          menuTableLabel.textContent = formatTableLabel(tableData);
+        }
+
+        const menuPage = document.querySelector('[data-menu-root]');
+        if (menuPage) {
+          menuPage.classList.add('menu-visible');
+        }
+
+        return true;
+      }
+
+      function renderTableOptions() {
+        if (!manualSelect) return;
+        const createGroup = (label, values) => {
+          const group = document.createElement('optgroup');
+          group.label = label;
+          values.forEach((value) => {
+            const option = document.createElement('option');
+            option.value = value.code;
+            option.textContent = `${value.fullName} (${value.code})`;
+            group.appendChild(option);
+          });
+          return group;
+        };
+
+        const mesas = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('mesa'));
+        const terrazas = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('terraza'));
+        const barras = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('barra'));
+        const vips = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('vip'));
+
+        manualSelect.innerHTML = '<option value="">Elige tu mesa</option>';
+        manualSelect.appendChild(createGroup('Mesas', mesas));
+        manualSelect.appendChild(createGroup('Terraza', terrazas));
+        manualSelect.appendChild(createGroup('Barra', barras));
+        manualSelect.appendChild(createGroup('VIP', vips));
+      }
+
+      function showTableSelectionModal() {
+        if (modal) {
+          loadTableOptions().finally(() => {
+            renderTableOptions();
+            const savedTable = sessionStorage.getItem('pronto-table-number');
+            if (manualSelect && savedTable) {
+              manualSelect.value = savedTable;
+            }
+            modal.classList.add('active'); // Use standard .active for modals
+            // modal.style.display = 'flex'; // Handled by CSS
+            document.body.classList.add('table-selection-open');
+            if (manualSelect) manualSelect.focus();
+          });
+        }
+      }
+
+      function hideTableSelectionModal() {
+        if (modal) {
+          modal.classList.remove('active');
+          // modal.style.display = 'none'; // Handled by CSS
+          document.body.classList.remove('table-selection-open');
+        }
+      }
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          hideTableSelectionModal();
+        });
+      }
+
+      if (modal) {
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) {
+            hideTableSelectionModal();
+          }
+        });
+      }
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && modal?.classList.contains('visible')) {
+          hideTableSelectionModal();
+        }
+      });
+
+      // Handle manual table confirmation
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+          const tableNumber = manualSelect?.value?.trim();
+          console.log('[TABLE] Confirm button clicked, selected value:', tableNumber);
+          if (!tableNumber) {
+            alert('Selecciona una mesa válida.');
+            return;
+          }
+          console.log('[TABLE] Attempting to assign table:', tableNumber);
+          const result = assignTable(tableNumber, 'manual');
+          console.log('[TABLE] Assignment result:', result);
+          if (result) {
+            hideTableSelectionModal();
+          } else {
+            console.error('[TABLE] Failed to assign table:', tableNumber);
+            alert('Error al asignar mesa. Por favor intenta nuevamente.');
+          }
+        });
+      }
+
+      // Main logic
+      let assigned = false;
+      if (tableFromQR) {
+        // Priority 1: QR code always wins
+        assigned = assignTable(tableFromQR, 'qr');
+        if (!assigned) {
+          alert('Mesa del QR no es válida. Selecciona una mesa existente.');
+        }
+      } else {
+        // Check if table was already assigned
+        const savedTable = sessionStorage.getItem('pronto-table-number');
+
+        if (savedTable) {
+          // Table already assigned, use it
+          assigned = assignTable(savedTable, 'session');
+        } else if (window.DEBUG_AUTO_TABLE) {
+          // Debug mode: auto-assign Mesa 1 (primer dummy)
+          console.log('[DEBUG] Auto-assigning Mesa 1 for testing');
+          assigned = assignTable('Mesa 1', 'manual');
+        }
+      }
+
+      if (!assigned) {
+        sessionStorage.removeItem('pronto-table-number');
+        // Production mode: show manual selection modal
+        showTableSelectionModal();
+      }
+
+      // Make showTableSelectionModal globally accessible
+      window.showTableSelectionModal = showTableSelectionModal;
+      window.hideTableSelectionModal = hideTableSelectionModal;
+
+      // Table indicator click handler - open modal to change table
+      const tableDisplay = document.getElementById('menu-table-display');
+      if (tableDisplay) {
+        tableDisplay.addEventListener('click', (e) => {
+          e.preventDefault();
+          console.log('[TABLE] Opening table selection modal');
+          showTableSelectionModal();
+        });
+      }
+    })();
+  </script>
+  <script src="{{ assets_js_shared }}/keyboard-shortcuts.js"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v=cachebust1"></script>
+  {% if config.get('DEBUG') %} {% if debug_auto_table %}
+  <!-- Draggable Debug Table Selector (DEBUG MODE ONLY) -->
+  <div id="debug-table-panel" class="draggable-panel" style="
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 320px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      z-index: 999999 !important;
+      border: 1px solid #e2e8f0;
+    ">
+    <div class="draggable-header" style="
+        background: #1e293b;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 12px 12px 0 0;
+        cursor: move;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      ">
+      <span style="font-weight: 600; font-size: 0.9rem">🛠️ Configuración DEBUG</span>
+      <button id="close-debug-panel-btn"
+        style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem">
+        ×
+      </button>
+    </div>
+    <div class="draggable-content" style="padding: 16px">
+      <div style="margin-bottom: 12px">
+        <label for="debug-table-select"
+          style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Seleccionar Mesa:</label>
+        <select id="debug-table-select" style="
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 1rem;
+          ">
+          {% if available_tables %}
+          <option value="">-- Seleccionar --</option>
+          {% for table in available_tables %}
+          <option value="{{ table.table_number }}">
+            Mesa {{ table.table_number }} ({{ table.zone or 'General' }})
+          </option>
+          {% endfor %} {% else %}
+          <option value="">-- Debug Fallback --</option>
+          <option value="1">Mesa 1</option>
+          <option value="2">Mesa 2</option>
+          <option value="3">Mesa 3</option>
+          <option value="4">Mesa 4</option>
+          <option value="5">Mesa 5</option>
+          {% endif %}
+        </select>
+      </div>
+      <div style="margin-bottom: 12px">
+        <label style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Estado Sesión:</label>
+        <div style="font-size: 0.9rem; font-weight: 600" id="debug-session-status">Inactiva</div>
+      </div>
+      <button onclick="updateTableFromDebug()" style="
+          width: 100%;
+          padding: 10px;
+          background: #ff6b35;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+        ">
+        Actualizar Mesa
+      </button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const panel = document.getElementById('debug-table-panel');
+      const header = panel.querySelector('.draggable-header');
+      const closeBtn = document.getElementById('close-debug-panel-btn');
+      let isDragging = false;
+      let startX, startY, initialLeft, initialTop;
+
+      function closePanel() {
+        const panel = document.getElementById('debug-table-panel');
+        panel.style.display = 'none';
+        document.body.classList.remove('modal-open'); // Remove blur if applied
+        // Remove overlay if any
+        const overlays = document.querySelectorAll('.modal-overlay');
+        overlays.forEach((o) => (o.style.display = 'none'));
+        const app = document.getElementById('app');
+        if (app) app.style.filter = 'none';
+      }
+
+      // Close on ESC
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          const panel = document.getElementById('debug-table-panel');
+          if (panel && panel.style.display !== 'none') {
+            closePanel();
+          }
+        }
+      });
+
+      closeBtn.onclick = closePanel;
+
+      // Override existing click handler for table display
+      const tableDisplay = document.getElementById('menu-table-display');
+      if (tableDisplay) {
+        const newTableDisplay = tableDisplay.cloneNode(true);
+        tableDisplay.parentNode.replaceChild(newTableDisplay, tableDisplay);
+
+        newTableDisplay.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          panel.style.display = 'block';
+
+          // Centering Logic
+          if (!panel.dataset.moved) {
+            panel.style.top = '50%';
+            panel.style.left = '50%';
+            panel.style.transform = 'translate(-50%, -50%)';
+          }
+
+          // Set Current Selection
+          const currentTable = document
+            .getElementById('menu-table-label')
+            ?.textContent?.replace('Mesa ', '')
+            .replace('—', '')
+            .trim();
+          if (currentTable) {
+            const select = document.getElementById('debug-table-select');
+            // Find option with this value
+            const options = Array.from(select.options);
+            const matchingOption = options.find((opt) => opt.value == currentTable);
+            if (matchingOption) {
+              select.value = matchingOption.value;
+            } else if (currentTable) {
+              // If not found in list (e.g. dynamic/new), add it temporarily
+              const opt = document.createElement('option');
+              opt.value = currentTable;
+              opt.textContent = `Mesa ${currentTable} (Actual)`;
+              select.add(opt, 0);
+              select.value = currentTable;
+            }
+          }
+        });
+      }
+
+      // Dragging Logic
+      header.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const rect = panel.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+
+        panel.style.transform = 'none';
+        panel.style.left = `${initialLeft}px`;
+        panel.style.top = `${initialTop}px`;
+
+        header.style.cursor = 'grabbing';
+        document.body.style.userSelect = 'none';
+        panel.dataset.moved = 'true';
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        panel.style.left = `${initialLeft + dx}px`;
+        panel.style.top = `${initialTop + dy}px`;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          header.style.cursor = 'move';
+          document.body.style.userSelect = '';
+        }
+      });
+
+      window.updateTableFromDebug = function () {
+        const select = document.getElementById('debug-table-select');
+        const newVal = select.value;
+
+        if (newVal) {
+          const hiddenInput = document.getElementById('table-number');
+          const label = document.getElementById('menu-table-label'); // Needs re-query after DOM updates? No, ID is unique usually.
+          // Re-query label carefully
+          const display = document.getElementById('menu-table-display');
+          const labelSpan = display ? display.querySelector('span:last-child') : null;
+          const menuTableLabel = document.getElementById('menu-table-label');
+
+          if (hiddenInput) hiddenInput.value = newVal;
+
+          if (menuTableLabel) {
+            menuTableLabel.textContent = `Mesa ${newVal}`;
+          } else if (labelSpan) {
+            labelSpan.textContent = `Mesa ${newVal}`;
+          }
+
+          localStorage.setItem('pronto_table_number', newVal);
+
+          if (window.APP_SESSION) {
+            window.location.reload();
+            return;
+          }
+
+          closePanel();
+          // Optional: Show toast
+        }
+      };
+    });
+  </script>
+  {% endif %} {% endif %} {% endblock %}
+</div>

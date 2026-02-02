@@ -1,0 +1,769 @@
+{% extends "base.html" %} {% set currency_symbol = app_settings.currency_symbol or '$' %} {% set
+currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
+
+<div class="menu-page" data-menu-root>
+  <!-- Category Tabs -->
+  <div class="category-tabs" id="category-tabs"></div>
+
+  <!-- Smart Search -->
+  <div class="smart-search">
+    <div class="smart-search__input">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="m21 21-4.35-4.35m0-6.3a6.3 6.3 0 1 1-12.6 0 6.3 6.3 0 0 1 12.6 0z"
+        />
+      </svg>
+      <input
+        type="search"
+        id="menu-search"
+        placeholder="Busca platillos, ingredientes o categorías..."
+        autocomplete="off"
+      />
+    </div>
+    <div class="smart-search__suggestions" id="menu-search-suggestions"></div>
+  </div>
+
+  <!-- Quick Filters -->
+  <div class="menu-filters" id="menu-filters">
+    <div class="menu-filters__header">
+      <div class="menu-filters__label">Filtrar por:</div>
+      <div class="menu-filters__results" id="filters-results-count">Mostrando 0 productos</div>
+    </div>
+    <div class="menu-filters__buttons">
+      <button type="button" class="filter-chip" data-filter="all" data-active="true">
+        <span class="filter-chip__icon">🍽️</span>
+        <span class="filter-chip__label">Todos</span>
+        <span class="filter-chip__count" data-filter-count="all">0</span>
+      </button>
+      <button type="button" class="filter-chip" data-filter="breakfast">
+        <span class="filter-chip__icon">☕</span>
+        <span class="filter-chip__label">Desayuno</span>
+        <span class="filter-chip__count" data-filter-count="breakfast">0</span>
+      </button>
+      <button type="button" class="filter-chip" data-filter="afternoon">
+        <span class="filter-chip__icon">🌮</span>
+        <span class="filter-chip__label">Comida</span>
+        <span class="filter-chip__count" data-filter-count="afternoon">0</span>
+      </button>
+      <button type="button" class="filter-chip" data-filter="dinner">
+        <span class="filter-chip__icon">🌙</span>
+        <span class="filter-chip__label">Cena</span>
+        <span class="filter-chip__count" data-filter-count="dinner">0</span>
+      </button>
+      <button type="button" class="filter-chip" data-filter="quick-serve">
+        <span class="filter-chip__icon">⚡</span>
+        <span class="filter-chip__label">Entrega rápida</span>
+        <span class="filter-chip__count" data-filter-count="quick-serve">0</span>
+      </button>
+      <button type="button" class="filter-chip" data-filter="promotion">
+        <span class="filter-chip__icon">🎉</span>
+        <span class="filter-chip__label">Promoción</span>
+        <span class="filter-chip__count" data-filter-count="promotion">0</span>
+      </button>
+    </div>
+    <div class="menu-filters__controls">
+      <div class="filter-control">
+        <label for="filters-sort" class="filter-control__label">Ordenar por</label>
+        <select id="filters-sort" class="filter-control__input">
+          <option value="recommended">Recomendados</option>
+          <option value="price-asc">Precio: menor a mayor</option>
+          <option value="price-desc">Precio: mayor a menor</option>
+          <option value="name-asc">Nombre: A-Z</option>
+        </select>
+      </div>
+      <div class="filter-control filter-control--range">
+        <label class="filter-control__label">Precio</label>
+        <div class="filter-control__range">
+          <input
+            type="number"
+            id="filters-price-min"
+            class="filter-control__input"
+            placeholder="Mínimo"
+          />
+          <span class="filter-control__separator">–</span>
+          <input
+            type="number"
+            id="filters-price-max"
+            class="filter-control__input"
+            placeholder="Máximo"
+          />
+        </div>
+      </div>
+      <button type="button" class="filter-clear" id="filters-clear-btn">Limpiar filtros</button>
+    </div>
+  </div>
+
+  <!-- Menu Container -->
+  <div class="container">
+    <div class="menu-empty-state" id="menu-empty-state" hidden>
+      <div class="menu-empty-state__icon">🔎</div>
+      <h3 class="menu-empty-state__title">Sin coincidencias</h3>
+      <p class="menu-empty-state__text">Prueba otros filtros o ajusta el rango de precios.</p>
+    </div>
+    <div id="menu-sections"></div>
+  </div>
+
+  <!-- Checkout Section - Modern 2 Column Layout -->
+  <section class="checkout-section" id="checkout-section">
+    <div class="checkout-shell">
+      <div class="checkout-container">
+        <!-- LEFT: Form -->
+        <div class="checkout-form">
+          <div class="checkout-form__header">
+            <button type="button" class="back-to-menu-btn" onclick="backToMenu()">
+              ← Volver al menú
+            </button>
+            <h2 class="checkout-form__title">Finalizar pedido</h2>
+          </div>
+
+          <form id="checkout-form">
+            <div class="form-group">
+              <label for="customer-name"
+                >Nombre <span style="color: #9ca3af">(opcional)</span></label
+              >
+              <div class="input-with-icon">
+                <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  id="customer-name"
+                  name="name"
+                  placeholder="Tu nombre"
+                  class="input-with-icon__field"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="customer-email"
+                >Email <span style="color: #9ca3af">(requerido para pago digital)</span></label
+              >
+              <div class="input-with-icon">
+                <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                <input
+                  type="email"
+                  id="customer-email"
+                  name="email"
+                  placeholder="tu@email.com"
+                  class="input-with-icon__field"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="customer-phone"
+                >Teléfono <span style="color: #9ca3af">(opcional)</span></label
+              >
+              <div class="phone-input-group">
+                <select id="phone-country-code" class="phone-country-select"></select>
+                <input
+                  type="tel"
+                  id="customer-phone"
+                  name="phone"
+                  placeholder="Número de contacto"
+                />
+              </div>
+            </div>
+
+            <!-- Mesa como Badge Informativo -->
+            <div class="mesa-info-card">
+              <div class="mesa-info-card__icon">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </div>
+              <div class="mesa-info-card__content">
+                <h4 class="mesa-info-card__title">Mesa <span id="table-number-display">—</span></h4>
+                <p class="mesa-info-card__text">Mesa asignada automáticamente por código QR</p>
+              </div>
+              <input type="hidden" id="table-number" name="table_number" />
+            </div>
+
+            <div class="form-group">
+              <label for="notes"
+                >Notas especiales <span style="color: #9ca3af">(opcional)</span></label
+              >
+              <textarea
+                id="notes"
+                name="notes"
+                rows="3"
+                placeholder="Alergias, preferencias, etc."
+              ></textarea>
+            </div>
+
+            <div class="feedback-message" id="checkout-feedback"></div>
+          </form>
+        </div>
+
+        <!-- RIGHT: Summary (sticky on desktop) -->
+        <div class="checkout-summary">
+          <h3 class="checkout-summary__title">Resumen del pedido</h3>
+
+          <div class="checkout-summary__items" id="checkout-summary"></div>
+
+          <div class="checkout-summary__total">
+            <span class="checkout-summary__total-label">Total</span>
+            <span class="checkout-summary__total-amount" id="checkout-total"
+              >{{ currency_symbol }}0.00</span
+            >
+          </div>
+
+          <button type="submit" form="checkout-form" class="checkout-submit-btn">
+            Confirmar pedido
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cart Panel -->
+  <div class="cart-panel" id="cart-panel">
+    <div class="cart-header">
+      <h2>Tu pedido</h2>
+      <button class="cart-close">×</button>
+    </div>
+    <div class="cart-items" id="cart-items">
+      <div class="empty-state">
+        <div class="empty-state__icon">🍔😢</div>
+        <h3 class="empty-state__title">Tu carrito está vacío</h3>
+        <p class="empty-state__text">Agrega algunos platillos deliciosos para empezar</p>
+      </div>
+    </div>
+    <div class="cart-footer">
+      <div class="cart-total">
+        <span>Total:</span>
+        <span id="cart-total">{{ currency_symbol }}0.00</span>
+      </div>
+      <button class="checkout-btn" onclick="proceedToCheckout()">Ir a pagar</button>
+    </div>
+  </div>
+
+  <button type="button" class="back-to-top-btn" id="back-to-top" aria-label="Volver al inicio">
+    ↑ Volver
+  </button>
+
+  <!-- Item Customization Modal -->
+  <div class="modal-overlay" id="item-modal">
+    <div
+      class="modal"
+      style="
+        position: relative !important;
+        z-index: 99999 !important;
+        background: white !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        box-shadow: 0 20px 100px rgba(0, 0, 0, 0.8) !important;
+      "
+    >
+      <div class="modal-header">
+        <h3 id="modal-item-name"></h3>
+        <button class="modal-close" onclick="closeItemModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <img id="modal-item-image" class="modal-item-image" src="" alt="" />
+        <p id="modal-item-description" class="modal-item-description"></p>
+
+        <div class="extras-section" id="extras-section" style="display: none">
+          <h4>Extras disponibles</h4>
+          <div id="extras-list"></div>
+        </div>
+
+        <div class="quantity-selector">
+          <span>Cantidad:</span>
+          <div class="quantity-selector-controls">
+            <button type="button" class="quantity-btn" onclick="adjustModalQuantity(-1)">-</button>
+            <span class="cart-item-quantity" id="modal-quantity">1</span>
+            <button type="button" class="quantity-btn" onclick="adjustModalQuantity(1)">+</button>
+          </div>
+        </div>
+
+        <button class="modal-add-to-cart" onclick="addToCartFromModal()">
+          Agregar al carrito: <span id="modal-total-price">{{ currency_symbol }}0.00</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Preference Overlay -->
+  <div class="checkout-preference" id="checkout-preference-overlay" aria-hidden="true">
+    <div class="checkout-preference__card">
+      <div class="checkout-preference__status">
+        <p class="checkout-preference__title">Avisando al mesero…</p>
+        <p class="checkout-preference__subtitle">Elige cómo deseas pagar tu cuenta.</p>
+      </div>
+      <div class="checkout-preference__buttons">
+        <button type="button" class="checkout-preference__btn" data-checkout-method="cash">
+          💵 Pago en efectivo
+        </button>
+        <button type="button" class="checkout-preference__btn" data-checkout-method="terminal">
+          🧾 Terminal
+        </button>
+        <button
+          type="button"
+          class="checkout-preference__btn checkout-preference__btn--digital"
+          data-checkout-method="digital"
+        >
+          💳 Pago digital (Stripe)
+        </button>
+      </div>
+      <p class="checkout-preference__helper">
+        Se cerrará en
+        <span id="checkout-preference-timer"
+          >{{ app_settings.checkout_prompt_duration_seconds or 6 }}</span
+        >s · Método por defecto: <span id="checkout-preference-default">Efectivo</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Business Hours Modal -->
+  <div class="modal" id="business-hours-modal">
+    <div class="modal__overlay" onclick="closeBusinessHoursModal()"></div>
+    <div class="modal__content modal__content--hours">
+      <header class="modal__header">
+        <h2>🕒 Horarios de Atención</h2>
+        <button type="button" class="modal__close" onclick="closeBusinessHoursModal()">✕</button>
+      </header>
+      <div class="modal__body" id="business-hours-content">
+        <div class="hours-loading">
+          <div class="spinner"></div>
+          <p>Cargando horarios...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+
+<script>
+  // Configuration for menu.js
+  window.APP_CONFIG = {
+    assets_css_clients: '{{ assets_css_clients }}',
+    assets_js_clients: '{{ assets_js_clients }}',
+    restaurant_assets: '{{ restaurant_assets }}',
+    currency_code: '{{ currency_code }}',
+    currency_symbol: '{{ currency_symbol }}',
+  };
+</script>
+
+<script>
+  // Business Hours Modal
+  let businessHoursData = null;
+
+  async function openBusinessHoursModal() {
+    const modal = document.getElementById('business-hours-modal');
+    const content = document.getElementById('business-hours-content');
+
+    if (!modal) return;
+
+    // Show modal immediately
+    modal.classList.add('active');
+
+    // Load hours if not already loaded
+    if (!businessHoursData) {
+      try {
+        const response = await fetch('/api/business-info');
+        const data = await response.json();
+
+        if (data.schedule) {
+          businessHoursData = data.schedule;
+          renderBusinessHours(data.schedule, data.current_day_schedule);
+        }
+      } catch (error) {
+        content.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                    <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">❌ Error al cargar horarios</p>
+                    <p style="font-size: 0.9rem; color: #64748b;">Intenta nuevamente más tarde</p>
+                </div>
+            `;
+      }
+    } else {
+      // Use cached data
+      renderBusinessHours(businessHoursData);
+    }
+  }
+
+  function renderBusinessHours(schedule, currentDaySchedule) {
+    const content = document.getElementById('business-hours-content');
+    if (!content || !schedule) return;
+
+    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const dayIcons = ['📅', '📅', '📅', '📅', '📅', '📅', '🌟'];
+
+    const today = new Date().getDay();
+    const todayIndex = today === 0 ? 6 : today - 1; // Convert Sunday=0 to our 0-6 format
+
+    content.innerHTML = `
+        <div class="hours-list">
+            ${schedule
+              .map((day, index) => {
+                const isToday = index === todayIndex;
+                const isOpen = day.is_open;
+                const openTime = day.open_time || '--:--';
+                const closeTime = day.close_time || '--:--';
+
+                return `
+                    <div class="hours-day ${isToday ? 'hours-day--today' : ''} ${!isOpen ? 'hours-day--closed' : ''}">
+                        <div class="hours-day__icon">${dayIcons[index]}</div>
+                        <div class="hours-day__info">
+                            <div class="hours-day__name">
+                                ${day.day_name}
+                                ${isToday ? '<span class="hours-badge hours-badge--today">Hoy</span>' : ''}
+                            </div>
+                            <div class="hours-day__time">
+                                ${isOpen ? `${openTime} - ${closeTime}` : 'Cerrado'}
+                            </div>
+                            ${day.notes ? `<div class="hours-day__notes">${day.notes}</div>` : ''}
+                        </div>
+                        <div class="hours-day__status">
+                            ${isOpen ? '<span class="hours-status hours-status--open">Abierto</span>' : '<span class="hours-status hours-status--closed">Cerrado</span>'}
+                        </div>
+                    </div>
+                `;
+              })
+              .join('')}
+        </div>
+
+        ${
+          currentDaySchedule && currentDaySchedule.is_open
+            ? `
+            <div class="hours-current-info">
+                <div class="hours-current-info__icon">✨</div>
+                <div class="hours-current-info__text">
+                    <strong>Estamos abiertos ahora</strong>
+                    <p>Hoy cerramos a las ${currentDaySchedule.close_time}</p>
+                </div>
+            </div>
+        `
+            : currentDaySchedule
+              ? `
+            <div class="hours-current-info hours-current-info--closed">
+                <div class="hours-current-info__icon">🌙</div>
+                <div class="hours-current-info__text">
+                    <strong>Actualmente cerrado</strong>
+                    <p>Vuelve a visitarnos durante nuestro horario de atención</p>
+                </div>
+            </div>
+        `
+              : ''
+        }
+    `;
+  }
+
+  function closeBusinessHoursModal() {
+    const modal = document.getElementById('business-hours-modal');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  }
+
+  // Make functions global
+  window.openBusinessHoursModal = openBusinessHoursModal;
+  window.closeBusinessHoursModal = closeBusinessHoursModal;
+</script>
+
+<!-- Checkout Waiting Overlay -->
+<div class="checkout-waiting-overlay" id="checkout-waiting-overlay" style="display: none">
+  <div class="checkout-waiting-content">
+    <div class="checkout-waiting-icon">
+      <div class="waiter-animation">🧑‍🍳</div>
+    </div>
+    <h2 class="checkout-waiting-title">¡Tu cuenta está en camino!</h2>
+    <p class="checkout-waiting-message">El mesero te atenderá en un momento</p>
+    <div class="checkout-waiting-loader">
+      <div class="loader-dot"></div>
+      <div class="loader-dot"></div>
+      <div class="loader-dot"></div>
+    </div>
+    <button class="checkout-waiting-continue" id="checkout-waiting-continue">Continuar</button>
+    <p class="checkout-waiting-hint">Presiona ESC para cerrar</p>
+  </div>
+</div>
+
+<!-- Payment Confirmed Notification -->
+<div
+  class="payment-confirmed-notification"
+  id="payment-confirmed-notification"
+  style="display: none"
+>
+  <div class="payment-confirmed-content">
+    <div class="payment-confirmed-icon">✅</div>
+    <h3 class="payment-confirmed-title">¡Pago confirmado!</h3>
+    <p class="payment-confirmed-message">Gracias por tu visita</p>
+  </div>
+</div>
+
+<!-- Table Selection Modal -->
+<div id="table-selection-modal" class="checkout-waiting-overlay table-selection-modal">
+  <div class="checkout-waiting-content table-selection-modal__content">
+    <button type="button" class="table-selection-modal__close" aria-label="Cerrar">×</button>
+    <h2 class="table-selection-modal__title">Selecciona tu mesa</h2>
+    <p class="table-selection-modal__description">
+      Por favor indica el número de tu mesa para continuar
+    </p>
+    <select id="manual-table-select" class="table-selection-modal__select">
+      <option value="">Elige tu mesa</option>
+    </select>
+    <button id="confirm-table-btn" class="btn btn--primary table-selection-modal__button">
+      Confirmar Mesa
+    </button>
+  </div>
+</div>
+
+<script>
+  window.DEBUG_AUTO_TABLE = {{ 'true' if debug_auto_table else 'false' }};
+</script>
+<script>
+  window.__PRONTO_TS_MENU__ = true;
+  window.__PRONTO_TS_MENU_SHORTCUTS__ = true;
+
+  // Auto-assign table number based on QR code or debug mode
+  (function () {
+    const DUMMY_TABLES = (() => {
+      const mesas = Array.from({ length: 18 }, (_, i) => `Mesa ${i + 1}`);
+      const barras = Array.from({ length: 4 }, (_, i) => `Barra ${i + 1}`);
+      const vips = Array.from({ length: 3 }, (_, i) => `VIP ${i + 1}`);
+      return [...mesas, ...barras, ...vips];
+    })();
+    let tableOptions = [...DUMMY_TABLES];
+    let tableOptionsPromise = null;
+
+    const loadTableOptions = () => {
+      if (tableOptionsPromise) return tableOptionsPromise;
+      tableOptionsPromise = fetch('/api/tables', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          const tables = payload?.tables || [];
+          if (!Array.isArray(tables) || tables.length === 0) return;
+          const normalized = tables
+            .map((table) => String(table.table_number || '').trim())
+            .filter(Boolean);
+          if (normalized.length > 0) {
+            tableOptions = normalized;
+          }
+        })
+        .catch(() => undefined);
+      return tableOptionsPromise;
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    // Support multiple parameter names for QR codes: mesa, table, m, t
+    const tableFromQR =
+      urlParams.get('mesa') || urlParams.get('table') || urlParams.get('m') || urlParams.get('t');
+    const tableInput = document.getElementById('table-number');
+    const modal = document.getElementById('table-selection-modal');
+    const manualSelect = document.getElementById('manual-table-select');
+    const confirmBtn = document.getElementById('confirm-table-btn');
+    const closeBtn = document.querySelector('.table-selection-modal__close');
+
+    function normalizeTable(rawValue) {
+      if (!rawValue) return null;
+      const value = String(rawValue).trim();
+      if (!value) return null;
+      const upper = value.toUpperCase();
+
+      const directMatch = tableOptions.find((table) => table.toUpperCase() === upper);
+      if (directMatch) {
+        return directMatch;
+      }
+
+      const mesaMatch =
+        upper.match(/^MESA\s*(\d{1,3})$/) ||
+        upper.match(/^M\s*(\d{1,3})$/) ||
+        upper.match(/^(\d{1,3})$/);
+      if (mesaMatch) {
+        const candidate = `Mesa ${Number(mesaMatch[1])}`;
+        return tableOptions.includes(candidate) ? candidate : null;
+      }
+
+      const barMatch = upper.match(/^BARRA\s*(\d{1,2})$/) || upper.match(/^B\s*(\d{1,2})$/);
+      if (barMatch) {
+        const candidate = `Barra ${Number(barMatch[1])}`;
+        return tableOptions.includes(candidate) ? candidate : null;
+      }
+
+      const vipMatch = upper.match(/^VIP\s*(\d{1,2})$/) || upper.match(/^V\s*(\d{1,2})$/);
+      if (vipMatch) {
+        const candidate = `VIP ${Number(vipMatch[1])}`;
+        return tableOptions.includes(candidate) ? candidate : null;
+      }
+
+      return null;
+    }
+
+    function assignTable(rawTable) {
+      if (!tableInput) return false;
+      const canonical = normalizeTable(rawTable);
+      if (!canonical) return false;
+
+      tableInput.value = canonical;
+      sessionStorage.setItem('pronto-table-number', canonical);
+
+      const display = document.getElementById('table-number-display');
+      if (display) {
+        const displayValue = canonical.startsWith('Mesa ')
+          ? canonical.replace(/^Mesa\\s*/i, '')
+          : canonical;
+        display.textContent = displayValue;
+      }
+      return true;
+    }
+
+    function renderTableOptions() {
+      if (!manualSelect) return;
+      const createGroup = (label, values) => {
+        const group = document.createElement('optgroup');
+        group.label = label;
+        values.forEach((value) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = value;
+          group.appendChild(option);
+        });
+        return group;
+      };
+
+      const mesas = tableOptions.filter(
+        (t) => t.toLowerCase().startsWith('mesa') || t.toUpperCase().startsWith('M-')
+      );
+      const terrazas = tableOptions.filter(
+        (t) => t.toLowerCase().startsWith('terraza') || t.toUpperCase().startsWith('T-')
+      );
+      const barras = tableOptions.filter(
+        (t) => t.toLowerCase().startsWith('barra') || t.toUpperCase().startsWith('B-')
+      );
+      const vips = tableOptions.filter(
+        (t) => t.toLowerCase().startsWith('vip') || t.toUpperCase().startsWith('V-')
+      );
+
+      manualSelect.innerHTML = '<option value="">Elige tu mesa</option>';
+      manualSelect.appendChild(createGroup('Mesas', mesas));
+      manualSelect.appendChild(createGroup('Terraza', terrazas));
+      manualSelect.appendChild(createGroup('Barra', barras));
+      manualSelect.appendChild(createGroup('VIP', vips));
+    }
+
+    function showTableSelectionModal() {
+      if (modal) {
+        loadTableOptions().finally(() => {
+          renderTableOptions();
+          const savedTable = sessionStorage.getItem('pronto-table-number');
+          if (manualSelect && savedTable) {
+            manualSelect.value = savedTable;
+          }
+          modal.classList.add('visible');
+          document.body.classList.add('table-selection-open');
+          if (manualSelect) manualSelect.focus();
+        });
+      }
+    }
+
+    function hideTableSelectionModal() {
+      if (modal) {
+        modal.classList.remove('visible');
+        modal.style.display = 'none';
+        document.body.classList.remove('table-selection-open');
+      }
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        hideTableSelectionModal();
+      });
+    }
+
+    if (modal) {
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+          hideTableSelectionModal();
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modal?.classList.contains('visible')) {
+        hideTableSelectionModal();
+      }
+    });
+
+    // Handle manual table confirmation
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        const tableNumber = manualSelect?.value?.trim();
+        if (!tableNumber) {
+          alert('Selecciona una mesa válida.');
+          return;
+        }
+        if (assignTable(tableNumber)) {
+          hideTableSelectionModal();
+        } else {
+          alert('Mesa no encontrada. Usa una mesa existente (Mesa 1-18, Barra 1-4, VIP 1-3).');
+        }
+      });
+    }
+
+    // Main logic
+    let assigned = false;
+    if (tableFromQR) {
+      // Priority 1: QR code always wins
+      assigned = assignTable(tableFromQR);
+      if (!assigned) {
+        alert('Mesa del QR no es válida. Selecciona una mesa existente.');
+      }
+    } else {
+      // Check if table was already assigned
+      const savedTable = sessionStorage.getItem('pronto-table-number');
+
+      if (savedTable) {
+        // Table already assigned, use it
+        assigned = assignTable(savedTable);
+      } else if (window.DEBUG_AUTO_TABLE) {
+        // Debug mode: auto-assign Mesa 1 (primer dummy)
+        console.log('[DEBUG] Auto-assigning Mesa 1 for testing');
+        assigned = assignTable('Mesa 1');
+      }
+    }
+
+    if (!assigned) {
+      sessionStorage.removeItem('pronto-table-number');
+      // Production mode: show manual selection modal
+      showTableSelectionModal();
+    }
+  })();
+</script>
+<script type="module" src="{{ assets_js_clients }}/menu.js"></script>
+<script src="{{ assets_js_shared }}/keyboard-shortcuts.js"></script>
+{% endblock %}
