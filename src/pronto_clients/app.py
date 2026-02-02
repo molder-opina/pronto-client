@@ -215,7 +215,7 @@ def create_app() -> Flask:
 
         current_user = get_current_user()
 
-        base_url = config.pronto_static_container_host
+        base_url = config.pronto_static_public_host
         assets_path = config.static_assets_path
         restaurant_slug = config.restaurant_slug
 
