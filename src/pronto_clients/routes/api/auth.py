@@ -4,7 +4,7 @@ Authentication endpoints for clients API.
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 from pathlib import Path
 
@@ -75,7 +75,7 @@ def recover_password():
 
             # Generate reset token
             reset_token = secrets.token_urlsafe(32)
-            token_expires_at = datetime.utcnow() + timedelta(hours=1)
+            token_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
 
             # Store reset token (would need a new field in Customer model in production)
             # In production, save reset_token and token_expires_at to database
@@ -348,7 +348,7 @@ def update_customer(customer_id: int):
         customer.name = name
         customer.email = email
         customer.phone = phone
-        customer.updated_at = datetime.utcnow()
+        customer.updated_at = datetime.now(timezone.utc)
 
         db_session.commit()
         db_session.refresh(customer)

@@ -5,7 +5,7 @@ Service helper to validate and store client orders.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from http import HTTPStatus
 from typing import Any
@@ -422,7 +422,7 @@ def create_order(
                 else:
                     # Try to create new session with expires_at (TTL)
                     try:
-                        expires_at = datetime.utcnow() + timedelta(
+                        expires_at = datetime.now(timezone.utc) + timedelta(
                             hours=SESSION_TTL_HOURS
                         )
 
@@ -473,7 +473,9 @@ def create_order(
                             )
             else:
                 # No table_id: create session without table constraint
-                expires_at = datetime.utcnow() + timedelta(hours=SESSION_TTL_HOURS)
+                expires_at = datetime.now(timezone.utc) + timedelta(
+                    hours=SESSION_TTL_HOURS
+                )
 
                 dining_session = DiningSession(
                     customer=customer,
@@ -664,8 +666,8 @@ def create_order(
                 if assignment and assignment.get("waiter_id"):
                     waiter_id = assignment["waiter_id"]
                     order.waiter_id = waiter_id
-                    order.accepted_at = datetime.utcnow()
-                    order.waiter_accepted_at = datetime.utcnow()
+                    order.accepted_at = datetime.now(timezone.utc)
+                    order.waiter_accepted_at = datetime.now(timezone.utc)
                     order.mark_status(OrderStatus.QUEUED.value)
 
                     order_requires_kitchen = any(
@@ -674,7 +676,7 @@ def create_order(
                         for item in order.items
                     )
                     if not order_requires_kitchen:
-                        order.ready_at = datetime.utcnow()
+                        order.ready_at = datetime.now(timezone.utc)
                         order.mark_status(OrderStatus.READY.value)
                         logger.info(
                             "Order %s auto-queued and marked ready (quick serve)",

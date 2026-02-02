@@ -3,7 +3,7 @@ Sessions endpoints for clients API.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 
 from flask import Blueprint, jsonify, make_response, request
@@ -48,14 +48,19 @@ def open_session():
                 existing.status = "closed"
                 db.commit()
             else:
-                cust = db.query(Customer).filter(Customer.id == existing.customer_id).first()
+                cust = (
+                    db.query(Customer)
+                    .filter(Customer.id == existing.customer_id)
+                    .first()
+                )
                 from pronto_shared.jwt_service import create_client_token
+
                 access_token = create_client_token(
                     customer_id=cust.id,
                     customer_name=cust.name,
                     customer_phone=cust.phone,
                     table_id=existing.table_id,
-                    session_id=existing.id
+                    session_id=existing.id,
                 )
 
                 response_data = {
@@ -81,8 +86,8 @@ def open_session():
                     httponly=True,
                     secure=request.is_secure,
                     samesite="Lax",
-                    max_age=86400, # 24 hours
-                    path="/"
+                    max_age=86400,  # 24 hours
+                    path="/",
                 )
 
                 return response
@@ -92,14 +97,14 @@ def open_session():
         else:
             cust = create_anonymous_customer(db)
 
-        expires_at = datetime.utcnow() + timedelta(hours=SESSION_TTL_HOURS)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=SESSION_TTL_HOURS)
 
         new_sess = DiningSession(
             table_id=table_id,
             customer_id=cust.id,
             status="open",
             expires_at=expires_at,
-            opened_at=datetime.utcnow(),
+            opened_at=datetime.now(timezone.utc),
         )
 
         try:
@@ -116,7 +121,9 @@ def open_session():
             # Re-query the existing session created by the concurrent request
             existing = (
                 db.query(DiningSession)
-                .filter(DiningSession.table_id == table_id, DiningSession.status == "open")
+                .filter(
+                    DiningSession.table_id == table_id, DiningSession.status == "open"
+                )
                 .first()
             )
 
@@ -128,7 +135,11 @@ def open_session():
                         f"Recovered expired session {existing.id} for table {table_id}, closing it"
                     )
                 else:
-                    cust = db.query(Customer).filter(Customer.id == existing.customer_id).first()
+                    cust = (
+                        db.query(Customer)
+                        .filter(Customer.id == existing.customer_id)
+                        .first()
+                    )
                     logger.info(
                         f"Recovered session {existing.id} for table {table_id} after IntegrityError"
                     )
@@ -153,12 +164,13 @@ def open_session():
             ), HTTPStatus.INTERNAL_SERVER_ERROR
 
         from pronto_shared.jwt_service import create_client_token
+
         access_token = create_client_token(
             customer_id=cust.id,
             customer_name=cust.name,
             customer_phone=cust.phone,
             table_id=new_sess.table_id,
-            session_id=new_sess.id
+            session_id=new_sess.id,
         )
 
         response_data = {
@@ -169,7 +181,9 @@ def open_session():
                 "table_id": new_sess.table_id,
                 "anon_id": cust.anon_id,
                 "status": new_sess.status,
-                "expires_at": new_sess.expires_at.isoformat() if new_sess.expires_at else None,
+                "expires_at": new_sess.expires_at.isoformat()
+                if new_sess.expires_at
+                else None,
             },
         }
 
@@ -182,8 +196,8 @@ def open_session():
             httponly=True,
             secure=request.is_secure,
             samesite="Lax",
-            max_age=86400, # 24 hours
-            path="/"
+            max_age=86400,  # 24 hours
+            path="/",
         )
 
         return response
@@ -196,18 +210,26 @@ def validate_session():
     table_id = request.args.get("table_id", type=int)
 
     if not session_id or not table_id:
-        return jsonify({"valid": False, "error": "Parámetros faltantes"}), HTTPStatus.BAD_REQUEST
+        return jsonify(
+            {"valid": False, "error": "Parámetros faltantes"}
+        ), HTTPStatus.BAD_REQUEST
 
     with get_session() as db:
         ds = db.query(DiningSession).filter(DiningSession.id == session_id).first()
         if not ds:
-            return jsonify({"valid": False, "error": "Sesión no encontrada"}), HTTPStatus.OK
+            return jsonify(
+                {"valid": False, "error": "Sesión no encontrada"}
+            ), HTTPStatus.OK
 
         if ds.table_id != table_id:
-            return jsonify({"valid": False, "error": "table_id no coincide"}), HTTPStatus.OK
+            return jsonify(
+                {"valid": False, "error": "table_id no coincide"}
+            ), HTTPStatus.OK
 
         if ds.status != "open":
-            return jsonify({"valid": False, "error": f"Sesión {ds.status}"}), HTTPStatus.OK
+            return jsonify(
+                {"valid": False, "error": f"Sesión {ds.status}"}
+            ), HTTPStatus.OK
 
         if ds.is_expired:
             ds.status = "closed"
@@ -244,17 +266,21 @@ def merge_sessions():
         target = db_session.get(DiningSession, target_session_id)
 
         if not source or not target:
-            return jsonify({"error": "One or both sessions not found"}), HTTPStatus.NOT_FOUND
+            return jsonify(
+                {"error": "One or both sessions not found"}
+            ), HTTPStatus.NOT_FOUND
 
         if source.status != "open" or target.status != "open":
-            return jsonify({"error": "Both sessions must be open"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "Both sessions must be open"}
+            ), HTTPStatus.BAD_REQUEST
 
         for order in source.orders:
             order.session_id = target_session_id
 
         target.recompute_totals()
         source.status = "merged"
-        source.closed_at = datetime.utcnow()
+        source.closed_at = datetime.now(timezone.utc)
 
         db_session.commit()
 
@@ -275,7 +301,9 @@ def split_session(session_id: int):
     num_splits = payload.get("num_splits", 2)
 
     if num_splits < 2:
-        return jsonify({"error": "Must split into at least 2 parts"}), HTTPStatus.BAD_REQUEST
+        return jsonify(
+            {"error": "Must split into at least 2 parts"}
+        ), HTTPStatus.BAD_REQUEST
 
     with get_session() as db_session:
         session = db_session.get(DiningSession, session_id)
@@ -284,7 +312,9 @@ def split_session(session_id: int):
             return jsonify({"error": "Session not found"}), HTTPStatus.NOT_FOUND
 
         if session.status != "open":
-            return jsonify({"error": "Session must be open to split"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "Session must be open to split"}
+            ), HTTPStatus.BAD_REQUEST
 
         total = float(session.total_amount)
         split_amount = round(total / num_splits, 2)

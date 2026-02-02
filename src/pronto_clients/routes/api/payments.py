@@ -2,13 +2,15 @@
 Payment endpoints for clients API.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from http import HTTPStatus
 
 from flask import Blueprint, current_app, jsonify, request
 
-from pronto_shared.services.order_service import prepare_checkout as employee_prepare_checkout
+from pronto_shared.services.order_service import (
+    prepare_checkout as employee_prepare_checkout,
+)
 from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
 from pronto_shared.supabase.realtime import emit_waiter_call
 
@@ -46,12 +48,14 @@ def request_payment(session_id: int):
             return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
 
         if dining_session.status in ["closed", "paid"]:
-            return jsonify({"error": "Esta sesión ya está cerrada"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "Esta sesión ya está cerrada"}
+            ), HTTPStatus.BAD_REQUEST
 
         if not table_number:
             table_number = dining_session.table_number or "N/A"
 
-        two_minutes_ago = datetime.utcnow() - timedelta(minutes=2)
+        two_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=2)
         recent_payment_call = (
             db_session.execute(
                 select(WaiterCall).where(
@@ -84,7 +88,9 @@ def request_payment(session_id: int):
         db_session.add(waiter_call)
         db_session.flush()
 
-        payment_method_label = "Efectivo" if payment_method == "cash" else "Terminal (Clip)"
+        payment_method_label = (
+            "Efectivo" if payment_method == "cash" else "Terminal (Clip)"
+        )
         notification = Notification(
             notification_type="payment_request",
             recipient_type="all_waiters",
@@ -151,13 +157,17 @@ def confirm_tip():
     try:
         tip_amount = Decimal(str(tip_amount))
         if tip_amount < 0:
-            return jsonify({"error": "Tip amount must be non-negative"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "Tip amount must be non-negative"}
+            ), HTTPStatus.BAD_REQUEST
     except (ValueError, TypeError):
         return jsonify({"error": "Invalid tip amount"}), HTTPStatus.BAD_REQUEST
 
     with get_session() as db_session:
         dining_session = (
-            db_session.execute(select(DiningSession).where(DiningSession.id == session_id))
+            db_session.execute(
+                select(DiningSession).where(DiningSession.id == session_id)
+            )
             .scalars()
             .one_or_none()
         )
@@ -170,8 +180,8 @@ def confirm_tip():
 
         dining_session.tip_amount = tip_amount
         if tip_amount > 0:
-            dining_session.tip_requested_at = datetime.utcnow()
-            dining_session.tip_confirmed_at = datetime.utcnow()
+            dining_session.tip_requested_at = datetime.now(timezone.utc)
+            dining_session.tip_confirmed_at = datetime.now(timezone.utc)
 
         dining_session.recompute_totals()
 
@@ -180,9 +190,13 @@ def confirm_tip():
             session_subtotal = dining_session.subtotal
             if session_subtotal > 0:
                 for order in orders:
-                    order_proportion = Decimal(order.subtotal) / Decimal(session_subtotal)
+                    order_proportion = Decimal(order.subtotal) / Decimal(
+                        session_subtotal
+                    )
                     order.tip_amount = tip_amount * order_proportion
-                    order.total_amount = order.subtotal + order.tax_amount + order.tip_amount
+                    order.total_amount = (
+                        order.subtotal + order.tax_amount + order.tip_amount
+                    )
 
         db_session.commit()
 
@@ -214,7 +228,9 @@ def request_session_checkout(session_id: int):
     try:
         with get_session() as db_session:
             dining_session = (
-                db_session.execute(select(DiningSession).where(DiningSession.id == session_id))
+                db_session.execute(
+                    select(DiningSession).where(DiningSession.id == session_id)
+                )
                 .scalars()
                 .one_or_none()
             )
@@ -250,7 +266,9 @@ def request_session_checkout(session_id: int):
         totals = checkout_payload.get("totals", {})
         customer_data = checkout_payload.get("customer") or {}
         customer_email = (customer_data.get("email") or "").lower()
-        can_pay_digital = bool(customer_email and not customer_email.startswith("anonimo+"))
+        can_pay_digital = bool(
+            customer_email and not customer_email.startswith("anonimo+")
+        )
 
         response_data = {
             "status": "ok",
@@ -272,7 +290,9 @@ def request_session_checkout(session_id: int):
 
     except Exception as e:
         current_app.logger.error(f"Error requesting checkout: {e}", exc_info=True)
-        return jsonify({"error": "Error al solicitar cuenta"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al solicitar cuenta"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @payments_bp.post("/session/<int:session_id>/request-check")
@@ -287,7 +307,9 @@ def request_check(session_id: int):
     try:
         with get_session() as db_session:
             dining_session = (
-                db_session.execute(select(DiningSession).where(DiningSession.id == session_id))
+                db_session.execute(
+                    select(DiningSession).where(DiningSession.id == session_id)
+                )
                 .scalars()
                 .one_or_none()
             )
@@ -313,7 +335,7 @@ def request_check(session_id: int):
                     {"error": "Espera a que se entregue tu pedido para pedir la cuenta"}
                 ), HTTPStatus.BAD_REQUEST
 
-            dining_session.check_requested_at = datetime.utcnow()
+            dining_session.check_requested_at = datetime.now(timezone.utc)
             db_session.commit()
 
             return jsonify(
@@ -327,7 +349,9 @@ def request_check(session_id: int):
 
     except Exception as e:
         current_app.logger.error(f"Error requesting check: {e}", exc_info=True)
-        return jsonify({"error": "Error al solicitar cuenta"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al solicitar cuenta"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @payments_bp.get("/session/<int:session_id>/validate")
@@ -341,7 +365,9 @@ def validate_session(session_id: int):
     try:
         with get_session() as db_session:
             dining_session = (
-                db_session.execute(select(DiningSession).where(DiningSession.id == session_id))
+                db_session.execute(
+                    select(DiningSession).where(DiningSession.id == session_id)
+                )
                 .scalars()
                 .one_or_none()
             )
@@ -371,7 +397,9 @@ def validate_session(session_id: int):
             )
     except Exception as e:
         current_app.logger.error(f"[VALIDATE SESSION] Error: {e}")
-        return jsonify({"error": "Error al validar sesión"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al validar sesión"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @payments_bp.get("/session/<int:session_id>/orders")
@@ -385,7 +413,9 @@ def get_session_orders(session_id: int):
     try:
         with get_session() as db_session:
             dining_session = (
-                db_session.execute(select(DiningSession).where(DiningSession.id == session_id))
+                db_session.execute(
+                    select(DiningSession).where(DiningSession.id == session_id)
+                )
                 .scalars()
                 .one_or_none()
             )
@@ -412,11 +442,15 @@ def get_session_orders(session_id: int):
                     modifiers_list = []
                     if order_item.modifiers:
                         for mod in order_item.modifiers:
-                            modifier_price = float(mod.unit_price_adjustment) * mod.quantity
+                            modifier_price = (
+                                float(mod.unit_price_adjustment) * mod.quantity
+                            )
                             item_total += modifier_price
                             modifiers_list.append(
                                 {
-                                    "name": mod.modifier.name if mod.modifier else "Modificador",
+                                    "name": mod.modifier.name
+                                    if mod.modifier
+                                    else "Modificador",
                                     "price": float(mod.unit_price_adjustment),
                                     "quantity": mod.quantity,
                                 }
@@ -438,18 +472,26 @@ def get_session_orders(session_id: int):
                     {
                         "id": order.id,
                         "order_id": order.id,
-                        "created_at": order.created_at.isoformat() if order.created_at else None,
+                        "created_at": order.created_at.isoformat()
+                        if order.created_at
+                        else None,
                         "workflow_status": order.workflow_status,
                         "status": order.workflow_status,
                         "payment_status": order.payment_status,
                         "subtotal": float(order.subtotal),
-                        "tax_amount": float(order.tax_amount) if order.tax_amount else 0,
-                        "tip_amount": float(order.tip_amount) if order.tip_amount else 0,
+                        "tax_amount": float(order.tax_amount)
+                        if order.tax_amount
+                        else 0,
+                        "tip_amount": float(order.tip_amount)
+                        if order.tip_amount
+                        else 0,
                         "total_amount": float(order.total_amount),
                         "total": float(order.total_amount),
                         "items": items,
                         "notes": order.session.notes if order.session else None,
-                        "customer_notes": order.session.notes if order.session else None,
+                        "customer_notes": order.session.notes
+                        if order.session
+                        else None,
                     }
                 )
 
@@ -466,8 +508,12 @@ def get_session_orders(session_id: int):
                 "table_number": dining_session.table_number,
                 "status": dining_session.status,
                 "subtotal": float(dining_session.subtotal),
-                "tax_amount": float(dining_session.tax_amount) if dining_session.tax_amount else 0,
-                "tip_amount": float(dining_session.tip_amount) if dining_session.tip_amount else 0,
+                "tax_amount": float(dining_session.tax_amount)
+                if dining_session.tax_amount
+                else 0,
+                "tip_amount": float(dining_session.tip_amount)
+                if dining_session.tip_amount
+                else 0,
                 "total_amount": float(dining_session.total_amount),
                 "total": float(dining_session.total_amount),
                 "created_at": dining_session.opened_at.isoformat()
@@ -487,4 +533,6 @@ def get_session_orders(session_id: int):
 
     except Exception as e:
         current_app.logger.error(f"Error fetching session orders: {e}")
-        return jsonify({"error": "Error al obtener pedidos"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al obtener pedidos"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR

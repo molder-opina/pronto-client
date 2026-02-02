@@ -2,7 +2,7 @@
 Promotions and discount codes endpoints for clients API.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request
@@ -19,10 +19,14 @@ def get_active_promotions():
     is_registered = request.args.get("is_registered", "false").lower() == "true"
 
     with get_session() as db_session:
-        now = datetime.utcnow()
-        query = db_session.query(Promotion).filter(Promotion.is_active, Promotion.valid_from <= now)
+        now = datetime.now(timezone.utc)
+        query = db_session.query(Promotion).filter(
+            Promotion.is_active, Promotion.valid_from <= now
+        )
 
-        query = query.filter((Promotion.valid_until.is_(None)) | (Promotion.valid_until >= now))
+        query = query.filter(
+            (Promotion.valid_until.is_(None)) | (Promotion.valid_until >= now)
+        )
 
         if is_registered:
             query = query.filter(Promotion.applies_to.in_(["all", "registered"]))
@@ -43,7 +47,9 @@ def get_active_promotions():
                         "discount_percentage": float(p.discount_percentage)
                         if p.discount_percentage
                         else None,
-                        "discount_amount": float(p.discount_amount) if p.discount_amount else None,
+                        "discount_amount": float(p.discount_amount)
+                        if p.discount_amount
+                        else None,
                         "min_purchase_amount": float(p.min_purchase_amount)
                         if p.min_purchase_amount
                         else None,
@@ -69,15 +75,19 @@ def validate_discount_code():
         return jsonify({"error": "Code is required"}), HTTPStatus.BAD_REQUEST
 
     with get_session() as db_session:
-        discount = db_session.query(DiscountCode).filter_by(code=code, is_active=True).first()
+        discount = (
+            db_session.query(DiscountCode).filter_by(code=code, is_active=True).first()
+        )
 
         if not discount:
             return jsonify({"error": "Invalid discount code"}), HTTPStatus.NOT_FOUND
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         if discount.valid_from > now:
-            return jsonify({"error": "This code is not yet valid"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "This code is not yet valid"}
+            ), HTTPStatus.BAD_REQUEST
 
         if discount.valid_until and discount.valid_until < now:
             return jsonify({"error": "This code has expired"}), HTTPStatus.BAD_REQUEST
@@ -93,11 +103,17 @@ def validate_discount_code():
             ), HTTPStatus.BAD_REQUEST
 
         if discount.applies_to == "anonymous" and is_registered:
-            return jsonify({"error": "This code is only for new users"}), HTTPStatus.BAD_REQUEST
-
-        if discount.min_purchase_amount and cart_total < float(discount.min_purchase_amount):
             return jsonify(
-                {"error": f"Compra mínima de ${discount.min_purchase_amount} MXN requerida"}
+                {"error": "This code is only for new users"}
+            ), HTTPStatus.BAD_REQUEST
+
+        if discount.min_purchase_amount and cart_total < float(
+            discount.min_purchase_amount
+        ):
+            return jsonify(
+                {
+                    "error": f"Compra mínima de ${discount.min_purchase_amount} MXN requerida"
+                }
             ), HTTPStatus.BAD_REQUEST
 
         discount_value = 0

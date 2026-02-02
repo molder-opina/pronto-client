@@ -2,7 +2,7 @@
 Split bill endpoints for clients API.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from http import HTTPStatus
 
@@ -30,9 +30,15 @@ def _calculate_equal_split(session, split_bill_id: int, dining_session):
     per_person_subtotal = (session_subtotal / number_of_people).quantize(
         Decimal("0.01"), ROUND_HALF_UP
     )
-    per_person_tax = (session_tax / number_of_people).quantize(Decimal("0.01"), ROUND_HALF_UP)
-    per_person_tip = (session_tip / number_of_people).quantize(Decimal("0.01"), ROUND_HALF_UP)
-    per_person_total = (session_total / number_of_people).quantize(Decimal("0.01"), ROUND_HALF_UP)
+    per_person_tax = (session_tax / number_of_people).quantize(
+        Decimal("0.01"), ROUND_HALF_UP
+    )
+    per_person_tip = (session_tip / number_of_people).quantize(
+        Decimal("0.01"), ROUND_HALF_UP
+    )
+    per_person_total = (session_total / number_of_people).quantize(
+        Decimal("0.01"), ROUND_HALF_UP
+    )
 
     for person in people_list[:-1]:
         person.subtotal = float(per_person_subtotal)
@@ -70,11 +76,15 @@ def create_split_bill(session_id: int):
             ), HTTPStatus.BAD_REQUEST
 
         if split_type not in ["by_items", "equal"]:
-            return jsonify({"error": "Tipo de división inválido"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "Tipo de división inválido"}
+            ), HTTPStatus.BAD_REQUEST
 
         with get_session() as db_session:
             dining_session = (
-                db_session.query(DiningSession).filter(DiningSession.id == session_id).first()
+                db_session.query(DiningSession)
+                .filter(DiningSession.id == session_id)
+                .first()
             )
 
             if not dining_session:
@@ -82,7 +92,9 @@ def create_split_bill(session_id: int):
 
             existing_split = (
                 db_session.query(SplitBill)
-                .filter(SplitBill.session_id == session_id, SplitBill.status == "active")
+                .filter(
+                    SplitBill.session_id == session_id, SplitBill.status == "active"
+                )
                 .first()
             )
 
@@ -143,10 +155,14 @@ def get_split_bill(split_id: int):
 
     try:
         with get_session() as db_session:
-            split_bill = db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            split_bill = (
+                db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            )
 
             if not split_bill:
-                return jsonify({"error": "División no encontrada"}), HTTPStatus.NOT_FOUND
+                return jsonify(
+                    {"error": "División no encontrada"}
+                ), HTTPStatus.NOT_FOUND
 
             people_data = []
             for person in split_bill.people:
@@ -197,14 +213,21 @@ def get_split_bill(split_id: int):
 
     except Exception as e:
         current_app.logger.error(f"Error fetching split bill: {e}")
-        return jsonify({"error": "Error al obtener división"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al obtener división"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @split_bills_bp.post("/split-bills/<int:split_id>/assign")
 def assign_item_to_person(split_id: int):
     """Assign an order item to a person in the split."""
     from pronto_shared.db import get_session
-    from pronto_shared.models import OrderItem, SplitBill, SplitBillAssignment, SplitBillPerson
+    from pronto_shared.models import (
+        OrderItem,
+        SplitBill,
+        SplitBillAssignment,
+        SplitBillPerson,
+    )
 
     try:
         payload = request.get_json(silent=True) or {}
@@ -213,19 +236,30 @@ def assign_item_to_person(split_id: int):
         quantity_portion = Decimal(str(payload.get("quantity_portion", 1.0)))
 
         if not person_id or not order_item_id:
-            return jsonify({"error": "Faltan parámetros requeridos"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "Faltan parámetros requeridos"}
+            ), HTTPStatus.BAD_REQUEST
 
         with get_session() as db_session:
-            split_bill = db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            split_bill = (
+                db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            )
             if not split_bill:
-                return jsonify({"error": "División no encontrada"}), HTTPStatus.NOT_FOUND
+                return jsonify(
+                    {"error": "División no encontrada"}
+                ), HTTPStatus.NOT_FOUND
 
             if split_bill.status != "active":
-                return jsonify({"error": "La división no está activa"}), HTTPStatus.BAD_REQUEST
+                return jsonify(
+                    {"error": "La división no está activa"}
+                ), HTTPStatus.BAD_REQUEST
 
             person = (
                 db_session.query(SplitBillPerson)
-                .filter(SplitBillPerson.id == person_id, SplitBillPerson.split_bill_id == split_id)
+                .filter(
+                    SplitBillPerson.id == person_id,
+                    SplitBillPerson.split_bill_id == split_id,
+                )
                 .first()
             )
 
@@ -234,11 +268,17 @@ def assign_item_to_person(split_id: int):
                     {"error": "Persona no encontrada en esta división"}
                 ), HTTPStatus.NOT_FOUND
 
-            order_item = db_session.query(OrderItem).filter(OrderItem.id == order_item_id).first()
+            order_item = (
+                db_session.query(OrderItem)
+                .filter(OrderItem.id == order_item_id)
+                .first()
+            )
             if not order_item:
                 return jsonify({"error": "Item no encontrado"}), HTTPStatus.NOT_FOUND
 
-            item_price = Decimal(str(order_item.unit_price)) * Decimal(str(order_item.quantity))
+            item_price = Decimal(str(order_item.unit_price)) * Decimal(
+                str(order_item.quantity)
+            )
             for modifier in order_item.modifiers:
                 modifier_price = Decimal(str(modifier.unit_price_adjustment)) * Decimal(
                     str(modifier.quantity)
@@ -258,7 +298,9 @@ def assign_item_to_person(split_id: int):
                 .all()
             )
 
-            total_assigned = sum(Decimal(str(a.quantity_portion)) for a in existing_assignments)
+            total_assigned = sum(
+                Decimal(str(a.quantity_portion)) for a in existing_assignments
+            )
             if total_assigned + quantity_portion > Decimal("1.001"):
                 return jsonify(
                     {"error": "El item ya está completamente asignado"}
@@ -286,7 +328,9 @@ def assign_item_to_person(split_id: int):
 
     except Exception as e:
         current_app.logger.error(f"Error assigning item: {e}")
-        return jsonify({"error": "Error al asignar item"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al asignar item"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @split_bills_bp.post("/split-bills/<int:split_id>/calculate")
@@ -297,9 +341,13 @@ def calculate_split_totals(split_id: int):
 
     try:
         with get_session() as db_session:
-            split_bill = db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            split_bill = (
+                db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            )
             if not split_bill:
-                return jsonify({"error": "División no encontrada"}), HTTPStatus.NOT_FOUND
+                return jsonify(
+                    {"error": "División no encontrada"}
+                ), HTTPStatus.NOT_FOUND
 
             dining_session = split_bill.session
 
@@ -308,7 +356,9 @@ def calculate_split_totals(split_id: int):
             session_tip = Decimal(str(dining_session.tip_amount or 0))
 
             for person in split_bill.people:
-                person_subtotal = sum(Decimal(str(a.amount)) for a in person.assignments)
+                person_subtotal = sum(
+                    Decimal(str(a.amount)) for a in person.assignments
+                )
 
                 if session_subtotal > 0:
                     proportion = person_subtotal / session_subtotal
@@ -340,11 +390,15 @@ def calculate_split_totals(split_id: int):
                     }
                 )
 
-            return jsonify({"split_bill_id": split_id, "people": people_summary}), HTTPStatus.OK
+            return jsonify(
+                {"split_bill_id": split_id, "people": people_summary}
+            ), HTTPStatus.OK
 
     except Exception as e:
         current_app.logger.error(f"Error calculating split totals: {e}")
-        return jsonify({"error": "Error al calcular totales"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al calcular totales"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @split_bills_bp.get("/split-bills/<int:split_id>/summary")
@@ -355,9 +409,13 @@ def get_split_summary(split_id: int):
 
     try:
         with get_session() as db_session:
-            split_bill = db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            split_bill = (
+                db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            )
             if not split_bill:
-                return jsonify({"error": "División no encontrada"}), HTTPStatus.NOT_FOUND
+                return jsonify(
+                    {"error": "División no encontrada"}
+                ), HTTPStatus.NOT_FOUND
 
             dining_session = split_bill.session
 
@@ -399,7 +457,9 @@ def get_split_summary(split_id: int):
 
     except Exception as e:
         current_app.logger.error(f"Error fetching split summary: {e}")
-        return jsonify({"error": "Error al obtener resumen"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al obtener resumen"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @split_bills_bp.post("/split-bills/<int:split_id>/people/<int:person_id>/pay")
@@ -420,16 +480,25 @@ def pay_split_person(split_id: int, person_id: int):
             ), HTTPStatus.BAD_REQUEST
 
         with get_session() as db_session:
-            split_bill = db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            split_bill = (
+                db_session.query(SplitBill).filter(SplitBill.id == split_id).first()
+            )
             if not split_bill:
-                return jsonify({"error": "División no encontrada"}), HTTPStatus.NOT_FOUND
+                return jsonify(
+                    {"error": "División no encontrada"}
+                ), HTTPStatus.NOT_FOUND
 
             if split_bill.status != "active":
-                return jsonify({"error": "La división no está activa"}), HTTPStatus.BAD_REQUEST
+                return jsonify(
+                    {"error": "La división no está activa"}
+                ), HTTPStatus.BAD_REQUEST
 
             person = (
                 db_session.query(SplitBillPerson)
-                .filter(SplitBillPerson.id == person_id, SplitBillPerson.split_bill_id == split_id)
+                .filter(
+                    SplitBillPerson.id == person_id,
+                    SplitBillPerson.split_bill_id == split_id,
+                )
                 .first()
             )
 
@@ -439,10 +508,12 @@ def pay_split_person(split_id: int, person_id: int):
                 ), HTTPStatus.NOT_FOUND
 
             if person.payment_status == "paid":
-                return jsonify({"error": "Esta persona ya pagó su parte"}), HTTPStatus.CONFLICT
+                return jsonify(
+                    {"error": "Esta persona ya pagó su parte"}
+                ), HTTPStatus.CONFLICT
 
             if not payment_reference:
-                timestamp = int(datetime.utcnow().timestamp())
+                timestamp = int(datetime.now(timezone.utc).timestamp())
                 payment_reference = (
                     f"{payment_method}-split-{split_id}-person-{person_id}-{timestamp}"
                 )
@@ -450,28 +521,30 @@ def pay_split_person(split_id: int, person_id: int):
             person.payment_status = "paid"
             person.payment_method = payment_method
             person.payment_reference = payment_reference
-            person.paid_at = datetime.utcnow()
+            person.paid_at = datetime.now(timezone.utc)
 
             all_paid = all(p.payment_status == "paid" for p in split_bill.people)
 
             if all_paid:
                 split_bill.status = "completed"
-                split_bill.completed_at = datetime.utcnow()
+                split_bill.completed_at = datetime.now(timezone.utc)
 
                 dining_session = split_bill.session
                 dining_session.status = "closed"
-                dining_session.closed_at = datetime.utcnow()
+                dining_session.closed_at = datetime.now(timezone.utc)
                 dining_session.payment_method = "split_bill"
                 dining_session.payment_reference = f"split-{split_id}"
 
-                total_paid = sum(Decimal(str(p.total_amount)) for p in split_bill.people)
+                total_paid = sum(
+                    Decimal(str(p.total_amount)) for p in split_bill.people
+                )
                 dining_session.total_paid = float(total_paid)
 
                 for order in dining_session.orders:
                     order.payment_status = "paid"
                     order.payment_method = "split_bill"
                     order.payment_reference = f"split-{split_id}"
-                    order.paid_at = datetime.utcnow()
+                    order.paid_at = datetime.now(timezone.utc)
 
             db_session.commit()
 
@@ -490,4 +563,6 @@ def pay_split_person(split_id: int, person_id: int):
 
     except Exception as e:
         current_app.logger.error(f"Error processing split payment: {e}")
-        return jsonify({"error": "Error al procesar pago"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al procesar pago"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
