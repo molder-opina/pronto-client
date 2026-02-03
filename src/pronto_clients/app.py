@@ -53,7 +53,7 @@ def create_app() -> Flask:
     app = Flask(
         __name__,
         template_folder="templates",
-        static_folder=None,
+        static_folder="static",
     )
     config = load_config("pronto-clients")
 
