@@ -210,11 +210,13 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                 -
               </button>
               <span class="cart-item-quantity" id="modal-quantity">1</span>
-              <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity" data-arg="1">+</button>
+              <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity"
+                data-arg="1">+</button>
             </div>
           </div>
 
-          <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn" data-action="call" data-fn="addToCartFromModal">
+          <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn"
+            onclick="window.addToCartFromModal()">
             Agregar al carrito: <span id="modal-total-price">{{ currency_symbol }}0.00</span>
           </button>
         </div>
@@ -880,8 +882,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       }
     })();
   </script>
-  
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v=cachebust1"></script>
+
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v=cachebust2"></script>
   {% if config.get('DEBUG') %} {% if debug_auto_table %}
   <!-- Draggable Debug Table Selector (DEBUG MODE ONLY) -->
   <div id="debug-table-panel" class="draggable-panel" style="

@@ -54,14 +54,25 @@ def get_config(config_key: str):
 
     with get_session() as session:
         config = (
-            session.execute(select(BusinessConfig).where(BusinessConfig.config_key == config_key))
+            session.execute(
+                select(BusinessConfig).where(BusinessConfig.config_key == config_key)
+            )
             .scalars()
             .one_or_none()
         )
 
         if not config:
             defaults = {
-                "waiter_call_timeout_seconds": {"value": "60", "type": "int", "unit": "seconds"}
+                "waiter_call_timeout_seconds": {
+                    "value": "60",
+                    "type": "int",
+                    "unit": "seconds",
+                },
+                "client_session_validation_interval_minutes": {
+                    "value": "15",
+                    "type": "int",
+                    "unit": "minutes",
+                },
             }
             if config_key in defaults:
                 default = defaults[config_key]
@@ -73,7 +84,9 @@ def get_config(config_key: str):
                         "unit": default["unit"],
                     }
                 )
-            return jsonify({"error": "Configuración no encontrada"}), HTTPStatus.NOT_FOUND
+            return jsonify(
+                {"error": "Configuración no encontrada"}
+            ), HTTPStatus.NOT_FOUND
 
         return jsonify(
             {
@@ -95,7 +108,9 @@ def get_table_by_qr(qr_code: str):
 
     with get_session() as session:
         table = (
-            session.execute(select(Table).where(Table.qr_code == qr_code, Table.is_active))
+            session.execute(
+                select(Table).where(Table.qr_code == qr_code, Table.is_active)
+            )
             .scalars()
             .one_or_none()
         )

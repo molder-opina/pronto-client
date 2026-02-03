@@ -9,6 +9,7 @@ from pronto_clients.services.menu_service import fetch_menu
 menu_bp = Blueprint("client_menu", __name__)
 
 
+@menu_bp.get("/products")
 @menu_bp.get("/menu")
 def get_menu():
     """Return the list of menu categories and items."""

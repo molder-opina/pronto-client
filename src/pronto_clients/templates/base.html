@@ -1381,7 +1381,7 @@
             <div class="accordion-title">
               <div class="header-btn-icon">
                 <!-- Avatar -->
-                <img src="{{ static_host_url }}/assets/images/default-avatar.png" alt="Profile" />
+                <img src="{{ assets_images }}/default-avatar.png" alt="Profile" />
               </div>
               <span>Datos del Cliente</span>
             </div>
@@ -3295,7 +3295,7 @@
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
-  <script type="module" src="{{ static_host_url }}/assets/js/clients/base.js?v=cachebust1"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v=cachebust1"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">
@@ -3377,28 +3377,29 @@
     })();
   </script>
 
-  <script defer src="{{ static_host_url }}/assets/js/shared/bindings.js"></script>
+  <script defer src="{{ assets_js }}/shared/bindings.js"></script>
+  <script>
   // FORCE CONFIG RESTORATION - FIX FOR LEGACY OVERWRITE
   (function () {
-  if (!window.APP_CONFIG) window.APP_CONFIG = {};
+    if (!window.APP_CONFIG) window.APP_CONFIG = {};
 
-  // Restore values that might have been lost
-  if (!window.APP_CONFIG.static_host_url) {
-  window.APP_CONFIG.static_host_url = '{{ static_host_url }}';
-  }
+    // Restore values that might have been lost
+    if (!window.APP_CONFIG.static_host_url) {
+      window.APP_CONFIG.static_host_url = '{{ static_host_url }}';
+    }
 
-  // Ensure restaurant assets are correct
-  if (!window.APP_CONFIG.restaurant_assets || window.APP_CONFIG.restaurant_assets.includes('undefined')) {
-  window.APP_CONFIG.restaurant_assets = '{{ restaurant_assets }}';
-  }
+    // Ensure restaurant assets are correct
+    if (!window.APP_CONFIG.restaurant_assets || window.APP_CONFIG.restaurant_assets.includes('undefined')) {
+      window.APP_CONFIG.restaurant_assets = '{{ restaurant_assets }}';
+    }
 
-  console.log('[Config Fixer] Restored APP_CONFIG:', window.APP_CONFIG);
+    console.log('[Config Fixer] Restored APP_CONFIG:', window.APP_CONFIG);
   })();
 
   document.addEventListener('DOMContentLoaded', () => {
-  if (window.Lucide && window.Lucide.createIcons) {
-  window.Lucide.createIcons({ icons: window.Lucide.icons });
-  }
+    if (window.Lucide && window.Lucide.createIcons) {
+      window.Lucide.createIcons({ icons: window.Lucide.icons });
+    }
   });
   </script>
 

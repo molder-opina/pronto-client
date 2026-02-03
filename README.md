@@ -62,8 +62,8 @@ pronto-client/
 
 ## Dependencies
 
-- `pronto-shared==1.0.3` - Shared models and services
-- `gunicorn==21.2.0` - WSGI server
+- `pronto-shared>=1.0.0` - Shared models and services
+- `gunicorn>=21.2.0` - WSGI server
 
 ## Environment Variables
 

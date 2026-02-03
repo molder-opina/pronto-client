@@ -10,10 +10,21 @@ from sqlalchemy.orm import joinedload
 
 from pronto_clients.services.order_service import OrderValidationError
 from pronto_clients.services.order_service import create_order as create_order_service
+from pronto_clients.utils.customer_session import (
+    clear_customer_ref,
+    store_customer_ref,
+    set_session_key,
+)
 from pronto_clients.utils.input_sanitizer import sanitize_email
 from pronto_shared.constants import OrderStatus
 from pronto_shared.db import get_session
-from pronto_shared.models import Customer, DiningSession, Order, OrderItem, OrderItemModifier
+from pronto_shared.models import (
+    Customer,
+    DiningSession,
+    Order,
+    OrderItem,
+    OrderItemModifier,
+)
 from pronto_shared.security_middleware import rate_limit
 from pronto_shared.services.notifications_service import send_order_confirmation_email
 from pronto_shared.services.order_service import cancel_order as cancel_order_service
@@ -70,7 +81,11 @@ def create_order_endpoint():
             continue
         valid_items.append(item)
 
-    _debug("valid_items_filtered", original_count=len(items_data), valid_count=len(valid_items))
+    _debug(
+        "valid_items_filtered",
+        original_count=len(items_data),
+        valid_count=len(valid_items),
+    )
 
     if not valid_items:
         return jsonify(
@@ -94,7 +109,9 @@ def create_order_endpoint():
             existing_session_id=existing_session_id,
             table_number=payload.get("table_number"),
             anonymous_client_id=payload.get("anonymous_client_id"),
-            auto_ready_quick_serve=current_app.config.get("AUTO_READY_QUICK_SERVE", False),
+            auto_ready_quick_serve=current_app.config.get(
+                "AUTO_READY_QUICK_SERVE", False
+            ),
         )
         _debug(
             "create_order_endpoint",
@@ -105,12 +122,16 @@ def create_order_endpoint():
 
         # Store session_id in Flask session for future requests
         if status == HTTPStatus.CREATED and response.get("session_id"):
-            session["dining_session_id"] = response["session_id"]
-            session["customer_data"] = {
-                "name": customer_data.get("name"),
-                "email": customer_data.get("email"),
-                "phone": customer_data.get("phone"),
-            }
+            set_session_key(session, "dining_session_id", response["session_id"])
+            customer_ref = store_customer_ref(
+                {
+                    "name": customer_data.get("name"),
+                    "email": customer_data.get("email"),
+                    "phone": customer_data.get("phone"),
+                }
+            )
+            if customer_ref:
+                set_session_key(session, "customer_ref", customer_ref)
             session.modified = True
 
         # Send notifications on successful order creation
@@ -124,7 +145,9 @@ def create_order_endpoint():
                     order_data={"items_count": len(valid_items), "notes": notes},
                 )
             except Exception as ws_error:
-                current_app.logger.error(f"Error sending Redis notification: {ws_error}")
+                current_app.logger.error(
+                    f"Error sending Redis notification: {ws_error}"
+                )
 
             # Send SSE notification to waiters via Redis stream
             try:
@@ -141,7 +164,9 @@ def create_order_endpoint():
                     priority="high",
                 )
             except Exception as notification_error:
-                current_app.logger.error(f"Error sending notification: {notification_error}")
+                current_app.logger.error(
+                    f"Error sending notification: {notification_error}"
+                )
 
         return jsonify(response), status
     except OrderValidationError as exc:
@@ -149,7 +174,9 @@ def create_order_endpoint():
         return jsonify({"error": str(exc)}), exc.status
     except Exception as e:
         current_app.logger.error(f"Error creating order: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error interno del servidor"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @orders_bp.post("/orders/<int:order_id>/cancel")
@@ -173,7 +200,9 @@ def cancel_order_endpoint(order_id: int):
     # Clear Flask session on successful cancellation
     if status == HTTPStatus.OK:
         session.pop("dining_session_id", None)
-        session.pop("customer_data", None)
+        customer_ref = session.pop("customer_ref", None)
+        if customer_ref:
+            clear_customer_ref(customer_ref)
         session.modified = True
 
     if status == HTTPStatus.OK:
@@ -251,7 +280,9 @@ def reject_modification_endpoint(modification_id: int):
 @orders_bp.get("/modifications/<int:modification_id>")
 def get_modification_endpoint(modification_id: int):
     """Get details of a modification request."""
-    from pronto_shared.services.order_modification_service import get_modification_details
+    from pronto_shared.services.order_modification_service import (
+        get_modification_details,
+    )
 
     response, status = get_modification_details(modification_id)
     return jsonify(response), status
@@ -335,7 +366,9 @@ def get_session_orders(session_id: int):
                         "status": session_obj.status,
                         "table_number": session_obj.table_number,
                         "total_amount": float(session_obj.total_amount or 0),
-                        "anonymous_client_id": _extract_anonymous_id(session_obj.customer),
+                        "anonymous_client_id": _extract_anonymous_id(
+                            session_obj.customer
+                        ),
                     },
                     "orders": serialized_orders,
                 }
@@ -344,7 +377,9 @@ def get_session_orders(session_id: int):
         current_app.logger.error(
             f"[Client] Error fetching session orders {session_id}: {exc}", exc_info=True
         )
-        return jsonify({"error": "Error al cargar órdenes"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al cargar órdenes"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 def _extract_anonymous_id(customer: Customer | None) -> str | None:
@@ -374,10 +409,14 @@ def validate_current_session():
         with get_session() as db_session:
             session_obj = db_session.get(DiningSession, session_id)
             if not session_obj:
-                _debug("validate_current_session not found in DB", session_id=session_id)
+                _debug(
+                    "validate_current_session not found in DB", session_id=session_id
+                )
                 # Clear invalid session from Flask session
                 session.pop("dining_session_id", None)
-                session.pop("customer_data", None)
+                customer_ref = session.pop("customer_ref", None)
+                if customer_ref:
+                    clear_customer_ref(customer_ref)
                 session.modified = True
                 return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
 
@@ -391,7 +430,9 @@ def validate_current_session():
                 )
                 # Clear finished session from Flask session
                 session.pop("dining_session_id", None)
-                session.pop("customer_data", None)
+                customer_ref = session.pop("customer_ref", None)
+                if customer_ref:
+                    clear_customer_ref(customer_ref)
                 session.modified = True
                 return jsonify({"error": "Sesión finalizada"}), HTTPStatus.GONE
 
@@ -422,8 +463,12 @@ def validate_current_session():
                 }
             ), HTTPStatus.OK
     except Exception as exc:
-        current_app.logger.error(f"[Client] Error validating current session: {exc}", exc_info=True)
-        return jsonify({"error": "Error al validar sesión"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        current_app.logger.error(
+            f"[Client] Error validating current session: {exc}", exc_info=True
+        )
+        return jsonify(
+            {"error": "Error al validar sesión"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @orders_bp.get("/session/<int:session_id>/validate")
@@ -470,7 +515,9 @@ def validate_session(session_id: int):
         current_app.logger.error(
             f"[Client] Error validating session {session_id}: {exc}", exc_info=True
         )
-        return jsonify({"error": "Error al validar sesión"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al validar sesión"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @orders_bp.post("/orders/<int:order_id>/request-check")
@@ -511,17 +558,23 @@ def request_order_check(order_id: int):
 
             # Verify order is not already paid or cancelled
             if order.payment_status in ["paid", "refunded"]:
-                return jsonify({"error": "La orden ya fue pagada"}), HTTPStatus.BAD_REQUEST
+                return jsonify(
+                    {"error": "La orden ya fue pagada"}
+                ), HTTPStatus.BAD_REQUEST
 
             if order.workflow_status == OrderStatus.CANCELLED.value:
-                return jsonify({"error": "La orden está cancelada"}), HTTPStatus.BAD_REQUEST
+                return jsonify(
+                    {"error": "La orden está cancelada"}
+                ), HTTPStatus.BAD_REQUEST
 
             # Mark order as awaiting payment
             order.workflow_status = OrderStatus.AWAITING_PAYMENT.value
             order.check_requested_at = datetime.utcnow()
 
             # Calculate order totals
-            subtotal = sum(Decimal(str(item.unit_price)) * item.quantity for item in order.items)
+            subtotal = sum(
+                Decimal(str(item.unit_price)) * item.quantity for item in order.items
+            )
 
             # Get tax rate from config (default 16%)
             tax_rate = Decimal(str(current_app.config.get("TAX_RATE", 0.16)))
@@ -557,9 +610,12 @@ def request_order_check(order_id: int):
 
     except Exception as exc:
         current_app.logger.error(
-            f"[Client] Error requesting check for order {order_id}: {exc}", exc_info=True
+            f"[Client] Error requesting check for order {order_id}: {exc}",
+            exc_info=True,
         )
-        return jsonify({"error": "Error al solicitar cuenta"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al solicitar cuenta"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @orders_bp.get("/orders/history")
@@ -594,7 +650,9 @@ def get_orders_history():
         with get_session() as db_session:
             email_hash = hash_identifier(sanitized_email)
             customer = (
-                db_session.execute(select(Customer).where(Customer.email_hash == email_hash))
+                db_session.execute(
+                    select(Customer).where(Customer.email_hash == email_hash)
+                )
                 .scalars()
                 .first()
             )
@@ -633,9 +691,13 @@ def get_orders_history():
                     )
                 )
             elif status_filter == "completed":
-                query = query.where(Order.workflow_status == OrderStatus.DELIVERED.value)
+                query = query.where(
+                    Order.workflow_status == OrderStatus.DELIVERED.value
+                )
             elif status_filter == "cancelled":
-                query = query.where(Order.workflow_status == OrderStatus.CANCELLED.value)
+                query = query.where(
+                    Order.workflow_status == OrderStatus.CANCELLED.value
+                )
 
             orders = query.all()
 
@@ -661,23 +723,32 @@ def get_orders_history():
                         }
                         for item in order.items
                     ]
-                    order_data["items_count"] = sum(item.quantity for item in order.items)
+                    order_data["items_count"] = sum(
+                        item.quantity for item in order.items
+                    )
                     serialized_orders.append(order_data)
                 except Exception as ser_err:
                     current_app.logger.error(
-                        f"[Client] Error serializing order {order.id}: {ser_err}", exc_info=True
+                        f"[Client] Error serializing order {order.id}: {ser_err}",
+                        exc_info=True,
                     )
 
             return jsonify(
                 {
                     "orders": serialized_orders,
                     "total": len(serialized_orders),
-                    "customer": {"id": customer.id, "name": customer.name, "email": customer.email},
+                    "customer": {
+                        "id": customer.id,
+                        "name": customer.name,
+                        "email": customer.email,
+                    },
                 }
             ), HTTPStatus.OK
 
     except Exception as exc:
-        current_app.logger.error(f"[Client] Error fetching orders history: {exc}", exc_info=True)
+        current_app.logger.error(
+            f"[Client] Error fetching orders history: {exc}", exc_info=True
+        )
         return jsonify(
             {"error": "Error al cargar historial de órdenes"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -716,7 +787,9 @@ def get_order_details(order_id: int):
             return jsonify({"order": order_data}), HTTPStatus.OK
 
     except Exception as exc:
-        current_app.logger.error(f"[Client] Error fetching order {order_id}: {exc}", exc_info=True)
+        current_app.logger.error(
+            f"[Client] Error fetching order {order_id}: {exc}", exc_info=True
+        )
         return jsonify(
             {"error": "Error al cargar detalles de la orden"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -747,14 +820,22 @@ def get_session_timeout(session_id: int):
                     status=session_obj.status,
                 )
                 return jsonify(
-                    {"error": "Sesión finalizada", "status": session_obj.status, "expires_at": None}
+                    {
+                        "error": "Sesión finalizada",
+                        "status": session_obj.status,
+                        "expires_at": None,
+                    }
                 ), HTTPStatus.OK
 
-            session_timeout_minutes = current_app.config.get("SESSION_TIMEOUT_MINUTES", 120)
+            session_timeout_minutes = current_app.config.get(
+                "SESSION_TIMEOUT_MINUTES", 120
+            )
             now = datetime.utcnow()
 
             if session_obj.opened_at:
-                expires_at = session_obj.opened_at + timedelta(minutes=session_timeout_minutes)
+                expires_at = session_obj.opened_at + timedelta(
+                    minutes=session_timeout_minutes
+                )
                 time_until_expiry = (expires_at - now).total_seconds() * 1000
             else:
                 expires_at = now + timedelta(minutes=session_timeout_minutes)
@@ -780,7 +861,8 @@ def get_session_timeout(session_id: int):
 
     except Exception as exc:
         current_app.logger.error(
-            f"[Client] Error fetching session timeout {session_id}: {exc}", exc_info=True
+            f"[Client] Error fetching session timeout {session_id}: {exc}",
+            exc_info=True,
         )
         return jsonify(
             {"error": "Error al obtener tiempo de sesión"}
@@ -818,7 +900,9 @@ def send_confirmation_endpoint():
             ), HTTPStatus.OK
     except Exception as e:
         current_app.logger.error(f"Error enviando confirmación: {e}", exc_info=True)
-        return jsonify({"error": "Error al enviar email"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error al enviar email"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @orders_bp.post("/orders/<int:order_id>/received")
