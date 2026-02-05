@@ -7,7 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /opt/pronto
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-client && \
+    postgresql-client \
+    ripgrep && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy and install shared library
