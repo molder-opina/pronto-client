@@ -21,7 +21,7 @@ COPY pronto-scripts/bin/pronto-migrate /opt/pronto/pronto-scripts/bin/pronto-mig
 COPY pronto-scripts/bin/pronto-sql-safety /opt/pronto/pronto-scripts/bin/pronto-sql-safety
 
 # Install Client requirements
-COPY pronto-client/src/pronto_clients/requirements.txt /tmp/requirements.txt
+COPY pronto-client/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy Client Code

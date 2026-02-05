@@ -16,7 +16,7 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -r src/pronto_clients/requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Development
@@ -40,6 +40,7 @@ docker compose --profile apps up client
 
 ```
 pronto-client/
+├── requirements.txt
 └── src/
     └── pronto_clients/
         ├── app.py           # Flask application
@@ -47,7 +48,6 @@ pronto-client/
         ├── services/        # Business logic
         ├── templates/       # Jinja2 templates
         ├── utils/           # Utility functions
-        ├── requirements.txt
         ├── Dockerfile
         └── wsgi.py
 ```
