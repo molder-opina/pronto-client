@@ -568,7 +568,7 @@ def request_order_check(order_id: int):
                 ), HTTPStatus.BAD_REQUEST
 
             # Mark order as awaiting payment
-            order.workflow_status = OrderStatus.AWAITING_PAYMENT.value
+            order.mark_status(OrderStatus.AWAITING_PAYMENT.value)
             order.check_requested_at = datetime.utcnow()
 
             # Calculate order totals

@@ -732,7 +732,7 @@
   // ============ MESERO Y SOPORTE ============
   async function debugCallWaiter() {
     try {
-      const res = await fetch('/api/waiter-calls', {
+      const res = await fetch('/api/call-waiter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'general', table_number: '1' }),

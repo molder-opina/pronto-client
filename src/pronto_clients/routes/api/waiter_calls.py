@@ -274,9 +274,9 @@ def get_waiter_call_status(call_id):
         ), 200
 
 
-@waiter_calls_bp.get("/waiter-calls/<int:call_id>/status")
+@waiter_calls_bp.get("/notifications/waiter/status/<int:call_id>")
 def get_waiter_call_status_alt(call_id):
-    """Check the status of a waiter call (alternative endpoint for frontend compatibility)."""
+    """Check the status of a waiter call (notification status endpoint)."""
     from sqlalchemy import select
 
     from pronto_shared.db import get_session
