@@ -7,12 +7,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /opt/pronto
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libffi-dev libssl-dev libpq-dev && \
+    postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy and install shared library
 COPY pronto-libs /opt/pronto/pronto-libs
 RUN pip install --no-cache-dir /opt/pronto/pronto-libs
+
+# Copy canonical init/migrations tooling (required by pronto_shared.db.validate_schema()).
+COPY pronto-scripts/init /opt/pronto/pronto-scripts/init
+COPY pronto-scripts/bin/pronto-init /opt/pronto/pronto-scripts/bin/pronto-init
+COPY pronto-scripts/bin/pronto-migrate /opt/pronto/pronto-scripts/bin/pronto-migrate
+COPY pronto-scripts/bin/pronto-sql-safety /opt/pronto/pronto-scripts/bin/pronto-sql-safety
 
 # Install Client requirements
 COPY pronto-client/src/pronto_clients/requirements.txt /tmp/requirements.txt

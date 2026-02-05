@@ -17,11 +17,10 @@ from pronto_clients.routes.api import api_bp
 from pronto_clients.routes.web import web_bp
 
 from pronto_shared.config import load_config
-from pronto_shared.db import init_db, init_engine
+from pronto_shared.db import init_engine, validate_schema
 from pronto_shared.error_handlers import register_error_handlers
 from pronto_shared.jwt_middleware import init_jwt_middleware
 from pronto_shared.logging_config import configure_logging
-from pronto_shared.models import Base
 from pronto_shared.security_middleware import configure_security_headers
 from pronto_shared.services.business_config_service import (
     get_config_map,
@@ -63,7 +62,7 @@ def create_app() -> Flask:
 
     # Initialize database engine first (before any DB queries)
     init_engine(config)
-    init_db(Base.metadata)
+    validate_schema()
 
     sync_env_secrets_to_db()
 
