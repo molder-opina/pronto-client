@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from http import HTTPStatus
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, Response, jsonify, make_response, request
 from sqlalchemy.exc import IntegrityError
 
 from pronto_shared.config import SESSION_TTL_HOURS
@@ -331,3 +331,20 @@ def split_session(session_id: int):
                 "split_amounts": splits,
             }
         ), HTTPStatus.OK
+
+
+@sessions_bp.get("/sessions/<int:session_id>/ticket.pdf")
+def session_ticket_pdf(session_id: int) -> Response:
+    """Generate a ticket PDF for the session (client compatibility endpoint)."""
+    from pronto_shared.services.ticket_pdf_service import generate_ticket_pdf
+
+    pdf_bytes, status_code, err = generate_ticket_pdf(session_id=session_id)
+    if status_code != HTTPStatus.OK or not pdf_bytes:
+        return jsonify({"error": err or "Error generando PDF"}), int(status_code)
+
+    return Response(
+        pdf_bytes,
+        status=200,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="ticket-sesion-{session_id}.pdf"'},
+    )

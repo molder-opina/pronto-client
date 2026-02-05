@@ -160,6 +160,7 @@ def get_modification_endpoint(modification_id: int):
 
 
 @orders_bp.get("/session/<int:session_id>/orders")
+@orders_bp.post("/session/<int:session_id>/orders")
 def get_session_orders(session_id: int):
     """Return orders for a session (used by client active orders tab)."""
     from pronto_shared.serializers import serialize_order

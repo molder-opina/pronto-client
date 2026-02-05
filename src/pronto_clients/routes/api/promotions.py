@@ -10,6 +10,12 @@ from flask import Blueprint, jsonify, request
 promotions_bp = Blueprint("client_promotions", __name__)
 
 
+@promotions_bp.get("/promotions")
+def get_promotions():
+    # Alias kept for debug panel compatibility.
+    return get_active_promotions()
+
+
 @promotions_bp.get("/promotions/active")
 def get_active_promotions():
     """Get active promotions for display."""

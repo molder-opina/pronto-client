@@ -33,38 +33,23 @@ from pronto_shared.services.secret_service import (
 
 # Using shared CSRF instance
 
+_ROUTES_ONLY_ENV = "PRONTO_ROUTES_ONLY"
 
-def create_app() -> Flask:
-    """
-    Build and configure the Flask app for clients.
-    """
-    load_env_secrets()
+def _is_routes_only() -> bool:
+    return (os.getenv(_ROUTES_ONLY_ENV) or "").strip() == "1"
 
-    # Validate all required environment variables (fail-fast)
-    from pronto_shared.config import validate_required_env_vars
 
-    validate_required_env_vars(skip_in_debug=False)
+def register_blueprints(app: Flask) -> None:
+    app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(web_bp)
 
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    pronto_static_root = os.path.abspath(
-        os.path.join(
-            repo_root, "..", "pronto-static", "src", "static_content", "assets"
-        )
-    )
-    app = Flask(
-        __name__,
-        template_folder="templates",
-        static_folder=None,
-    )
-    config = load_config("pronto-clients")
 
-    configure_logging(config.app_name, config.log_level)
-
-    # Initialize database engine first (before any DB queries)
+def init_runtime(app: Flask, config) -> None:
     init_engine(config)
     validate_schema()
 
     sync_env_secrets_to_db()
+    sync_env_config_to_db()
 
     app.config["SECRET_KEY"] = config.secret_key
     app.config["PRONTO_STATIC_CONTAINER_HOST"] = config.pronto_static_container_host
@@ -74,21 +59,10 @@ def create_app() -> Flask:
     app.config["RESTAURANT_SLUG"] = config.restaurant_slug
     app.config["STRIPE_API_KEY"] = config.stripe_api_key
 
-    # CSRF Protection configuration
     app.config["WTF_CSRF_ENABLED"] = True
-    app.config["WTF_CSRF_TIME_LIMIT"] = 3600  # 1 hour CSRF token validity
+    app.config["WTF_CSRF_TIME_LIMIT"] = 3600
 
-    # Initialize JWT middleware
     init_jwt_middleware(app)
-
-    app.config["DEBUG_MODE"] = config.debug_mode
-    app.config["DEBUG"] = config.flask_debug
-    app.config["DEBUG_AUTO_TABLE"] = config.debug_auto_table
-    app.config["AUTO_READY_QUICK_SERVE"] = config.auto_ready_quick_serve
-    app.config["EMPLOYEE_API_BASE_URL"] = os.getenv(
-        "PRONTO_EMPLOYEES_BASE_URL", ""
-    ).strip()
-
     configure_security_headers(app)
     register_error_handlers(app)
 
@@ -101,8 +75,6 @@ def create_app() -> Flask:
             x_host=num_proxies,
             x_port=num_proxies,
         )
-
-    sync_env_config_to_db()
 
     # Explicitly exempt nested blueprints from CSRF
     from pronto_clients.routes.api.auth import auth_bp
@@ -119,9 +91,6 @@ def create_app() -> Flask:
     csrf_protection.exempt(sessions_bp)
     csrf_protection.exempt(feedback_bp)
     csrf_protection.exempt(payments_bp)
-
-    app.register_blueprint(api_bp, url_prefix="/api")
-    app.register_blueprint(web_bp)
 
     # Configure CORS with secure defaults
     raw_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
@@ -216,7 +185,6 @@ def create_app() -> Flask:
 
         current_user = get_current_user()
 
-        # FIX: Force localhost:9088 for local testing as config seems to be misbehaving
         base_url = config.pronto_static_public_host
         assets_path = config.static_assets_path
         restaurant_slug = config.restaurant_slug
@@ -240,7 +208,6 @@ def create_app() -> Flask:
             else None,
             "session_id": current_user.get("session_id") if current_user else None,
             "table_id": current_user.get("table_id") if current_user else None,
-            # Static assets URLs (short variables)
             "assets_css": f"{base_url}{assets_path}/css",
             "assets_css_shared": f"{base_url}{assets_path}/css/shared",
             "assets_css_clients": f"{base_url}{assets_path}/css/clients",
@@ -251,9 +218,48 @@ def create_app() -> Flask:
             "assets_images": f"{base_url}{assets_path}/images",
         }
 
+
+def create_app() -> Flask:
+    """
+    Build and configure the Flask app for clients.
+    """
+    routes_only = _is_routes_only()
+
+    if not routes_only:
+        load_env_secrets()
+
+        # Validate all required environment variables (fail-fast)
+        from pronto_shared.config import validate_required_env_vars
+
+        validate_required_env_vars(skip_in_debug=False)
+
+    app = Flask(
+        __name__,
+        template_folder="templates",
+        static_folder=None,
+    )
+    register_blueprints(app)
+
     @app.route("/health")
     def health():
         return jsonify({"status": "ok", "service": "pronto-client"}), 200
+
+    if routes_only:
+        app.config["SECRET_KEY"] = "routes-only"
+        return app
+
+    config = load_config("pronto-clients")
+    configure_logging(config.app_name, config.log_level)
+
+    app.config["DEBUG_MODE"] = config.debug_mode
+    app.config["DEBUG"] = config.flask_debug
+    app.config["DEBUG_AUTO_TABLE"] = config.debug_auto_table
+    app.config["AUTO_READY_QUICK_SERVE"] = config.auto_ready_quick_serve
+    app.config["EMPLOYEE_API_BASE_URL"] = os.getenv(
+        "PRONTO_EMPLOYEES_BASE_URL", ""
+    ).strip()
+
+    init_runtime(app, config)
 
     return app
 

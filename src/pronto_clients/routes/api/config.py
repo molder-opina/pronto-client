@@ -125,5 +125,77 @@ def get_table_by_qr(qr_code: str):
                 "area_id": table.area_id,
                 "capacity": table.capacity,
                 "status": table.status,
+                "qr_code": table.qr_code,
             }
         )
+
+
+@config_bp.get("/tables/<int:table_id>")
+def get_table(table_id: int):
+    """Get table information by ID (client tables-manager compatibility)."""
+    from sqlalchemy import select
+
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Table
+
+    with get_session() as session:
+        table = (
+            session.execute(select(Table).where(Table.id == table_id, Table.is_active))
+            .scalars()
+            .one_or_none()
+        )
+
+        if not table:
+            return jsonify({"error": "Mesa no encontrada"}), HTTPStatus.NOT_FOUND
+
+        return (
+            jsonify(
+                {
+                    "id": table.id,
+                    "table_number": table.table_number,
+                    "area_id": table.area_id,
+                    "capacity": table.capacity,
+                    "status": table.status,
+                    "qr_code": table.qr_code,
+                }
+            ),
+            HTTPStatus.OK,
+        )
+
+
+@config_bp.get("/tables/<int:table_id>/qr")
+def get_table_qr(table_id: int):
+    """Return a plain-text QR token for a table.
+
+    The legacy client tables-manager opens this endpoint in a new tab.
+    """
+    from sqlalchemy import select
+
+    from pronto_shared.db import get_session
+    from pronto_shared.models import Table
+
+    with get_session() as session:
+        table = (
+            session.execute(select(Table).where(Table.id == table_id, Table.is_active))
+            .scalars()
+            .one_or_none()
+        )
+        if not table:
+            return jsonify({"error": "Mesa no encontrada"}), HTTPStatus.NOT_FOUND
+        if not table.qr_code:
+            return jsonify({"error": "QR no disponible"}), HTTPStatus.NOT_FOUND
+        qr_code = str(table.qr_code)
+
+    return qr_code, HTTPStatus.OK, {"Content-Type": "text/plain; charset=utf-8"}
+
+
+@config_bp.put("/tables/<int:table_id>")
+def update_table(table_id: int):
+    # Client app must not mutate tables; endpoint exists only to avoid 404s from legacy frontend modules.
+    return jsonify({"error": "Not implemented"}), HTTPStatus.NOT_IMPLEMENTED
+
+
+@config_bp.delete("/tables/<int:table_id>")
+def delete_table(table_id: int):
+    # Client app must not mutate tables; endpoint exists only to avoid 404s from legacy frontend modules.
+    return jsonify({"error": "Not implemented"}), HTTPStatus.NOT_IMPLEMENTED

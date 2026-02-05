@@ -12,6 +12,7 @@ api_bp = Blueprint("client_api", __name__)
 
 # Import all sub-blueprints
 from pronto_clients.routes.api.auth import auth_bp
+from pronto_clients.routes.api.areas import areas_bp
 from pronto_clients.routes.api.business_info import business_info_bp
 from pronto_clients.routes.api.config import config_bp
 from pronto_clients.routes.api.debug import debug_bp
@@ -40,6 +41,7 @@ api_bp.register_blueprint(sessions_bp)
 api_bp.register_blueprint(auth_bp)
 api_bp.register_blueprint(promotions_bp)
 api_bp.register_blueprint(config_bp)
+api_bp.register_blueprint(areas_bp)
 api_bp.register_blueprint(support_bp)
 api_bp.register_blueprint(payments_bp)
 api_bp.register_blueprint(split_bills_bp)
