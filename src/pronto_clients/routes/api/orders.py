@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from pronto_clients.services.order_service import OrderValidationError
-from pronto_clients.services.order_service import create_order as create_order_service
+from pronto_clients.utils.api_client import forward_to_api
 from pronto_clients.utils.customer_session import (
     clear_customer_ref,
     store_customer_ref,
@@ -27,7 +27,7 @@ from pronto_shared.models import (
 )
 from pronto_shared.security_middleware import rate_limit
 from pronto_shared.services.notifications_service import send_order_confirmation_email
-from pronto_shared.services.order_service import cancel_order as cancel_order_service
+from pronto_shared.services.notifications_service import send_order_confirmation_email
 from pronto_shared.supabase.realtime import emit_new_order, emit_order_status_change
 
 orders_bp = Blueprint("client_orders", __name__)
@@ -59,124 +59,43 @@ def create_order_endpoint():
     customer_data = payload.get("customer") or {}
     items_data = payload.get("items") or []
     notes = payload.get("notes")
+    
+    # 1. Forward request to API
+    # Enhance payload with explicit session_id if available in cookie/session but not in payload
+    if not payload.get("session_id") and session.get("dining_session_id"):
+        payload["session_id"] = session.get("dining_session_id")
+    
+    # Also pass anonymous_client_id if not present? Usually payload has it.
 
-    _debug(
-        "create_order_endpoint received",
-        items_count=len(items_data),
-        items_data=str(items_data)[:200],
-    )
+    response_data, status = forward_to_api("POST", "/orders", payload)
 
-    # Validate items count
-    if not items_data:
-        return jsonify(
-            {"error": "La orden debe contener al menos un producto"}
-        ), HTTPStatus.BAD_REQUEST
+    if status not in (HTTPStatus.OK, HTTPStatus.CREATED):
+         return jsonify(response_data), status
 
-    # Validate each item has a valid menu_item_id
-    valid_items = []
-    for i, item in enumerate(items_data):
-        menu_item_id = item.get("menu_item_id")
-        if menu_item_id is None or menu_item_id == "":
-            _debug("skipping_invalid_item", index=i, item=item)
-            continue
-        valid_items.append(item)
-
-    _debug(
-        "valid_items_filtered",
-        original_count=len(items_data),
-        valid_count=len(valid_items),
-    )
-
-    if not valid_items:
-        return jsonify(
-            {"error": "La orden debe contener al menos un producto válido"}
-        ), HTTPStatus.BAD_REQUEST
-
-    if len(valid_items) > 50:
-        return jsonify(
-            {"error": "La orden no puede contener más de 50 productos"}
-        ), HTTPStatus.BAD_REQUEST
-
-    # Get existing_session_id from Flask session or payload (for backwards compatibility)
-    existing_session_id = session.get("dining_session_id") or payload.get("session_id")
-
-    try:
-        response, status = create_order_service(
-            customer_data,
-            valid_items,  # Use validated items only
-            notes,
-            tax_rate=current_app.config.get("TAX_RATE", 0.16),
-            existing_session_id=existing_session_id,
-            table_number=payload.get("table_number"),
-            anonymous_client_id=payload.get("anonymous_client_id"),
-            auto_ready_quick_serve=current_app.config.get(
-                "AUTO_READY_QUICK_SERVE", False
-            ),
-        )
-        _debug(
-            "create_order_endpoint",
-            status=status,
-            session_id=response.get("session_id"),
-            order_id=response.get("order_id"),
-        )
-
-        # Store session_id in Flask session for future requests
-        if status == HTTPStatus.CREATED and response.get("session_id"):
-            set_session_key(session, "dining_session_id", response["session_id"])
-            customer_ref = store_customer_ref(
+    # 2. Unwrap "data" from success_response
+    # pronto-api returns {"status": "success", "data": {...}}
+    actual_data = response_data.get("data", response_data)
+    
+    # 3. Handle Side Effects (Session management)
+    # Store session_id in Flask session
+    if status == HTTPStatus.OK and actual_data.get("session_id"):
+        set_session_key(session, "dining_session_id", actual_data["session_id"])
+        
+        # Store customer ref
+        if customer_data:
+             customer_ref = store_customer_ref(
                 {
                     "name": customer_data.get("name"),
                     "email": customer_data.get("email"),
                     "phone": customer_data.get("phone"),
                 }
-            )
-            if customer_ref:
+             )
+             if customer_ref:
                 set_session_key(session, "customer_ref", customer_ref)
-            session.modified = True
+        
+        session.modified = True
 
-        # Send notifications on successful order creation
-        if status == HTTPStatus.CREATED and response.get("order_id"):
-            # Emit Redis event
-            try:
-                emit_new_order(
-                    order_id=response["order_id"],
-                    session_id=response.get("session_id"),
-                    table_number=payload.get("table_number"),
-                    order_data={"items_count": len(valid_items), "notes": notes},
-                )
-            except Exception as ws_error:
-                current_app.logger.error(
-                    f"Error sending Redis notification: {ws_error}"
-                )
-
-            # Send SSE notification to waiters via Redis stream
-            try:
-                from pronto_shared.notification_stream_service import notify_waiters
-
-                order_id = response["order_id"]
-                table_number = payload.get("table_number", "N/A")
-
-                notify_waiters(
-                    "new_order",
-                    "Nuevo pedido",
-                    f"Nuevo pedido #{order_id} - Mesa {table_number}",
-                    {"order_id": order_id, "table_number": table_number},
-                    priority="high",
-                )
-            except Exception as notification_error:
-                current_app.logger.error(
-                    f"Error sending notification: {notification_error}"
-                )
-
-        return jsonify(response), status
-    except OrderValidationError as exc:
-        current_app.logger.warning(f"Order validation error: {exc}")
-        return jsonify({"error": str(exc)}), exc.status
-    except Exception as e:
-        current_app.logger.error(f"Error creating order: {e}", exc_info=True)
-        return jsonify(
-            {"error": "Error interno del servidor"}
-        ), HTTPStatus.INTERNAL_SERVER_ERROR
+    return jsonify(actual_data), status
 
 
 @orders_bp.post("/orders/<int:order_id>/cancel")
@@ -184,18 +103,12 @@ def cancel_order_endpoint(order_id: int):
     """Allow customers to cancel an unattended order."""
     payload = request.get_json(silent=True) or {}
     session_id = session.get("dining_session_id") or payload.get("session_id")
-    reason = payload.get("reason")
+    # Ensure session_id matches Flask session if we want to secure it (optional for proxy)
+    
+    if not payload.get("session_id"):
+        payload["session_id"] = session_id
 
-    if not session_id:
-        return jsonify({"error": "No hay sesión activa"}), HTTPStatus.BAD_REQUEST
-
-    response, status = cancel_order_service(
-        order_id,
-        actor_scope="client",
-        actor_id=session.get("customer_id"),
-        session_id=session_id,
-        reason=reason,
-    )
+    response_data, status = forward_to_api("POST", f"/orders/{order_id}/cancel", payload)
 
     # Clear Flask session on successful cancellation
     if status == HTTPStatus.OK:
@@ -204,16 +117,9 @@ def cancel_order_endpoint(order_id: int):
         if customer_ref:
             clear_customer_ref(customer_ref)
         session.modified = True
-
-    if status == HTTPStatus.OK:
-        emit_order_status_change(
-            order_id=order_id,
-            status="cancelled",
-            session_id=session_id,
-            table_number=response.get("session", {}).get("table_number"),
-        )
-
-    return jsonify(response), status
+        
+    actual_data = response_data.get("data", response_data)
+    return jsonify(actual_data), status
 
 
 @orders_bp.post("/orders/<int:order_id>/modify")
@@ -221,71 +127,36 @@ def modify_order_endpoint(order_id: int):
     """
     Allow customers to modify their orders (only before waiter accepts).
     """
-    from pronto_shared.constants import ModificationInitiator
-    from pronto_shared.services.order_modification_service import create_modification
-
     payload = request.get_json(silent=True) or {}
-    customer_id = payload.get("customer_id")
-    changes = payload.get("changes")
-
-    if not customer_id:
-        return jsonify({"error": "customer_id es requerido"}), HTTPStatus.BAD_REQUEST
-
-    if not changes or not isinstance(changes, dict):
-        return jsonify(
-            {"error": "changes es requerido y debe ser un objeto"}
-        ), HTTPStatus.BAD_REQUEST
-
-    response, status = create_modification(
-        order_id=order_id,
-        changes_data=changes,
-        initiated_by_role=ModificationInitiator.CUSTOMER.value,
-        customer_id=customer_id,
-    )
-
-    return jsonify(response), status
+    response_data, status = forward_to_api("POST", f"/orders/{order_id}/modify", payload)
+    actual_data = response_data.get("data", response_data)
+    return jsonify(actual_data), status
 
 
 @orders_bp.post("/modifications/<int:modification_id>/approve")
 def approve_modification_endpoint(modification_id: int):
     """Allow customers to approve waiter-initiated modifications."""
-    from pronto_shared.services.order_modification_service import approve_modification
-
     payload = request.get_json(silent=True) or {}
-    customer_id = payload.get("customer_id")
-
-    if not customer_id:
-        return jsonify({"error": "customer_id es requerido"}), HTTPStatus.BAD_REQUEST
-
-    response, status = approve_modification(modification_id, customer_id)
-    return jsonify(response), status
+    response_data, status = forward_to_api("POST", f"/modifications/{modification_id}/approve", payload)
+    actual_data = response_data.get("data", response_data)
+    return jsonify(actual_data), status
 
 
 @orders_bp.post("/modifications/<int:modification_id>/reject")
 def reject_modification_endpoint(modification_id: int):
     """Allow customers to reject waiter-initiated modifications."""
-    from pronto_shared.services.order_modification_service import reject_modification
-
     payload = request.get_json(silent=True) or {}
-    customer_id = payload.get("customer_id")
-    reason = payload.get("reason")
-
-    if not customer_id:
-        return jsonify({"error": "customer_id es requerido"}), HTTPStatus.BAD_REQUEST
-
-    response, status = reject_modification(modification_id, customer_id, reason)
-    return jsonify(response), status
+    response_data, status = forward_to_api("POST", f"/modifications/{modification_id}/reject", payload)
+    actual_data = response_data.get("data", response_data)
+    return jsonify(actual_data), status
 
 
 @orders_bp.get("/modifications/<int:modification_id>")
 def get_modification_endpoint(modification_id: int):
     """Get details of a modification request."""
-    from pronto_shared.services.order_modification_service import (
-        get_modification_details,
-    )
-
-    response, status = get_modification_details(modification_id)
-    return jsonify(response), status
+    response_data, status = forward_to_api("GET", f"/modifications/{modification_id}")
+    actual_data = response_data.get("data", response_data)
+    return jsonify(actual_data), status
 
 
 @orders_bp.get("/session/<int:session_id>/orders")
@@ -526,96 +397,10 @@ def request_order_check(order_id: int):
     Request check/payment for a specific order (individual checkout).
     This allows customers to pay for orders individually in a multi-order session.
     """
-    from datetime import datetime
-    from decimal import Decimal
-
-    try:
-        with get_session() as db_session:
-            # Load order with relationships
-            order = (
-                db_session.query(Order)
-                .options(
-                    joinedload(Order.items).joinedload(OrderItem.menu_item),
-                    joinedload(Order.session),
-                    joinedload(Order.customer),
-                )
-                .filter(Order.id == order_id)
-                .first()
-            )
-
-            if not order:
-                _debug("request_order_check order not found", order_id=order_id)
-                return jsonify({"error": "Orden no encontrada"}), HTTPStatus.NOT_FOUND
-
-            # Verify order is delivered
-            if order.workflow_status != OrderStatus.DELIVERED.value:
-                return jsonify(
-                    {
-                        "error": "La orden debe estar entregada para pedir la cuenta",
-                        "current_status": order.workflow_status,
-                    }
-                ), HTTPStatus.BAD_REQUEST
-
-            # Verify order is not already paid or cancelled
-            if order.payment_status in ["paid", "refunded"]:
-                return jsonify(
-                    {"error": "La orden ya fue pagada"}
-                ), HTTPStatus.BAD_REQUEST
-
-            if order.workflow_status == OrderStatus.CANCELLED.value:
-                return jsonify(
-                    {"error": "La orden está cancelada"}
-                ), HTTPStatus.BAD_REQUEST
-
-            # Mark order as awaiting payment
-            order.mark_status(OrderStatus.AWAITING_PAYMENT.value)
-            order.check_requested_at = datetime.utcnow()
-
-            # Calculate order totals
-            subtotal = sum(
-                Decimal(str(item.unit_price)) * item.quantity for item in order.items
-            )
-
-            # Get tax rate from config (default 16%)
-            tax_rate = Decimal(str(current_app.config.get("TAX_RATE", 0.16)))
-            tax_amount = (subtotal * tax_rate).quantize(Decimal("0.01"))
-            total_amount = subtotal + tax_amount
-
-            db_session.add(order)
-            db_session.commit()
-
-            _debug(
-                "request_order_check ok",
-                order_id=order_id,
-                session_id=order.session_id,
-                subtotal=float(subtotal),
-                total=float(total_amount),
-            )
-
-            return jsonify(
-                {
-                    "status": "ok",
-                    "message": "Cuenta solicitada para esta orden",
-                    "order_id": order.id,
-                    "session_id": order.session_id,
-                    "subtotal": float(subtotal),
-                    "tax_amount": float(tax_amount),
-                    "total_amount": float(total_amount),
-                    "payment_status": order.payment_status,
-                    "check_requested_at": order.check_requested_at.isoformat()
-                    if order.check_requested_at
-                    else None,
-                }
-            ), HTTPStatus.OK
-
-    except Exception as exc:
-        current_app.logger.error(
-            f"[Client] Error requesting check for order {order_id}: {exc}",
-            exc_info=True,
-        )
-        return jsonify(
-            {"error": "Error al solicitar cuenta"}
-        ), HTTPStatus.INTERNAL_SERVER_ERROR
+    payload = request.get_json(silent=True) or {}
+    response_data, status = forward_to_api("POST", f"/orders/{order_id}/request-check", payload)
+    actual_data = response_data.get("data", response_data)
+    return jsonify(actual_data), status
 
 
 @orders_bp.get("/orders/history")
