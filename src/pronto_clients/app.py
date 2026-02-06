@@ -53,6 +53,7 @@ def init_runtime(app: Flask, config) -> None:
 
     app.config["SECRET_KEY"] = config.secret_key
     app.config["PRONTO_STATIC_CONTAINER_HOST"] = config.pronto_static_container_host
+    app.config["PRONTO_STATIC_PUBLIC_HOST"] = config.pronto_static_public_host
     app.config["APP_NAME"] = config.app_name
     app.config["TAX_RATE"] = config.tax_rate
     app.config["RESTAURANT_NAME"] = config.restaurant_name

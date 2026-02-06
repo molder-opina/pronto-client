@@ -191,6 +191,11 @@ def register_customer():
             customer.email = sanitized_email
             customer.phone = sanitized_phone or ""
 
+            # Sync search columns
+            from pronto_shared.customer_helpers import set_customer_search_columns
+
+            set_customer_search_columns(customer)
+
             try:
                 db_session.add(customer)
                 db_session.commit()
