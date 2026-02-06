@@ -36,7 +36,7 @@ def trigger_feedback_email(order_id: int):
     - Idempotent: multiple calls should not send multiple emails (use throttle).
     - Rate limit per order_id.
     """
-    from flask import session
+    from pronto_shared.jwt_middleware import get_current_user
     from sqlalchemy import select
 
     from pronto_shared.db import get_session
@@ -44,8 +44,9 @@ def trigger_feedback_email(order_id: int):
     from pronto_shared.services.feedback_email_service import FeedbackEmailService
 
     try:
-        # Get session from Flask session
-        session_id_from_cookie = session.get("dining_session_id")
+        # Get session from JWT
+        user = get_current_user()
+        session_id_from_cookie = user.get("session_id") if user else None
 
         # Validate order exists
         with get_session() as db_session:
@@ -58,7 +59,9 @@ def trigger_feedback_email(order_id: int):
 
             # Check if order is paid
             if not FeedbackEmailService._is_order_paid(order):
-                return jsonify({"error": "La orden no ha sido pagada"}), HTTPStatus.BAD_REQUEST
+                return jsonify(
+                    {"error": "La orden no ha sido pagada"}
+                ), HTTPStatus.BAD_REQUEST
 
             # Validate order belongs to current context
             # Either: registered user OR current anonymous session
@@ -75,7 +78,9 @@ def trigger_feedback_email(order_id: int):
                 effective_session_id = session_id_from_cookie
 
             if not is_valid_context:
-                return jsonify({"error": "No tienes permiso para esta orden"}), HTTPStatus.FORBIDDEN
+                return jsonify(
+                    {"error": "No tienes permiso para esta orden"}
+                ), HTTPStatus.FORBIDDEN
 
             # Get timeout from config or request
             timeout_seconds = int(request.args.get("timeout") or 10)
@@ -94,12 +99,16 @@ def trigger_feedback_email(order_id: int):
                 ttl_hours=ttl_hours,
             )
 
-            status_code = HTTPStatus.OK if result["success"] else HTTPStatus.INTERNAL_SERVER_ERROR
+            status_code = (
+                HTTPStatus.OK if result["success"] else HTTPStatus.INTERNAL_SERVER_ERROR
+            )
             return jsonify(result), status_code
 
     except Exception as e:
         current_app.logger.error(f"Error triggering feedback email: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify(
+            {"error": "Error interno del servidor"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @feedback_email_bp.get("/feedback/email/<token>")
@@ -123,7 +132,9 @@ def get_feedback_email_form(token: str):
         token_data = FeedbackEmailService.validate_token(token)
 
         if not token_data:
-            return jsonify({"error": "Token inválido o expirado"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "Token inválido o expirado"}
+            ), HTTPStatus.BAD_REQUEST
 
         # Get enabled questions
         with get_session() as db_session:
@@ -156,8 +167,12 @@ def get_feedback_email_form(token: str):
         return jsonify(response_data), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error getting feedback email form: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        current_app.logger.error(
+            f"Error getting feedback email form: {e}", exc_info=True
+        )
+        return jsonify(
+            {"error": "Error interno del servidor"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @feedback_email_bp.post("/feedback/email/<token>/submit")
@@ -185,7 +200,9 @@ def submit_feedback_email(token: str):
         token_data = FeedbackEmailService.validate_token(token)
 
         if not token_data:
-            return jsonify({"error": "Token inválido o expirado"}), HTTPStatus.BAD_REQUEST
+            return jsonify(
+                {"error": "Token inválido o expirado"}
+            ), HTTPStatus.BAD_REQUEST
 
         payload = request.get_json(silent=True) or {}
         ratings = payload.get("ratings", [])
@@ -204,7 +221,9 @@ def submit_feedback_email(token: str):
                 return jsonify({"error": "Orden no encontrada"}), HTTPStatus.NOT_FOUND
 
             session_obj = db_session.execute(
-                select(DiningSession).where(DiningSession.id == token_data["session_id"])
+                select(DiningSession).where(
+                    DiningSession.id == token_data["session_id"]
+                )
             ).scalar_one_or_none()
 
             feedback_count = 0
@@ -257,8 +276,14 @@ def submit_feedback_email(token: str):
             f"{feedback_count} items"
         )
 
-        return jsonify({"success": True, "message": "Gracias por tu feedback"}), HTTPStatus.OK
+        return jsonify(
+            {"success": True, "message": "Gracias por tu feedback"}
+        ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error submitting feedback via email: {e}", exc_info=True)
-        return jsonify({"error": "Error interno del servidor"}), HTTPStatus.INTERNAL_SERVER_ERROR
+        current_app.logger.error(
+            f"Error submitting feedback via email: {e}", exc_info=True
+        )
+        return jsonify(
+            {"error": "Error interno del servidor"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR

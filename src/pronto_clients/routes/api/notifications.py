@@ -5,7 +5,7 @@ Notifications endpoints for clients API.
 from datetime import datetime
 from http import HTTPStatus
 
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, request
 
 notifications_bp = Blueprint("client_notifications", __name__)
 
@@ -18,13 +18,17 @@ def get_notifications():
     from pronto_shared.db import get_session
     from pronto_shared.models import Notification
 
-    session.get("dining_session_id") or request.args.get("session_id")
+    # Session ID now comes from JWT claims via get_current_user() if needed
+    # For now, using request args
     recipient_type = request.args.get("recipient_type", "customer")
 
     with get_session() as db_session:
         query = (
             select(Notification)
-            .where(Notification.recipient_type == recipient_type, Notification.status == "unread")
+            .where(
+                Notification.recipient_type == recipient_type,
+                Notification.status == "unread",
+            )
             .order_by(Notification.created_at.desc())
             .limit(50)
         )

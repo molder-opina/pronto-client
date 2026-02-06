@@ -4,7 +4,7 @@ Customer facing web views rendered via Jinja templates.
 
 from __future__ import annotations
 
-from flask import Blueprint, current_app, render_template, request, session
+from flask import Blueprint, current_app, render_template, request
 from sqlalchemy import select
 
 from pronto_shared.db import get_session
@@ -191,7 +191,9 @@ def feedback_form():
     """
     # Try to get session_id from JWT first, then query param
     current_user = get_current_user()
-    session_id = (current_user.get("session_id") if current_user else None) or request.args.get("session_id", type=int)
+    session_id = (
+        current_user.get("session_id") if current_user else None
+    ) or request.args.get("session_id", type=int)
     employee_id = request.args.get("employee_id", type=int)
 
     if not session_id:

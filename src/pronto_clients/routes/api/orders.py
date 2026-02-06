@@ -4,18 +4,14 @@ Orders endpoints for clients API.
 
 from http import HTTPStatus
 
-from flask import Blueprint, current_app, jsonify, request, session
+from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from pronto_clients.services.order_service import OrderValidationError
 from pronto_clients.utils.api_client import forward_to_api
-from pronto_clients.utils.customer_session import (
-    clear_customer_ref,
-    store_customer_ref,
-    set_session_key,
-)
 from pronto_clients.utils.input_sanitizer import sanitize_email
+from pronto_shared.jwt_middleware import jwt_required, get_current_user
 from pronto_shared.constants import OrderStatus
 from pronto_shared.db import get_session
 from pronto_shared.models import (
@@ -59,41 +55,27 @@ def create_order_endpoint():
     customer_data = payload.get("customer") or {}
     items_data = payload.get("items") or []
     notes = payload.get("notes")
-    
+
     # 1. Forward request to API
-    # Enhance payload with explicit session_id if available in cookie/session but not in payload
-    if not payload.get("session_id") and session.get("dining_session_id"):
-        payload["session_id"] = session.get("dining_session_id")
-    
+    # Enhance payload with explicit session_id if available in JWT but not in payload
+    user = get_current_user()
+    if not payload.get("session_id") and user and user.get("session_id"):
+        payload["session_id"] = user.get("session_id")
+
     # Also pass anonymous_client_id if not present? Usually payload has it.
 
     response_data, status = forward_to_api("POST", "/orders", payload)
 
     if status not in (HTTPStatus.OK, HTTPStatus.CREATED):
-         return jsonify(response_data), status
+        return jsonify(response_data), status
 
     # 2. Unwrap "data" from success_response
     # pronto-api returns {"status": "success", "data": {...}}
     actual_data = response_data.get("data", response_data)
-    
-    # 3. Handle Side Effects (Session management)
-    # Store session_id in Flask session
-    if status == HTTPStatus.OK and actual_data.get("session_id"):
-        set_session_key(session, "dining_session_id", actual_data["session_id"])
-        
-        # Store customer ref
-        if customer_data:
-             customer_ref = store_customer_ref(
-                {
-                    "name": customer_data.get("name"),
-                    "email": customer_data.get("email"),
-                    "phone": customer_data.get("phone"),
-                }
-             )
-             if customer_ref:
-                set_session_key(session, "customer_ref", customer_ref)
-        
-        session.modified = True
+
+    # 3. Handle Side Effects
+    # JWT already contains session_id in cookie, no need for Flask session
+    # Note: Customer data is in JWT claims, not session
 
     return jsonify(actual_data), status
 
@@ -102,22 +84,20 @@ def create_order_endpoint():
 def cancel_order_endpoint(order_id: int):
     """Allow customers to cancel an unattended order."""
     payload = request.get_json(silent=True) or {}
-    session_id = session.get("dining_session_id") or payload.get("session_id")
+    session_id = user.get("session_id") if user else None or payload.get("session_id")
     # Ensure session_id matches Flask session if we want to secure it (optional for proxy)
-    
+
     if not payload.get("session_id"):
         payload["session_id"] = session_id
 
-    response_data, status = forward_to_api("POST", f"/orders/{order_id}/cancel", payload)
+    response_data, status = forward_to_api(
+        "POST", f"/orders/{order_id}/cancel", payload
+    )
 
     # Clear Flask session on successful cancellation
     if status == HTTPStatus.OK:
-        session.pop("dining_session_id", None)
-        customer_ref = session.pop("customer_ref", None)
         if customer_ref:
-            clear_customer_ref(customer_ref)
-        session.modified = True
-        
+
     actual_data = response_data.get("data", response_data)
     return jsonify(actual_data), status
 
@@ -128,7 +108,9 @@ def modify_order_endpoint(order_id: int):
     Allow customers to modify their orders (only before waiter accepts).
     """
     payload = request.get_json(silent=True) or {}
-    response_data, status = forward_to_api("POST", f"/orders/{order_id}/modify", payload)
+    response_data, status = forward_to_api(
+        "POST", f"/orders/{order_id}/modify", payload
+    )
     actual_data = response_data.get("data", response_data)
     return jsonify(actual_data), status
 
@@ -137,7 +119,9 @@ def modify_order_endpoint(order_id: int):
 def approve_modification_endpoint(modification_id: int):
     """Allow customers to approve waiter-initiated modifications."""
     payload = request.get_json(silent=True) or {}
-    response_data, status = forward_to_api("POST", f"/modifications/{modification_id}/approve", payload)
+    response_data, status = forward_to_api(
+        "POST", f"/modifications/{modification_id}/approve", payload
+    )
     actual_data = response_data.get("data", response_data)
     return jsonify(actual_data), status
 
@@ -146,7 +130,9 @@ def approve_modification_endpoint(modification_id: int):
 def reject_modification_endpoint(modification_id: int):
     """Allow customers to reject waiter-initiated modifications."""
     payload = request.get_json(silent=True) or {}
-    response_data, status = forward_to_api("POST", f"/modifications/{modification_id}/reject", payload)
+    response_data, status = forward_to_api(
+        "POST", f"/modifications/{modification_id}/reject", payload
+    )
     actual_data = response_data.get("data", response_data)
     return jsonify(actual_data), status
 
@@ -271,7 +257,7 @@ def validate_current_session():
 
     Returns current session state if valid, or 404 if no active session.
     """
-    session_id = session.get("dining_session_id")
+    session_id = user.get("session_id") if user else None
 
     if not session_id:
         _debug("validate_current_session no session in Flask session")
@@ -285,15 +271,11 @@ def validate_current_session():
                     "validate_current_session not found in DB", session_id=session_id
                 )
                 # Clear invalid session from Flask session
-                session.pop("dining_session_id", None)
-                customer_ref = session.pop("customer_ref", None)
                 if customer_ref:
-                    clear_customer_ref(customer_ref)
-                session.modified = True
                 return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
 
             # Check if session is finished
-            finished_statuses = ["closed", "paid", "billed", "cancelled"]
+            finished_statuses = ["closed", "paid", "cancelled"]
             if session_obj.status in finished_statuses:
                 _debug(
                     "validate_current_session finished",
@@ -301,11 +283,7 @@ def validate_current_session():
                     status=session_obj.status,
                 )
                 # Clear finished session from Flask session
-                session.pop("dining_session_id", None)
-                customer_ref = session.pop("customer_ref", None)
                 if customer_ref:
-                    clear_customer_ref(customer_ref)
-                session.modified = True
                 return jsonify({"error": "Sesión finalizada"}), HTTPStatus.GONE
 
             customer = (
@@ -399,7 +377,9 @@ def request_order_check(order_id: int):
     This allows customers to pay for orders individually in a multi-order session.
     """
     payload = request.get_json(silent=True) or {}
-    response_data, status = forward_to_api("POST", f"/orders/{order_id}/request-check", payload)
+    response_data, status = forward_to_api(
+        "POST", f"/orders/{order_id}/request-check", payload
+    )
     actual_data = response_data.get("data", response_data)
     return jsonify(actual_data), status
 
@@ -589,7 +569,7 @@ def get_session_timeout(session_id: int):
     """
     from datetime import datetime, timedelta
 
-    finished_statuses = {"closed", "paid", "billed", "cancelled"}
+    finished_statuses = {"closed", "paid", "cancelled"}
 
     try:
         with get_session() as db_session:

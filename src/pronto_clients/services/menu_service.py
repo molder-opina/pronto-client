@@ -8,12 +8,13 @@ from datetime import datetime
 
 from flask import current_app
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from pronto_shared.db import get_session
 from pronto_shared.models import (
     MenuCategory,
     MenuItem,
+    ModifierGroup,
+    Modifier,
 )
 from pronto_shared.services.day_period_service import DayPeriodService
 
@@ -21,24 +22,11 @@ from pronto_shared.services.day_period_service import DayPeriodService
 def _is_item_available_by_schedule(item: MenuItem) -> bool:
     """
     Check if item is available based on schedule.
+    Note: Schedule-based availability is temporarily disabled due to schema mismatch.
     """
     if not item.is_available:
         return False
-
-    if not item.schedules or len(item.schedules) == 0:
-        return True
-
-    current_time = datetime.utcnow().time()
-    current_time_str = current_time.strftime("%H:%M")
-
-    for schedule in item.schedules:
-        start_time = schedule.start_time.strftime("%H:%M")
-        end_time = schedule.end_time.strftime("%H:%M")
-
-        if start_time <= current_time_str <= end_time:
-            return True
-
-    return False
+    return True
 
 
 def _get_current_period(periods: list) -> str:
@@ -51,15 +39,78 @@ def _get_current_period(periods: list) -> str:
     current_hour = datetime.utcnow().hour
 
     for period in periods:
-        start_parts = period["start_time"].split(":")
-        end_parts = period["end_time"].split(":")
-        start_hour = int(start_parts[0])
-        end_hour = int(end_parts[0])
+        start_time = period["start_time"]
+        end_time = period["end_time"]
+
+        # Handle both string and datetime.time objects
+        if hasattr(start_time, "hour"):
+            start_hour = start_time.hour
+        else:
+            start_hour = int(start_time.split(":")[0])
+
+        if hasattr(end_time, "hour"):
+            end_hour = end_time.hour
+        else:
+            end_hour = int(end_time.split(":")[0])
 
         if start_hour <= current_hour < end_hour:
             return period["key"]
 
     return periods[0]["key"] if periods else "morning"
+
+
+def _get_modifier_groups_for_item(session, item_id: str) -> list:
+    """
+    Get modifier groups for a menu item using direct query.
+    Uses the actual DB schema where modifier_groups has menu_item_id column.
+    """
+    from sqlalchemy import text
+
+    query = text("""
+        SELECT mg.id, mg.name, mg.description, mg.min_selections,
+               mg.max_selections, mg.is_required
+        FROM pronto_modifier_groups mg
+        WHERE mg.menu_item_id = :item_id
+    """)
+
+    result = session.execute(query, {"item_id": item_id}).fetchall()
+
+    groups = []
+    for row in result:
+        modifiers_query = text("""
+            SELECT id, name, price_adjustment, is_available
+            FROM pronto_modifiers
+            WHERE group_id = :group_id
+        """)
+        modifiers = session.execute(
+            modifiers_query, {"group_id": str(row.id)}
+        ).fetchall()
+
+        groups.append(
+            {
+                "id": str(row.id),
+                "name": row.name,
+                "description": row.description,
+                "min_selection": row.min_selections,
+                "max_selection": row.max_selections,
+                "is_required": row.is_required,
+                "display_order": 0,
+                "modifiers": [
+                    {
+                        "id": str(mod.id),
+                        "name": mod.name,
+                        "price_adjustment": float(mod.price_adjustment)
+                        if mod.price_adjustment
+                        else 0,
+                        "is_available": mod.is_available,
+                        "display_order": 0,
+                    }
+                    for mod in modifiers
+                ],
+            }
+        )
+
+    return groups
 
 
 def fetch_menu() -> dict:
@@ -83,15 +134,15 @@ def fetch_menu() -> dict:
         payload = []
         for category in categories:
             # Skip Debug category in production
-            if "debug" in category.name.lower() and not current_app.config.get("DEBUG", False):
+            if "debug" in category.name.lower() and not current_app.config.get(
+                "DEBUG", False
+            ):
                 continue
 
             # Load items for this category
             items = (
                 session.execute(
-                    select(MenuItem)
-                    .options(selectinload(MenuItem.modifier_groups))
-                    .where(MenuItem.category_id == category.id)
+                    select(MenuItem).where(MenuItem.category_id == category.id)
                 )
                 .scalars()
                 .all()
@@ -108,8 +159,14 @@ def fetch_menu() -> dict:
                 is_recommended = False
                 if current_period in ["breakfast", "afternoon", "night"]:
                     if (
-                        (current_period == "breakfast" and item.is_breakfast_recommended)
-                        or (current_period == "afternoon" and item.is_afternoon_recommended)
+                        (
+                            current_period == "breakfast"
+                            and item.is_breakfast_recommended
+                        )
+                        or (
+                            current_period == "afternoon"
+                            and item.is_afternoon_recommended
+                        )
                         or (current_period == "night" and item.is_night_recommended)
                     ):
                         is_recommended = True
@@ -129,30 +186,9 @@ def fetch_menu() -> dict:
                         "is_afternoon_recommended": is_recommended,
                         "is_night_recommended": is_recommended,
                         "recommendation_periods": [],
-                        "modifier_groups": [
-                            {
-                                "id": mg.modifier_group.id,
-                                "name": mg.modifier_group.name,
-                                "description": mg.modifier_group.description,
-                                "min_selection": mg.modifier_group.min_selection,
-                                "max_selection": mg.modifier_group.max_selection,
-                                "is_required": mg.modifier_group.is_required,
-                                "display_order": mg.display_order,
-                                "modifiers": [
-                                    {
-                                        "id": mod.id,
-                                        "name": mod.name,
-                                        "price_adjustment": float(mod.price_adjustment),
-                                        "is_available": mod.is_available,
-                                        "display_order": mod.display_order,
-                                    }
-                                    for mod in sorted(
-                                        mg.modifier_group.modifiers, key=lambda m: m.display_order
-                                    )
-                                ],
-                            }
-                            for mg in sorted(item.modifier_groups, key=lambda x: x.display_order)
-                        ],
+                        "modifier_groups": _get_modifier_groups_for_item(
+                            session, str(item.id)
+                        ),
                     }
                 )
 
@@ -171,9 +207,7 @@ def fetch_menu() -> dict:
             # Load items for this category
             items = (
                 session.execute(
-                    select(MenuItem)
-                    .options(selectinload(MenuItem.modifier_groups))
-                    .where(MenuItem.category_id == category.id)
+                    select(MenuItem).where(MenuItem.category_id == category.id)
                 )
                 .scalars()
                 .all()
@@ -190,8 +224,14 @@ def fetch_menu() -> dict:
                 is_recommended = False
                 if current_period in ["breakfast", "afternoon", "night"]:
                     if (
-                        (current_period == "breakfast" and item.is_breakfast_recommended)
-                        or (current_period == "afternoon" and item.is_afternoon_recommended)
+                        (
+                            current_period == "breakfast"
+                            and item.is_breakfast_recommended
+                        )
+                        or (
+                            current_period == "afternoon"
+                            and item.is_afternoon_recommended
+                        )
                         or (current_period == "night" and item.is_night_recommended)
                     ):
                         is_recommended = True
