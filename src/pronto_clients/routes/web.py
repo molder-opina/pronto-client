@@ -50,6 +50,7 @@ def home():
         debug_auto_table=debug_auto_table,
         customer_data=customer_data,
         available_tables=available_tables,
+        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
     )
 
 
@@ -65,6 +66,7 @@ def checkout():
         "checkout.html",
         debug_auto_table=debug_auto_table,
         customer_data=customer_data,
+        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
     )
 
 
@@ -79,6 +81,7 @@ def menu_alt():
         "index-alt.html",
         debug_auto_table=debug_auto_table,
         customer_data=customer_data,
+        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
     )
 
 
@@ -212,4 +215,5 @@ def feedback_form():
         session_id=session_id,
         employee_id=employee_id,
         feedback_api_base_url=current_app.config.get("EMPLOYEE_API_BASE_URL"),
+        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
     )

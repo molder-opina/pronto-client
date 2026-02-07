@@ -1040,6 +1040,11 @@
     window.APP_SESSION = { customer: {{ customer_data | tojson | safe }} };
   </script>
   {% endif %}
+
+  <!-- API Base URL Configuration -->
+  <script>
+    window.API_BASE = "{{ api_base_url|default('http://localhost:6082') }}";
+  </script>
 </head>
 
 <body>

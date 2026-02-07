@@ -391,7 +391,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     // Load hours if not already loaded
     if (!businessHoursData) {
       try {
-        const response = await fetch('/api/business-info');
+        const response = await fetch(`${window.API_BASE}/api/business-info`);
         const data = await response.json();
 
         if (data.schedule) {
@@ -600,7 +600,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
     const loadTableOptions = () => {
       if (tableOptionsPromise) return tableOptionsPromise;
-      tableOptionsPromise = fetch('/api/tables', {
+      tableOptionsPromise = fetch(`${window.API_BASE}/api/tables`, {
         method: 'GET',
         credentials: 'same-origin',
         headers: { Accept: 'application/json' },

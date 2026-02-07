@@ -35,6 +35,7 @@ from pronto_shared.services.secret_service import (
 
 _ROUTES_ONLY_ENV = "PRONTO_ROUTES_ONLY"
 
+
 def _is_routes_only() -> bool:
     return (os.getenv(_ROUTES_ONLY_ENV) or "").strip() == "1"
 
@@ -78,19 +79,11 @@ def init_runtime(app: Flask, config) -> None:
         )
 
     # Explicitly exempt nested blueprints from CSRF
-    from pronto_clients.routes.api.auth import auth_bp
-    from pronto_clients.routes.api.feedback import feedback_bp
-    from pronto_clients.routes.api.orders import orders_bp
     from pronto_clients.routes.api.payments import payments_bp
-    from pronto_clients.routes.api.sessions import sessions_bp
     from pronto_clients.routes.api.stripe_payments import stripe_payments_bp
 
     csrf_protection.exempt(api_bp)
-    csrf_protection.exempt(auth_bp)
-    csrf_protection.exempt(orders_bp)
     csrf_protection.exempt(stripe_payments_bp)
-    csrf_protection.exempt(sessions_bp)
-    csrf_protection.exempt(feedback_bp)
     csrf_protection.exempt(payments_bp)
 
     # Configure CORS with secure defaults
@@ -258,6 +251,11 @@ def create_app() -> Flask:
     app.config["AUTO_READY_QUICK_SERVE"] = config.auto_ready_quick_serve
     app.config["EMPLOYEE_API_BASE_URL"] = os.getenv(
         "PRONTO_EMPLOYEES_BASE_URL", ""
+    ).strip()
+
+    # API base URL for browser direct access to pronto-api (6082)
+    app.config["API_BASE_URL"] = os.getenv(
+        "PRONTO_API_BASE_URL", "http://localhost:6082"
     ).strip()
 
     init_runtime(app, config)
