@@ -388,6 +388,17 @@
 
 <script>
   const employeesBaseUrl = '{{ employees_base_url }}';
+
+  // ============ CSRF FETCH WRAPPER ============
+  async function csrfFetch(url, options = {}) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const headers = { ...options.headers };
+    if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+    }
+    return fetch(url, { ...options, headers, credentials: 'include' });
+  }
+
   // ============ UTILIDADES ============
   function toggleDebugMenu() {
     const menu = document.getElementById('debug-menu');
@@ -629,7 +640,7 @@
       const data = await res.json();
       const activeOrder = data.orders?.find((o) => o.status !== 'delivered');
       if (activeOrder) {
-        await fetch(`${window.API_BASE}/api/debug/orders/${activeOrder.order_id}/advance`, { method: 'POST' });
+        await csrfFetch(`${window.API_BASE}/api/debug/orders/${activeOrder.order_id}/advance`, { method: 'POST' });
         showStatus(`✅ Orden #${activeOrder.order_id} avanzada`, 'success');
         setTimeout(() => location.reload(), 1000);
       } else {
@@ -658,7 +669,7 @@
       }
 
       for (const order of activeOrders) {
-        await fetch(`${window.API_BASE}/api/debug/orders/${order.order_id}/advance`, { method: 'POST' });
+        await csrfFetch(`${window.API_BASE}/api/debug/orders/${order.order_id}/advance`, { method: 'POST' });
         await new Promise((r) => setTimeout(r, 200));
       }
 
