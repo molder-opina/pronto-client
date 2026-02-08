@@ -602,7 +602,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
       if (tableOptionsPromise) return tableOptionsPromise;
       tableOptionsPromise = fetch(`${window.API_BASE}/api/tables`, {
         method: 'GET',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { Accept: 'application/json' },
       })
         .then((response) => (response.ok ? response.json() : null))

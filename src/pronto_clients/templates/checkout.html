@@ -712,7 +712,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         const response = await fetch(`${window.API_BASE}/api/orders`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
+          credentials: 'include',
           body: JSON.stringify(payload),
         });
 
@@ -738,7 +738,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             await fetch(`${window.API_BASE}/api/orders/send-confirmation`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              credentials: 'same-origin',
+              credentials: 'include',
               body: JSON.stringify({
                 order_id: data.order_id,
                 email: customerEmail,

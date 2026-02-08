@@ -632,7 +632,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         if (tableOptionsPromise) return tableOptionsPromise;
         tableOptionsPromise = fetch(`${window.API_BASE}/api/tables`, {
           method: 'GET',
-          credentials: 'same-origin',
+          credentials: 'include',
           headers: { Accept: 'application/json' },
         })
           .then((response) => (response.ok ? response.json() : null))
