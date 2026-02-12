@@ -8,6 +8,7 @@ from http import HTTPStatus
 from flask import Blueprint, current_app, jsonify, request
 
 from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
+from pronto_shared.services.waiter_table_assignment_service import get_table_assignment
 from pronto_shared.supabase.realtime import emit_waiter_call
 
 waiter_calls_bp = Blueprint("client_waiter_calls", __name__)
@@ -20,7 +21,6 @@ def call_waiter():
     This creates a WaiterCall record that tracks the status and confirmation.
     """
     from sqlalchemy import and_, select
-    from sqlalchemy.orm import joinedload
 
     from pronto_shared.db import get_session
     from pronto_shared.models import (
@@ -37,7 +37,9 @@ def call_waiter():
     session_id = payload.get("session_id")
 
     if not table_number:
-        return jsonify({"error": "El número de mesa es requerido"}), HTTPStatus.BAD_REQUEST
+        return jsonify(
+            {"error": "El número de mesa es requerido"}
+        ), HTTPStatus.BAD_REQUEST
 
     if len(table_number) > 32:
         return jsonify({"error": "Número de mesa inválido"}), HTTPStatus.BAD_REQUEST
@@ -90,27 +92,16 @@ def call_waiter():
                 if session_id:
                     dining_session = session.get(DiningSession, session_id)
                     if dining_session:
-                        waiter_id, waiter_name = get_waiter_assignment_from_dining_session(
-                            dining_session
+                        waiter_id, waiter_name = (
+                            get_waiter_assignment_from_dining_session(dining_session)
                         )
 
                 # Intentar por asignación de mesa si no hay mesero aún
                 if not waiter_id:
-                    assignment = (
-                        session.execute(
-                            select(WaiterTableAssignment)
-                            .options(joinedload(WaiterTableAssignment.waiter))
-                            .where(
-                                WaiterTableAssignment.table_id == table_id,
-                                WaiterTableAssignment.is_active == True,  # noqa: E712
-                            )
-                        )
-                        .scalars()
-                        .first()
-                    )
-                    if assignment and assignment.waiter:
-                        waiter_id = assignment.waiter_id
-                        waiter_name = assignment.waiter.name
+                    table_assignment = get_table_assignment(table_id)
+                    if table_assignment:
+                        waiter_id = table_assignment.get("waiter_id")
+                        waiter_name = table_assignment.get("waiter_name")
 
                 emit_waiter_call(
                     call_id=recent_call.id,
@@ -124,7 +115,9 @@ def call_waiter():
                     created_at=recent_call.created_at,
                 )
             except Exception as emit_error:
-                current_app.logger.warning(f"Error re-emitting waiter call: {emit_error}")
+                current_app.logger.warning(
+                    f"Error re-emitting waiter call: {emit_error}"
+                )
 
             return jsonify(
                 {"message": "Llamada reenviada", "call_id": recent_call.id}
@@ -145,21 +138,10 @@ def call_waiter():
         # Resolver mesero asignado (sesión o asignación de mesa)
         waiter_id, waiter_name = get_waiter_assignment_from_db(session, session_id)
         if not waiter_id:
-            assignment = (
-                session.execute(
-                    select(WaiterTableAssignment)
-                    .options(joinedload(WaiterTableAssignment.waiter))
-                    .where(
-                        WaiterTableAssignment.table_id == table_id,
-                        WaiterTableAssignment.is_active == True,  # noqa: E712
-                    )
-                )
-                .scalars()
-                .first()
-            )
-            if assignment and assignment.waiter:
-                waiter_id = assignment.waiter_id
-                waiter_name = assignment.waiter.name
+            table_assignment = get_table_assignment(table_id)
+            if table_assignment:
+                waiter_id = table_assignment.get("waiter_id")
+                waiter_name = table_assignment.get("waiter_name")
 
         recipient_type = "employee" if waiter_id else "all_waiters"
         notification = Notification(
@@ -176,7 +158,9 @@ def call_waiter():
         # Si no hay mesero asignado, alertar a administradores tras N minutos sin asignación
         if not waiter_id:
             try:
-                from pronto_shared.services.business_config_service import get_config_value
+                from pronto_shared.services.business_config_service import (
+                    get_config_value,
+                )
 
                 minutes_cfg = get_config_value("unassigned_table_alert_minutes", "5")
                 alert_minutes = int(minutes_cfg) if str(minutes_cfg).isdigit() else 5
@@ -200,7 +184,9 @@ def call_waiter():
                 if last_assignment
                 else table_created_at
             )
-            if base_time and (datetime.utcnow() - base_time) > timedelta(minutes=alert_minutes):
+            if base_time and (datetime.utcnow() - base_time) > timedelta(
+                minutes=alert_minutes
+            ):
                 admin_notification = Notification(
                     notification_type="table_unassigned",
                     recipient_type="admin",
@@ -238,7 +224,9 @@ def call_waiter():
         created_at=waiter_call_created_at,
     )
 
-    return jsonify({"success": True, "call_id": call_id, "message": "Mesero notificado"}), 200
+    return jsonify(
+        {"success": True, "call_id": call_id, "message": "Mesero notificado"}
+    ), 200
 
 
 @waiter_calls_bp.get("/call-waiter/status/<int:call_id>")

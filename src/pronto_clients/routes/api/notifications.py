@@ -12,14 +12,19 @@ notifications_bp = Blueprint("client_notifications", __name__)
 
 @notifications_bp.get("/notifications")
 def get_notifications():
-    """Get unread notifications for the current user."""
+    """Get unread notifications for the current authenticated user."""
     from sqlalchemy import select
 
     from pronto_shared.db import get_session
+    from pronto_shared.jwt_middleware import get_current_user
     from pronto_shared.models import Notification
 
-    # Session ID now comes from JWT claims via get_current_user() if needed
-    # For now, using request args
+    current_user = get_current_user()
+    customer_id = current_user.get("customer_id") if current_user else None
+
+    if not customer_id:
+        return jsonify({"error": "Authentication required"}), HTTPStatus.UNAUTHORIZED
+
     recipient_type = request.args.get("recipient_type", "customer")
 
     with get_session() as db_session:
@@ -27,6 +32,7 @@ def get_notifications():
             select(Notification)
             .where(
                 Notification.recipient_type == recipient_type,
+                Notification.recipient_id == customer_id,
                 Notification.status == "unread",
             )
             .order_by(Notification.created_at.desc())

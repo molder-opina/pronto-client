@@ -15,6 +15,7 @@ from pronto_clients.routes.api.business_info import business_info_bp
 from pronto_clients.routes.api.feedback_email import feedback_email_bp
 from pronto_clients.routes.api.health import health_bp
 from pronto_clients.routes.api.notifications import notifications_bp
+from pronto_clients.routes.api.orders import orders_bp
 from pronto_clients.routes.api.payments import payments_bp
 from pronto_clients.routes.api.shortcuts import shortcuts_bp
 from pronto_clients.routes.api.split_bills import split_bills_bp
@@ -33,5 +34,6 @@ api_bp.register_blueprint(business_info_bp)
 api_bp.register_blueprint(feedback_email_bp)
 api_bp.register_blueprint(shortcuts_bp)
 api_bp.register_blueprint(stripe_payments_bp)
+api_bp.register_blueprint(orders_bp)
 
 __all__ = ["api_bp"]

@@ -465,8 +465,10 @@ def get_split_summary(split_id: int):
 @split_bills_bp.post("/split-bills/<int:split_id>/people/<int:person_id>/pay")
 def pay_split_person(split_id: int, person_id: int):
     """Process payment for an individual person in a split bill."""
+    from http import HTTPStatus
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill, SplitBillPerson
+    from pronto_shared.services.order_service import finalize_payment
 
     try:
         payload = request.get_json(silent=True) or {}
@@ -530,21 +532,22 @@ def pay_split_person(split_id: int, person_id: int):
                 split_bill.completed_at = datetime.now(timezone.utc)
 
                 dining_session = split_bill.session
-                dining_session.status = "closed"
-                dining_session.closed_at = datetime.now(timezone.utc)
-                dining_session.payment_method = "split_bill"
-                dining_session.payment_reference = f"split-{split_id}"
+                payment_reference_final = f"split-{split_id}"
 
-                total_paid = sum(
-                    Decimal(str(p.total_amount)) for p in split_bill.people
+                finalize_result, finalize_status = finalize_payment(
+                    session_id=str(dining_session.id),
+                    payment_method="split_bill",
+                    payment_reference=payment_reference_final,
                 )
-                dining_session.total_paid = float(total_paid)
-
-                for order in dining_session.orders:
-                    order.payment_status = "paid"
-                    order.payment_method = "split_bill"
-                    order.payment_reference = f"split-{split_id}"
-                    order.paid_at = datetime.now(timezone.utc)
+                if finalize_status != HTTPStatus.OK:
+                    db_session.rollback()
+                    return jsonify(
+                        {
+                            "error": finalize_result.get(
+                                "error", "Error al finalizar pago"
+                            )
+                        }
+                    ), int(finalize_status)
 
             db_session.commit()
 

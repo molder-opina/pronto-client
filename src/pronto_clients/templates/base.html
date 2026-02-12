@@ -1025,15 +1025,27 @@
   </style>
   <script>
     window.APP_SETTINGS = {{ app_settings | tojson | safe }};
-    window.APP_CONFIG = {
-      'app_name': '{{ app_name }}',
-      'restaurant_name': '{{ restaurant_name }}',
-      'restaurant_assets': '{{ restaurant_assets }}',
-      'static_host_url': '{{ static_host_url }}',
-      'current_year': '{{ current_year }}',
-      'debug_mode': '{{ debug_mode }}' === 'True',
-      'server_time': '{{ server_time }}'
-    };
+    
+    // Immutable Configuration - Protection against legacy overwrites
+    (function() {
+      const config = {
+        'app_name': '{{ app_name }}',
+        'restaurant_name': '{{ restaurant_name }}',
+        'restaurant_assets': '{{ restaurant_assets }}',
+        'static_host_url': '{{ static_host_url }}',
+        'current_year': '{{ current_year }}',
+        'debug_mode': '{{ debug_mode }}' === 'True',
+        'server_time': '{{ server_time }}'
+      };
+      
+      Object.defineProperty(window, 'APP_CONFIG', {
+        value: Object.freeze(config),
+        writable: false,
+        configurable: false
+      });
+      
+      console.log('[Config] Initialized immutable APP_CONFIG');
+    })();
   </script>
   {% if customer_data is defined %}
   <script>
@@ -3385,23 +3397,6 @@
 
   <script defer src="{{ assets_js }}/shared/bindings.js"></script>
   <script>
-  // FORCE CONFIG RESTORATION - FIX FOR LEGACY OVERWRITE
-  (function () {
-    if (!window.APP_CONFIG) window.APP_CONFIG = {};
-
-    // Restore values that might have been lost
-    if (!window.APP_CONFIG.static_host_url) {
-      window.APP_CONFIG.static_host_url = '{{ static_host_url }}';
-    }
-
-    // Ensure restaurant assets are correct
-    if (!window.APP_CONFIG.restaurant_assets || window.APP_CONFIG.restaurant_assets.includes('undefined')) {
-      window.APP_CONFIG.restaurant_assets = '{{ restaurant_assets }}';
-    }
-
-    console.log('[Config Fixer] Restored APP_CONFIG:', window.APP_CONFIG);
-  })();
-
   document.addEventListener('DOMContentLoaded', () => {
     if (window.Lucide && window.Lucide.createIcons) {
       window.Lucide.createIcons({ icons: window.Lucide.icons });

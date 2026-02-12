@@ -78,15 +78,7 @@ def init_runtime(app: Flask, config) -> None:
             x_port=num_proxies,
         )
 
-    # Explicitly exempt nested blueprints from CSRF (JWT auth, no CSRF needed)
-    from pronto_clients.routes.api.feedback_email import feedback_email_bp
-    from pronto_clients.routes.api.payments import payments_bp
-    from pronto_clients.routes.api.stripe_payments import stripe_payments_bp
-
-    csrf_protection.exempt(api_bp)
-    csrf_protection.exempt(feedback_email_bp)
-    csrf_protection.exempt(stripe_payments_bp)
-    csrf_protection.exempt(payments_bp)
+    # API Blueprints protected by CSRF (handled by frontend requestJSON wrapper)
 
     # Configure CORS with secure defaults
     raw_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
