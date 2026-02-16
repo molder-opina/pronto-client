@@ -26,7 +26,7 @@ def _get_authenticated_customer() -> dict | None:
         return None
 
 
-@payments_bp.post("/sessions/<int:session_id>/request-payment")
+@payments_bp.post("/sessions/<uuid:session_id>/request-payment")
 @customer_session_required
 def request_payment(session_id):
     """
@@ -237,7 +237,7 @@ def confirm_tip():
         ), HTTPStatus.OK
 
 
-@payments_bp.post("/sessions/<int:session_id>/checkout")
+@payments_bp.post("/sessions/<uuid:session_id>/checkout")
 @customer_session_required
 def request_session_checkout(session_id):
     """Request checkout for a dining session."""
@@ -322,7 +322,7 @@ def request_session_checkout(session_id):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@payments_bp.post("/session/<int:session_id>/request-check")
+@payments_bp.post("/session/<uuid:session_id>/request-check")
 @customer_session_required
 def request_check(session_id):
     """Request check/bill for a dining session."""
@@ -387,7 +387,7 @@ def request_check(session_id):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@payments_bp.get("/session/<int:session_id>/validate")
+@payments_bp.get("/session/<uuid:session_id>/validate")
 @customer_session_required
 def validate_session(session_id):
     """Validate if a session exists and return its basic info for client-side validation."""
@@ -441,7 +441,7 @@ def validate_session(session_id):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@payments_bp.get("/session/<int:session_id>/orders")
+@payments_bp.get("/session/<uuid:session_id>/orders")
 @customer_session_required
 def get_session_orders(session_id):
     """Get all orders for a specific session with their items and status."""
