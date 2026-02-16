@@ -8,6 +8,9 @@ from pronto_shared.services.order_service import (
 )
 from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
 from pronto_shared.supabase.realtime import emit_waiter_call
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 payments_bp = Blueprint("client_payments", __name__)
 
@@ -128,8 +131,11 @@ def request_payment(session_id):
         )
         waiter_id, waiter_name = get_waiter_assignment_from_db(db_session, session_id)
 
-    current_app.logger.info(
-        f"Payment requested for session {session_id}, table {table_number}, method={payment_method}, call_id={call_id}"
+    logger.info(
+        f"Payment requested for session {session_id}",
+        table=table_number,
+        method=payment_method,
+        call_id=call_id
     )
 
     emit_waiter_call(
@@ -221,9 +227,10 @@ def confirm_tip():
 
         db_session.commit()
 
-        current_app.logger.info(
-            f"Tip confirmed: session_id={session_id}, tip_amount={tip_amount}, "
-            f"new_total={dining_session.total_amount}"
+        logger.info(
+            f"Tip confirmed: session_id={session_id}",
+            tip_amount=float(tip_amount),
+            new_total=float(dining_session.total_amount)
         )
 
         return jsonify(
@@ -316,7 +323,7 @@ def request_session_checkout(session_id):
         return jsonify(response_data), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error requesting checkout: {e}", exc_info=True)
+        logger.error("Error requesting checkout", error={"exception": str(e), "traceback": True})
         return jsonify(
             {"error": "Error al solicitar cuenta"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -381,7 +388,7 @@ def request_check(session_id):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error requesting check: {e}", exc_info=True)
+        logger.error("Error requesting check", error={"exception": str(e), "traceback": True})
         return jsonify(
             {"error": "Error al solicitar cuenta"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -435,7 +442,7 @@ def validate_session(session_id):
                 }
             )
     except Exception as e:
-        current_app.logger.error(f"[VALIDATE SESSION] Error: {e}")
+        logger.error("Error validating session", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al validar sesión"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -577,7 +584,7 @@ def get_session_orders(session_id):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error fetching session orders: {e}")
+        logger.error("Error fetching session orders", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al obtener pedidos"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR

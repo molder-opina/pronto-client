@@ -12,6 +12,9 @@ from pronto_shared.services.waiter_table_assignment_service import get_table_ass
 from pronto_shared.supabase.realtime import emit_waiter_call
 
 from pronto_shared.services.customer_session_store import customer_session_store
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 waiter_calls_bp = Blueprint("client_waiter_calls", __name__)
 
@@ -129,8 +132,8 @@ def call_waiter():
                     created_at=recent_call.created_at,
                 )
             except Exception as emit_error:
-                current_app.logger.warning(
-                    f"Error re-emitting waiter call: {emit_error}"
+                logger.warning(
+                    f"Error re-emitting waiter call", error={"exception": str(emit_error)}
                 )
 
             return jsonify(
@@ -223,8 +226,10 @@ def call_waiter():
             )
             waiter_id, waiter_name = get_waiter_assignment_from_db(session, session_id)
 
-    current_app.logger.info(
-        f"Waiter called from table {table_number}, session_id={session_id}, call_id={call_id}"
+    logger.info(
+        f"Waiter called from table {table_number}",
+        session_id=session_id,
+        call_id=call_id
     )
 
     emit_waiter_call(

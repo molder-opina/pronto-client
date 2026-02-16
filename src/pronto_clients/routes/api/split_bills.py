@@ -7,6 +7,9 @@ from decimal import ROUND_HALF_UP, Decimal
 from http import HTTPStatus
 
 from flask import Blueprint, current_app, jsonify, request, session
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 split_bills_bp = Blueprint("client_split_bills", __name__)
 
@@ -153,7 +156,7 @@ def create_split_bill(session_id: int):
             ), HTTPStatus.CREATED
 
     except Exception as e:
-        current_app.logger.error(f"Error creating split bill: {e}")
+        logger.error("Error creating split bill", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al crear división de cuenta"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -228,7 +231,7 @@ def get_split_bill(split_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error fetching split bill: {e}")
+        logger.error("Error fetching split bill", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al obtener división"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -347,7 +350,7 @@ def assign_item_to_person(split_id: int):
             ), HTTPStatus.CREATED
 
     except Exception as e:
-        current_app.logger.error(f"Error assigning item: {e}")
+        logger.error("Error assigning item", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al asignar item"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -419,7 +422,7 @@ def calculate_split_totals(split_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error calculating split totals: {e}")
+        logger.error("Error calculating split totals", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al calcular totales"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -484,7 +487,7 @@ def get_split_summary(split_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error fetching split summary: {e}")
+        logger.error("Error fetching split summary", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al obtener resumen"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -597,7 +600,7 @@ def pay_split_person(split_id: int, person_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error processing split payment: {e}")
+        logger.error("Error processing split payment", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al procesar pago"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR

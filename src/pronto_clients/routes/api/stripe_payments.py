@@ -12,6 +12,9 @@ from pronto_shared.services.customer_session_store import (
     RedisUnavailableError,
 )
 from pronto_shared.supabase.realtime import emit_waiter_call
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 stripe_payments_bp = Blueprint("client_stripe_payments", __name__)
 
@@ -95,10 +98,10 @@ def pay_with_stripe(session_id):
             ), HTTPStatus.OK
 
     except PaymentError as e:
-        current_app.logger.error(f"Stripe payment error: {e}")
+        logger.error("Stripe payment error", error={"exception": str(e)})
         return jsonify({"error": str(e)}), HTTPStatus.BAD_REQUEST
     except Exception as e:
-        current_app.logger.error(f"Error processing Stripe payment: {e}", exc_info=True)
+        logger.error("Error processing Stripe payment", error={"exception": str(e), "traceback": True})
         return jsonify(
             {"error": "Error al procesar pago con Stripe"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -182,8 +185,9 @@ def pay_with_clip(session_id):
                 created_at=waiter_call.created_at,
             )
 
-            current_app.logger.info(
-                f"Clip payment requested for session {session_id}, total={dining_session.total_amount}"
+            logger.info(
+                f"Clip payment requested for session {session_id}",
+                total=float(dining_session.total_amount)
             )
 
             return jsonify(
@@ -199,7 +203,7 @@ def pay_with_clip(session_id):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error processing Clip payment request: {e}", exc_info=True)
+        logger.error("Error processing Clip payment request", error={"exception": str(e), "traceback": True})
         return jsonify(
             {"error": "Error al procesar solicitud de pago"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR

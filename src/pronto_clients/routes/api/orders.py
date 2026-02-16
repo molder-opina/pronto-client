@@ -37,10 +37,15 @@ def _forward_to_api(method: str, endpoint: str, payload: dict | None = None) -> 
 
     api_base_url = os.getenv("PRONTO_API_INTERNAL_URL", "http://api:5000")
     customer_ref = _get_customer_ref()
-
+    
     headers = {"Content-Type": "application/json"}
     if customer_ref:
         headers["X-PRONTO-CUSTOMER-REF"] = customer_ref
+        
+    # Inject Internal Auth Secret for CSRF Bypass
+    internal_secret = os.getenv("PRONTO_INTERNAL_SECRET")
+    if internal_secret:
+        headers["X-Pronto-Internal-Auth"] = internal_secret
 
     try:
         body_str = json.dumps(payload) if payload else ""

@@ -14,6 +14,9 @@ from pronto_clients.utils.input_sanitizer import (
 )
 from pronto_shared.db import get_session
 from pronto_shared.models import SupportTicket
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 support_bp = Blueprint("client_support", __name__)
 
@@ -56,7 +59,7 @@ def create_support_ticket():
                 }
             ), HTTPStatus.CREATED
     except Exception as exc:
-        current_app.logger.error("Error creating support ticket: %s", exc, exc_info=True)
+        logger.error("Error creating support ticket", error={"exception": str(exc), "traceback": True})
         return jsonify(
             {"error": "No pudimos registrar tu reporte, intenta más tarde."}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
