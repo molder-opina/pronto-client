@@ -28,6 +28,15 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 # Copy Client Code
 COPY pronto-client/src/pronto_clients /opt/pronto/pronto_clients
 
+# Create non-root user for security (principle of least privilege)
+RUN groupadd -g 1000 appgroup && \
+    useradd -r -u 1000 -g appgroup -s /bin/bash -d /opt/app appuser && \
+    mkdir -p /opt/app && \
+    chown -R appuser:appgroup /opt/pronto
+
+# Switch to non-root user
+USER appuser
+
 ENV PYTHONPATH=/opt/pronto
 WORKDIR /opt/pronto/pronto_clients
 

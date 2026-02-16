@@ -5,16 +5,47 @@ Stripe and Clip payment endpoints for clients API.
 from decimal import Decimal
 from http import HTTPStatus
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, session
 
+from pronto_shared.services.customer_session_store import (
+    customer_session_store,
+    RedisUnavailableError,
+)
 from pronto_shared.supabase.realtime import emit_waiter_call
 
 stripe_payments_bp = Blueprint("client_stripe_payments", __name__)
 
 
+def _get_authenticated_customer() -> dict | None:
+    """Get authenticated customer from flask.session + Redis."""
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return None
+    try:
+        if customer_session_store.is_revoked(customer_ref):
+            session.pop("customer_ref", None)
+            return None
+        return customer_session_store.get_customer(customer_ref)
+    except RedisUnavailableError:
+        return None
+
+
+def _require_customer_auth():
+    """Require customer authentication. Returns error tuple or None."""
+    customer = _get_authenticated_customer()
+    if not customer:
+        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+    return None
+
+
 @stripe_payments_bp.post("/sessions/<int:session_id>/pay/stripe")
-def pay_with_stripe(session_id: int):
+def pay_with_stripe(session_id):
     """Process payment with Stripe for a dining session."""
+    # Require authentication
+    auth_error = _require_customer_auth()
+    if auth_error:
+        return auth_error
+
     from sqlalchemy import select
 
     from pronto_shared.db import get_session
@@ -74,8 +105,13 @@ def pay_with_stripe(session_id: int):
 
 
 @stripe_payments_bp.post("/sessions/<int:session_id>/pay/clip")
-def pay_with_clip(session_id: int):
+def pay_with_clip(session_id):
     """Register a Clip/Terminal payment request for a dining session."""
+    # Require authentication
+    auth_error = _require_customer_auth()
+    if auth_error:
+        return auth_error
+
     from sqlalchemy import select
 
     from pronto_shared.db import get_session

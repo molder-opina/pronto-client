@@ -5,11 +5,13 @@ Waiter call endpoints for clients API.
 from datetime import datetime, timedelta
 from http import HTTPStatus
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, session
 
 from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
 from pronto_shared.services.waiter_table_assignment_service import get_table_assignment
 from pronto_shared.supabase.realtime import emit_waiter_call
+
+from pronto_shared.services.customer_session_store import customer_session_store
 
 waiter_calls_bp = Blueprint("client_waiter_calls", __name__)
 
@@ -35,6 +37,18 @@ def call_waiter():
     payload = request.get_json(silent=True) or {}
     table_number = payload.get("table_number", "").strip()
     session_id = payload.get("session_id")
+
+    # Validate customer session
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+    try:
+        customer = customer_session_store.get_customer(customer_ref)
+        if not customer:
+            session.pop("customer_ref", None)
+            return jsonify({"error": "Sesión expirada"}), HTTPStatus.UNAUTHORIZED
+    except Exception:
+        pass
 
     if not table_number:
         return jsonify(
@@ -232,14 +246,18 @@ def call_waiter():
 @waiter_calls_bp.get("/call-waiter/status/<int:call_id>")
 def get_waiter_call_status(call_id):
     """Check the status of a waiter call."""
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+
     from sqlalchemy import select
 
     from pronto_shared.db import get_session
     from pronto_shared.models import WaiterCall
 
-    with get_session() as session:
+    with get_session() as db_session:
         waiter_call = (
-            session.execute(select(WaiterCall).where(WaiterCall.id == call_id))
+            db_session.execute(select(WaiterCall).where(WaiterCall.id == call_id))
             .scalars()
             .one_or_none()
         )
@@ -265,14 +283,18 @@ def get_waiter_call_status(call_id):
 @waiter_calls_bp.get("/notifications/waiter/status/<int:call_id>")
 def get_waiter_call_status_alt(call_id):
     """Check the status of a waiter call (notification status endpoint)."""
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+
     from sqlalchemy import select
 
     from pronto_shared.db import get_session
     from pronto_shared.models import WaiterCall
 
-    with get_session() as session:
+    with get_session() as db_session:
         waiter_call = (
-            session.execute(select(WaiterCall).where(WaiterCall.id == call_id))
+            db_session.execute(select(WaiterCall).where(WaiterCall.id == call_id))
             .scalars()
             .one_or_none()
         )

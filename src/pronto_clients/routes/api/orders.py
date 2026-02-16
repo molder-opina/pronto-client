@@ -1,91 +1,117 @@
 """
 Client BFF - Orders Blueprint.
-Wraps calls to pronto-api. Stateless, does not use flask.session.
+Proxies calls to pronto-api with customer_ref from Flask session.
 """
 
+import json
 import logging
 import requests
 from http import HTTPStatus
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, session
 
-from pronto_shared.services.dining_session_service import store_customer_ref
-from pronto_shared.jwt_middleware import jwt_required
 from pronto_shared.serializers import error_response, success_response
 
 orders_bp = Blueprint("client_orders_api", __name__)
 
 logger = logging.getLogger(__name__)
 
+
+def _get_customer_ref() -> str | None:
+    """Get customer_ref from Flask session."""
+    return session.get("customer_ref")
+
+
+def _clear_customer_session():
+    """Clear customer session data."""
+    session.pop("customer_ref", None)
+
+
+def _forward_to_api(method: str, endpoint: str, payload: dict | None = None) -> tuple:
+    """
+    Forward request to pronto-api with customer_ref header and HMAC signature.
+
+    Returns:
+        tuple: (response_json, status_code)
+    """
+    import os
+
+    api_base_url = os.getenv("PRONTO_API_INTERNAL_URL", "http://api:5000")
+    customer_ref = _get_customer_ref()
+
+    headers = {"Content-Type": "application/json"}
+    if customer_ref:
+        headers["X-PRONTO-CUSTOMER-REF"] = customer_ref
+
+    try:
+        body_str = json.dumps(payload) if payload else ""
+
+        from pronto_shared.internal_auth import (
+            create_internal_auth_headers,
+            is_internal_auth_enabled,
+        )
+
+        if is_internal_auth_enabled():
+            auth_headers = create_internal_auth_headers(method, endpoint, body_str)
+            headers.update(auth_headers)
+
+        url = f"{api_base_url}{endpoint}"
+
+        if method == "GET":
+            resp = requests.get(url, headers=headers, timeout=10)
+        elif method == "POST":
+            resp = requests.post(url, data=body_str, headers=headers, timeout=10)
+        elif method == "PUT":
+            resp = requests.put(url, data=body_str, headers=headers, timeout=10)
+        elif method == "DELETE":
+            resp = requests.delete(url, headers=headers, timeout=10)
+        else:
+            return {"error": "Invalid method"}, HTTPStatus.INTERNAL_SERVER_ERROR
+
+        if resp.status_code == HTTPStatus.UNAUTHORIZED:
+            _clear_customer_session()
+
+        try:
+            return resp.json(), resp.status_code
+        except Exception:
+            return {"error": "Invalid response from API"}, resp.status_code
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error communicating with pronto-api: {e}")
+        return {
+            "error": "Error de comunicacion con el servicio central"
+        }, HTTPStatus.SERVICE_UNAVAILABLE
+
+
 @orders_bp.post("/orders")
-@jwt_required
 def create_order():
     """
     Proxy to pronto-api for creating an order.
-    Stateless: does not store session info in flask.session.
+    Uses customer_ref from session for authentication.
     """
     payload = request.get_json(silent=True) or {}
-    api_base_url = current_app.config.get("API_BASE_URL", "http://localhost:6082")
-    
-    # Extract auth header to forward to pronto-api
-    auth_header = request.headers.get("Authorization")
-    headers = {"Content-Type": "application/json"}
-    if auth_header:
-        headers["Authorization"] = auth_header
-
-    try:
-        # 1. Forward request to pronto-api
-        resp = requests.post(
-            f"{api_base_url}/api/orders",
-            json=payload,
-            headers=headers,
-            timeout=10
-        )
-        
-        if resp.status_code != HTTPStatus.CREATED:
-            return jsonify(resp.json()), resp.status_code
-        
-        data = resp.json()
-        
-        # 2. Handle PII -> Redis ref (optional, for tracking without session)
-        customer_data = payload.get("customer")
-        if customer_data:
-            ref = store_customer_ref(customer_data)
-            logger.info(f"Stored customer PII reference {ref} in Redis")
-
-        return jsonify(data), HTTPStatus.CREATED
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error proxying order to pronto-api: {e}")
-        return jsonify(error_response("Error de comunicación con el servicio central")), HTTPStatus.SERVICE_UNAVAILABLE
-    except Exception as e:
-        logger.error(f"Unexpected error in client create_order: {e}", exc_info=True)
-        return jsonify(error_response("Error interno al procesar la orden")), HTTPStatus.INTERNAL_SERVER_ERROR
+    data, status = _forward_to_api("POST", "/api/customer/orders", payload)
+    return jsonify(data), status
 
 
 @orders_bp.get("/orders/current")
-@jwt_required
 def get_current_session_orders():
     """
-    Get all orders for a session. session_id must be provided as a query param.
+    Get all orders for a session.
+    Query params:
+        - session_id: Dining session ID (required)
     """
     session_id = request.args.get("session_id")
     if not session_id:
-        return jsonify(error_response("session_id query parameter is required")), HTTPStatus.BAD_REQUEST
+        return jsonify(
+            error_response("session_id query parameter is required")
+        ), HTTPStatus.BAD_REQUEST
 
-    api_base_url = current_app.config.get("API_BASE_URL", "http://localhost:6082")
-    auth_header = request.headers.get("Authorization")
-    headers = {}
-    if auth_header:
-        headers["Authorization"] = auth_header
+    data, status = _forward_to_api("GET", f"/api/orders?session_id={session_id}")
+    return jsonify(data), status
 
-    try:
-        # Call pronto-api to get orders filtered by session_id
-        resp = requests.get(
-            f"{api_base_url}/api/orders?session_id={session_id}",
-            headers=headers,
-            timeout=10
-        )
-        return jsonify(resp.json()), resp.status_code
-    except Exception as e:
-        logger.error(f"Error fetching orders from api: {e}")
-        return jsonify(error_response("Error al obtener historial")), HTTPStatus.INTERNAL_SERVER_ERROR
+
+@orders_bp.get("/orders/<int:order_id>")
+def get_order(order_id: int):
+    """Get a specific order by ID."""
+    data, status = _forward_to_api("GET", f"/api/orders/{order_id}")
+    return jsonify(data), status

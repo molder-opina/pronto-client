@@ -165,9 +165,9 @@
 </section>
 
 <script>
-  const FEEDBACK_API_BASE_URL =
-    "{{ feedback_api_base_url.rstrip('/') if feedback_api_base_url else '' }}";
-  const FEEDBACK_API_BASE = (FEEDBACK_API_BASE_URL || window.location.origin).replace(/\/$/, '');
+  // Use API from environment or default to employees API
+  const FEEDBACK_API_BASE_URL = "{{ feedback_api_base_url.rstrip('/') if feedback_api_base_url else '' }}";
+  const EMPLOYEES_API_BASE = (FEEDBACK_API_BASE_URL || window.API_BASE || window.location.origin).replace(/\/$/, '');
 
   // Star rating interaction
   document.querySelectorAll('.star-rating').forEach((container) => {
@@ -257,14 +257,14 @@
     }));
 
     try {
-      const response = await fetch(`${FEEDBACK_API_BASE}/api/feedback/bulk`, {
+      const response = await fetch(`${EMPLOYEES_API_BASE}/api/feedback/bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          session_id: parseInt(sessionId),
-          employee_id: employeeId ? parseInt(employeeId) : null,
+          session_id: sessionId,
+          employee_id: employeeId,
           feedback_items: feedbackItems,
           is_anonymous: isAnonymous,
         }),

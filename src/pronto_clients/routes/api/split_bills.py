@@ -6,9 +6,17 @@ from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from http import HTTPStatus
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, session
 
 split_bills_bp = Blueprint("client_split_bills", __name__)
+
+
+def _require_customer_ref():
+    """Check customer_ref in flask.session. Returns error tuple or None."""
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+    return None
 
 
 def _calculate_equal_split(session, split_bill_id: int, dining_session):
@@ -62,6 +70,10 @@ def _calculate_equal_split(session, split_bill_id: int, dining_session):
 @split_bills_bp.post("/sessions/<int:session_id>/split-bill")
 def create_split_bill(session_id: int):
     """Create a split bill for a dining session."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import DiningSession, SplitBill, SplitBillPerson
 
@@ -150,6 +162,10 @@ def create_split_bill(session_id: int):
 @split_bills_bp.get("/split-bills/<int:split_id>")
 def get_split_bill(split_id: int):
     """Get split bill details including all people and their assignments."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill
 
@@ -221,6 +237,10 @@ def get_split_bill(split_id: int):
 @split_bills_bp.post("/split-bills/<int:split_id>/assign")
 def assign_item_to_person(split_id: int):
     """Assign an order item to a person in the split."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import (
         OrderItem,
@@ -336,6 +356,10 @@ def assign_item_to_person(split_id: int):
 @split_bills_bp.post("/split-bills/<int:split_id>/calculate")
 def calculate_split_totals(split_id: int):
     """Recalculate totals for all people in the split based on their assignments."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill
 
@@ -404,6 +428,10 @@ def calculate_split_totals(split_id: int):
 @split_bills_bp.get("/split-bills/<int:split_id>/summary")
 def get_split_summary(split_id: int):
     """Get a summary of the split including session info and all people with their totals."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill
 
@@ -465,6 +493,10 @@ def get_split_summary(split_id: int):
 @split_bills_bp.post("/split-bills/<int:split_id>/people/<int:person_id>/pay")
 def pay_split_person(split_id: int, person_id: int):
     """Process payment for an individual person in a split bill."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from http import HTTPStatus
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill, SplitBillPerson

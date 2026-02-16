@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="kiosk-container" style="max-width: 800px; margin: 2rem auto; text-align: center; padding: 2rem;">
+  <div class="kiosk-header" style="margin-bottom: 3rem;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Bienvenido a {{ restaurant_name }}</h1>
+    <p style="color: var(--muted); font-size: 1.2rem;">Kiosk - {{ location }}</p>
+  </div>
+  
+  <div class="kiosk-message" style="background: var(--card-bg); padding: 2rem; border-radius: 16px; margin-bottom: 2rem;">
+    <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+      Toca el botón para comenzar tu pedido
+    </p>
+  </div>
+  
+  <button id="kiosk-start-btn" 
+          style="background: linear-gradient(135deg, #f97316 0%, #fb923c 100%); 
+                 color: white; 
+                 border: none; 
+                 padding: 1.5rem 3rem; 
+                 font-size: 1.5rem; 
+                 border-radius: 12px; 
+                 cursor: pointer; 
+                 box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+                 transition: transform 0.2s, box-shadow 0.2s;">
+    Comenzar Pedido
+  </button>
+  
+  <div id="kiosk-status" style="margin-top: 1rem; display: none;"></div>
+</div>
+
+<script>
+document.getElementById('kiosk-start-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('kiosk-start-btn');
+  const status = document.getElementById('kiosk-status');
+  
+  btn.disabled = true;
+  btn.textContent = 'Iniciando...';
+  status.style.display = 'block';
+  status.innerHTML = '<p style="color: var(--muted);">Cargando menú...</p>';
+  
+  try {
+    const response = await fetch('/kiosk/{{ location }}/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      status.innerHTML = '<p style="color: green;">¡Listo! Redirigiendo al menú...</p>';
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+    } else {
+      status.innerHTML = '<p style="color: red;">Error: ' + (data.error || 'Intente de nuevo') + '</p>';
+      btn.disabled = false;
+      btn.textContent = 'Comenzar Pedido';
+    }
+  } catch (error) {
+    status.innerHTML = '<p style="color: red;">Error de conexión. Intente de nuevo.</p>';
+    btn.disabled = false;
+    btn.textContent = 'Comenzar Pedido';
+  }
+});
+</script>
+{% endblock %}

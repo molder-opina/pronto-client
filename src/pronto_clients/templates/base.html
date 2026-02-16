@@ -1188,7 +1188,7 @@
       <!-- Logged In View -->
       <div id="profile-logged-in" class="profile-view" style="display: none">
         <div class="profile-header">
-          <img id="profile-modal-avatar" class="profile-modal-avatar" src="" alt="" />
+          <img id="profile-modal-avatar" class="profile-modal-avatar" src="{{ assets_images }}/default-avatar.png" alt="Avatar" />
           <h2 id="profile-name">Usuario</h2>
           <p id="profile-email" style="color: var(--muted)"></p>
         </div>
@@ -1392,59 +1392,20 @@
       </style>
 
       <div class="checkout-accordion-list" id="checkout-accordions">
-        <!-- 1. Customer Info Accordion -->
-        <div class="checkout-accordion" id="accordion-customer">
+        <!-- Mesa Info -->
+        <div class="checkout-accordion" id="accordion-mesa">
           <div class="checkout-accordion-header" data-action="toggle-parent-class" data-class="collapsed">
             <div class="accordion-title">
-              <div class="header-btn-icon">
-                <!-- Avatar -->
-                <img src="{{ assets_images }}/default-avatar.png" alt="Profile" />
-              </div>
-              <span>Datos del Cliente</span>
+              <span>Datos de la Mesa</span>
             </div>
             <div style="display: flex; align-items: center">
-              <span class="header-status" id="customer-status-badge">Requerido</span>
               <span class="accordion-chevron">▼</span>
             </div>
           </div>
           <div class="accordion-content">
-            <p style="margin-bottom: 1rem; color: var(--text-secondary, #6b7280); font-size: 0.9em">
-              Ingresa tus datos para contactarte cuando el pedido esté listo.
-            </p>
             <form id="checkout-form" novalidate>
-              <div class="form-group">
-                <label for="customer-name">Nombre <span class="label-hint">(opcional)</span></label>
-                <input type="text" id="customer-name" name="name" placeholder="Tu nombre" maxlength="100"
-                  autocomplete="name" />
-                <span class="form-group__status" id="customer-name-status"></span>
-                <span class="form-group__error" id="customer-name-error"></span>
-              </div>
-
-              <div class="form-group">
-                <label for="customer-email">Email
-                  <span class="required-indicator" style="color: var(--danger, #e74c3c)">*</span>
-                  <small class="text-muted" style="color: var(--muted); display: block; margin-top: 4px">Requerido para
-                    envío de ticket</small>
-                </label>
-                <input type="email" id="customer-email" name="email" placeholder="tu@email.com" maxlength="254"
-                  autocomplete="email" required />
-                <span class="form-group__status" id="customer-email-status"></span>
-                <span class="form-group__error" id="customer-email-error"></span>
-              </div>
-
-              <div class="form-group">
-                <label for="customer-phone">Teléfono <span class="label-hint">(opcional)</span></label>
-                <div class="phone-input-group">
-                  <select id="phone-country-code" class="phone-country-select" style="max-width: 80px"></select>
-                  <input type="tel" id="customer-phone" name="phone" placeholder="Número celular" maxlength="15"
-                    autocomplete="tel" />
-                </div>
-                <span class="form-group__status" id="customer-phone-status"></span>
-                <span class="form-group__error" id="customer-phone-error"></span>
-              </div>
-
               <div class="mesa-info-card" style="
-                    margin-top: 1rem;
+                    margin-bottom: 1rem;
                     border: 1px solid #e5e7eb;
                     padding: 1rem;
                     border-radius: 8px;
@@ -1455,7 +1416,7 @@
                 </div>
               </div>
 
-              <div class="form-group" style="margin-top: 1rem">
+              <div class="form-group">
                 <label for="notes">Notas especiales</label>
                 <textarea id="notes" name="notes" rows="3" placeholder="Alergias, preferencias..."
                   maxlength="500"></textarea>
@@ -1590,6 +1551,7 @@
 
       <p class="footer-copyright">
         &copy; {{ restaurant_name|title }} {{ current_year }} · Hecho con pasión
+        · Versión {{ system_version }}
         <button type="button" class="support-link" data-open-support>Soporte técnico</button>
       </p>
     </div>
@@ -2022,6 +1984,8 @@
       margin: 0 auto 1rem;
       border: 3px solid var(--primary);
       display: block;
+      object-fit: cover;
+      background: var(--background);
     }
 
     .profile-menu {

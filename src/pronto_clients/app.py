@@ -1,7 +1,8 @@
 """
 Factory for the customer-facing Flask application.
 
-Uses JWT for authentication instead of server-side sessions.
+Uses Redis-backed customer_ref for authentication (not JWT).
+Session Flask only stores: customer_ref, dining_session_id (allowlist AGENTS.md section 6).
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, session
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 from pronto_shared.extensions import csrf as csrf_protection
@@ -19,7 +20,6 @@ from pronto_clients.routes.web import web_bp
 from pronto_shared.config import load_config
 from pronto_shared.db import init_engine, validate_schema
 from pronto_shared.error_handlers import register_error_handlers
-from pronto_shared.jwt_middleware import init_jwt_middleware
 from pronto_shared.logging_config import configure_logging
 from pronto_shared.security_middleware import configure_security_headers
 from pronto_shared.services.business_config_service import (
@@ -41,8 +41,8 @@ def _is_routes_only() -> bool:
 
 
 def register_blueprints(app: Flask) -> None:
-    app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(web_bp)
+    app.register_blueprint(api_bp, url_prefix="/api")
 
 
 def init_runtime(app: Flask, config) -> None:
@@ -64,7 +64,10 @@ def init_runtime(app: Flask, config) -> None:
     app.config["WTF_CSRF_ENABLED"] = True
     app.config["WTF_CSRF_TIME_LIMIT"] = 3600
 
-    init_jwt_middleware(app)
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = not config.debug_mode
+
     configure_security_headers(app)
     register_error_handlers(app)
 
@@ -143,7 +146,10 @@ def init_runtime(app: Flask, config) -> None:
             "waiter_call_sound",
             "waiter_call_cooldown_seconds",
         ]
-        business_settings = get_config_map(config_keys)
+        try:
+            business_settings = get_config_map(config_keys)
+        except Exception:
+            business_settings = {}
         app_settings = {
             "currency_code": business_settings.get("currency_code", "MXN"),
             "currency_locale": business_settings.get("currency_locale", "es-MX"),
@@ -169,9 +175,28 @@ def init_runtime(app: Flask, config) -> None:
             ),
         }
 
-        from pronto_shared.jwt_middleware import get_current_user
+        from pronto_shared.services.customer_session_store import (
+            customer_session_store,
+            RedisUnavailableError,
+        )
+        from flask import current_app
 
-        current_user = get_current_user()
+        customer_ref = session.get("customer_ref")
+        current_user = None
+        if customer_ref:
+            try:
+                current_user = customer_session_store.get_customer(customer_ref)
+            except RedisUnavailableError:
+                current_app.logger.warning(
+                    "Customer session store (Redis) is unavailable."
+                )
+                current_user = None
+            except Exception as e:
+                current_app.logger.error(
+                    f"An unexpected error occurred fetching customer session: {e}",
+                    exc_info=True,
+                )
+                current_user = None
 
         base_url = config.pronto_static_public_host
         assets_path = config.static_assets_path
@@ -179,6 +204,7 @@ def init_runtime(app: Flask, config) -> None:
 
         return {
             "app_name": config.app_name,
+            "system_version": config.system_version,
             "static_host_url": base_url,
             "restaurant_name": config.restaurant_name,
             "restaurant_assets": f"{base_url}{assets_path}/{restaurant_slug}",
@@ -191,11 +217,9 @@ def init_runtime(app: Flask, config) -> None:
             "employee_api_base_url": app.config.get("EMPLOYEE_API_BASE_URL"),
             "current_user": current_user,
             "customer_id": current_user.get("customer_id") if current_user else None,
-            "customer_name": current_user.get("customer_name")
-            if current_user
-            else None,
-            "session_id": current_user.get("session_id") if current_user else None,
-            "table_id": current_user.get("table_id") if current_user else None,
+            "customer_name": current_user.get("name") if current_user else None,
+            "session_id": session.get("dining_session_id"),
+            "table_id": None,
             "assets_css": f"{base_url}{assets_path}/css",
             "assets_css_shared": f"{base_url}{assets_path}/css/shared",
             "assets_css_clients": f"{base_url}{assets_path}/css/clients",
@@ -230,7 +254,14 @@ def create_app() -> Flask:
 
     @app.route("/health")
     def health():
-        return jsonify({"status": "ok", "service": "pronto-client"}), 200
+        return jsonify(
+            {
+                "status": "ok",
+                "service": "pronto-client",
+                "version": app.config.get("SYSTEM_VERSION")
+                or os.getenv("PRONTO_SYSTEM_VERSION", "1.0000"),
+            }
+        ), 200
 
     if routes_only:
         app.config["SECRET_KEY"] = "routes-only"
@@ -239,6 +270,7 @@ def create_app() -> Flask:
     config = load_config("pronto-clients")
     configure_logging(config.app_name, config.log_level)
 
+    app.config["SYSTEM_VERSION"] = config.system_version
     app.config["DEBUG_MODE"] = config.debug_mode
     app.config["DEBUG"] = config.flask_debug
     app.config["DEBUG_AUTO_TABLE"] = config.debug_auto_table

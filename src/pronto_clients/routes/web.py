@@ -4,14 +4,25 @@ Customer facing web views rendered via Jinja templates.
 
 from __future__ import annotations
 
-from flask import Blueprint, current_app, render_template, request
+import os
+from flask import Blueprint, current_app, render_template, request, session, jsonify
 from sqlalchemy import select
 
 from pronto_shared.db import get_session
 from pronto_shared.jwt_middleware import get_current_user
 from pronto_shared.models import Area, Table, DiningSession
+from pronto_shared.services.customer_service import (
+    get_customer_by_email,
+    authenticate_customer,
+)
+from pronto_shared.services.customer_session_store import (
+    customer_session_store,
+    RedisUnavailableError,
+)
 
 web_bp = Blueprint("client_web", __name__)
+
+_KIOSK_SECRET = os.getenv("PRONTO_KIOSK_SECRET", "")
 
 
 @web_bp.get("/")
@@ -216,4 +227,87 @@ def feedback_form():
         employee_id=employee_id,
         feedback_api_base_url=current_app.config.get("EMPLOYEE_API_BASE_URL"),
         api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
+    )
+
+
+@web_bp.get("/kiosk/<location>")
+def kiosk_screen(location: str):
+    """
+    Kiosk welcome screen for self-service ordering.
+
+    Args:
+        location: Kiosk location identifier (e.g., 'lobby', 'entrance')
+    """
+    return render_template(
+        "kiosk.html",
+        location=location,
+        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
+    )
+
+
+@web_bp.post("/kiosk/<location>/start")
+def kiosk_start(location: str):
+    """
+    Auto-login for kiosk account.
+
+    Creates or retrieves kiosk customer account for the location.
+    Sets customer_ref in session.
+
+    Security:
+        - In production: requires PRONTO_KIOSK_SECRET header
+        - In dev mode: no secret required
+    """
+    debug_mode = current_app.config.get("DEBUG_MODE", False)
+
+    if _KIOSK_SECRET and not debug_mode:
+        provided_secret = request.headers.get("X-PRONTO-KIOSK-SECRET", "")
+        if provided_secret != _KIOSK_SECRET:
+            return jsonify({"error": "Unauthorized"}), 401
+
+    kiosk_email = f"kiosk+{location}@pronto.local"
+
+    with get_session() as db:
+        customer = get_customer_by_email(db, kiosk_email)
+
+        if not customer:
+            from pronto_shared.services.customer_service import create_customer
+
+            try:
+                customer = create_customer(
+                    db,
+                    first_name=f"Kiosk {location}",
+                    email=kiosk_email,
+                    password="kiosk-no-auth",
+                    kind="kiosk",
+                    kiosk_location=location,
+                )
+            except ValueError:
+                customer = get_customer_by_email(db, kiosk_email)
+                if not customer:
+                    return jsonify({"error": "Failed to create kiosk account"}), 500
+
+    try:
+        customer_ref = customer_session_store.create_customer_ref(
+            customer_id=customer["id"],
+            email=customer["email"],
+            name=customer["first_name"],
+            kind="kiosk",
+            kiosk_location=location,
+        )
+    except RedisUnavailableError:
+        return jsonify({"error": "Service unavailable"}), 503
+
+    session["customer_ref"] = customer_ref
+    session.permanent = False
+
+    return jsonify(
+        {
+            "success": True,
+            "customer": {
+                "id": customer["id"],
+                "name": customer["first_name"],
+                "kind": "kiosk",
+                "location": location,
+            },
+        }
     )

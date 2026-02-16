@@ -1,13 +1,8 @@
-"""
-Payment endpoints for clients API.
-"""
-
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
-from http import HTTPStatus
-
-from flask import Blueprint, current_app, jsonify, request
-
+from pronto_clients.routes.api.auth import customer_session_required
+from pronto_shared.services.customer_session_store import (
+    customer_session_store,
+    RedisUnavailableError,
+)
 from pronto_shared.services.order_service import (
     prepare_checkout as employee_prepare_checkout,
 )
@@ -17,8 +12,23 @@ from pronto_shared.supabase.realtime import emit_waiter_call
 payments_bp = Blueprint("client_payments", __name__)
 
 
+def _get_authenticated_customer() -> dict | None:
+    """Get authenticated customer from flask.session + Redis."""
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return None
+    try:
+        if customer_session_store.is_revoked(customer_ref):
+            session.pop("customer_ref", None)
+            return None
+        return customer_session_store.get_customer(customer_ref)
+    except RedisUnavailableError:
+        return None
+
+
 @payments_bp.post("/sessions/<int:session_id>/request-payment")
-def request_payment(session_id: int):
+@customer_session_required
+def request_payment(session_id):
     """
     Customer requests payment for their session.
     Creates a WaiterCall with type 'payment_request' and notifies waiters.
@@ -46,6 +56,11 @@ def request_payment(session_id: int):
 
         if not dining_session:
             return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
+
+        # Authorization check
+        authed_user = _get_authenticated_customer()
+        if dining_session.customer_id != authed_user.get("id"):
+            return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
         if dining_session.status in ["closed", "paid"]:
             return jsonify(
@@ -140,6 +155,7 @@ def request_payment(session_id: int):
 
 
 @payments_bp.post("/confirm-tip")
+@customer_session_required
 def confirm_tip():
     """Save the tip amount for a dining session."""
     from sqlalchemy import select
@@ -174,6 +190,11 @@ def confirm_tip():
 
         if not dining_session:
             return jsonify({"error": "Session not found"}), HTTPStatus.NOT_FOUND
+
+        # Authorization check
+        authed_user = _get_authenticated_customer()
+        if dining_session.customer_id != authed_user.get("id"):
+            return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
         if dining_session.status != "open":
             return jsonify({"error": "Session is not open"}), HTTPStatus.BAD_REQUEST
@@ -217,7 +238,8 @@ def confirm_tip():
 
 
 @payments_bp.post("/sessions/<int:session_id>/checkout")
-def request_session_checkout(session_id: int):
+@customer_session_required
+def request_session_checkout(session_id):
     """Request checkout for a dining session."""
     from sqlalchemy import select
 
@@ -237,6 +259,11 @@ def request_session_checkout(session_id: int):
 
             if not dining_session:
                 return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
+
+            # Authorization check
+            authed_user = _get_authenticated_customer()
+            if dining_session.customer_id != authed_user.get("id"):
+                return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             if dining_session.status == "paid":
                 return jsonify({"error": "Sesión ya cerrada"}), HTTPStatus.BAD_REQUEST
@@ -296,7 +323,8 @@ def request_session_checkout(session_id: int):
 
 
 @payments_bp.post("/session/<int:session_id>/request-check")
-def request_check(session_id: int):
+@customer_session_required
+def request_check(session_id):
     """Request check/bill for a dining session."""
     from sqlalchemy import select
 
@@ -316,6 +344,11 @@ def request_check(session_id: int):
 
             if not dining_session:
                 return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
+
+            # Authorization check
+            authed_user = _get_authenticated_customer()
+            if dining_session.customer_id != authed_user.get("id"):
+                return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             if dining_session.status == "paid":
                 return jsonify({"error": "Sesión ya cerrada"}), HTTPStatus.BAD_REQUEST
@@ -355,7 +388,8 @@ def request_check(session_id: int):
 
 
 @payments_bp.get("/session/<int:session_id>/validate")
-def validate_session(session_id: int):
+@customer_session_required
+def validate_session(session_id):
     """Validate if a session exists and return its basic info for client-side validation."""
     from sqlalchemy import select
 
@@ -374,6 +408,11 @@ def validate_session(session_id: int):
 
             if not dining_session:
                 return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
+
+            # Authorization check
+            authed_user = _get_authenticated_customer()
+            if dining_session.customer_id != authed_user.get("id"):
+                return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             # Get anonymous client ID if customer exists
             anonymous_client_id = None
@@ -403,7 +442,8 @@ def validate_session(session_id: int):
 
 
 @payments_bp.get("/session/<int:session_id>/orders")
-def get_session_orders(session_id: int):
+@customer_session_required
+def get_session_orders(session_id):
     """Get all orders for a specific session with their items and status."""
     from sqlalchemy import select
 
@@ -422,6 +462,11 @@ def get_session_orders(session_id: int):
 
             if not dining_session:
                 return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
+
+            # Authorization check: Ensure the authenticated customer owns this session
+            authed_user = _get_authenticated_customer()
+            if not authed_user or dining_session.customer_id != authed_user.get("id"):
+                return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             orders = (
                 db_session.execute(
