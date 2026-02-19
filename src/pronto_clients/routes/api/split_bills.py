@@ -5,8 +5,9 @@ Split bill endpoints for clients API.
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, current_app, jsonify, request, session
+from flask import Blueprint, jsonify, request, session
 from pronto_shared.trazabilidad import get_logger
 
 logger = get_logger(__name__)
@@ -22,7 +23,7 @@ def _require_customer_ref():
     return None
 
 
-def _calculate_equal_split(session, split_bill_id: int, dining_session):
+def _calculate_equal_split(session, split_bill_id: UUID, dining_session):
     """Helper function to calculate equal split for all people."""
     from pronto_shared.models import SplitBill
 
@@ -70,8 +71,8 @@ def _calculate_equal_split(session, split_bill_id: int, dining_session):
         last_person.total_amount = float(session_total - total_assigned_total)
 
 
-@split_bills_bp.post("/sessions/<int:session_id>/split-bill")
-def create_split_bill(session_id: int):
+@split_bills_bp.post("/sessions/<uuid:session_id>/split-bill")
+def create_split_bill(session_id: UUID):
     """Create a split bill for a dining session."""
     auth_error = _require_customer_ref()
     if auth_error:
@@ -147,8 +148,8 @@ def create_split_bill(session_id: int):
 
             return jsonify(
                 {
-                    "split_bill_id": split_bill.id,
-                    "session_id": session_id,
+                    "split_bill_id": str(split_bill.id),
+                    "session_id": str(session_id),
                     "number_of_people": number_of_people,
                     "split_type": split_type,
                     "status": "active",
@@ -162,8 +163,8 @@ def create_split_bill(session_id: int):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.get("/split-bills/<int:split_id>")
-def get_split_bill(split_id: int):
+@split_bills_bp.get("/split-bills/<uuid:split_id>")
+def get_split_bill(split_id: UUID):
     """Get split bill details including all people and their assignments."""
     auth_error = _require_customer_ref()
     if auth_error:
@@ -202,7 +203,7 @@ def get_split_bill(split_id: int):
 
                 people_data.append(
                     {
-                        "id": person.id,
+                        "id": str(person.id),
                         "person_name": person.person_name,
                         "person_number": person.person_number,
                         "subtotal": float(person.subtotal),
@@ -217,8 +218,8 @@ def get_split_bill(split_id: int):
             return jsonify(
                 {
                     "split_bill": {
-                        "id": split_bill.id,
-                        "session_id": split_bill.session_id,
+                        "id": str(split_bill.id),
+                        "session_id": str(split_bill.session_id),
                         "split_type": split_bill.split_type,
                         "number_of_people": split_bill.number_of_people,
                         "status": split_bill.status,
@@ -237,8 +238,8 @@ def get_split_bill(split_id: int):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.post("/split-bills/<int:split_id>/assign")
-def assign_item_to_person(split_id: int):
+@split_bills_bp.post("/split-bills/<uuid:split_id>/assign")
+def assign_item_to_person(split_id: UUID):
     """Assign an order item to a person in the split."""
     auth_error = _require_customer_ref()
     if auth_error:
@@ -356,8 +357,8 @@ def assign_item_to_person(split_id: int):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.post("/split-bills/<int:split_id>/calculate")
-def calculate_split_totals(split_id: int):
+@split_bills_bp.post("/split-bills/<uuid:split_id>/calculate")
+def calculate_split_totals(split_id: UUID):
     """Recalculate totals for all people in the split based on their assignments."""
     auth_error = _require_customer_ref()
     if auth_error:
@@ -428,8 +429,8 @@ def calculate_split_totals(split_id: int):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.get("/split-bills/<int:split_id>/summary")
-def get_split_summary(split_id: int):
+@split_bills_bp.get("/split-bills/<uuid:split_id>/summary")
+def get_split_summary(split_id: UUID):
     """Get a summary of the split including session info and all people with their totals."""
     auth_error = _require_customer_ref()
     if auth_error:
@@ -493,8 +494,8 @@ def get_split_summary(split_id: int):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.post("/split-bills/<int:split_id>/people/<int:person_id>/pay")
-def pay_split_person(split_id: int, person_id: int):
+@split_bills_bp.post("/split-bills/<uuid:split_id>/people/<uuid:person_id>/pay")
+def pay_split_person(split_id: UUID, person_id: UUID):
     """Process payment for an individual person in a split bill."""
     auth_error = _require_customer_ref()
     if auth_error:

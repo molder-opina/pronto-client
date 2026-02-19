@@ -1,6 +1,7 @@
 {% extends "base.html" %} {% block content %}
 <link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
 
+
 <nav class="breadcrumbs" aria-label="Navegación de ruta">
   <div class="breadcrumbs-container">
     <a href="/" class="breadcrumb-item">
@@ -51,6 +52,13 @@
 
         <h1>¿Cómo fue tu experiencia?</h1>
         <p class="subtitle">Tu opinión nos ayuda a mejorar</p>
+
+        <!-- Feedback Timer -->
+        <div class="feedback-timer" id="feedback-timer">
+          <span class="feedback-timer__label">Tiempo restante:</span>
+          <span class="feedback-timer__count" id="feedback-timer-count">10</span>
+          <span class="feedback-timer__unit">segundos</span>
+        </div>
 
         <form id="feedback-form">
           <input type="hidden" id="session_id" name="session_id" value="{{ session_id }}" />
@@ -165,9 +173,12 @@
 </section>
 
 <script>
-  // Use API from environment or default to employees API
-  const FEEDBACK_API_BASE_URL = "{{ feedback_api_base_url.rstrip('/') if feedback_api_base_url else '' }}";
-  const EMPLOYEES_API_BASE = (FEEDBACK_API_BASE_URL || window.API_BASE || window.location.origin).replace(/\/$/, '');
+  const FEEDBACK_BULK_ENDPOINT = '/api/feedback/bulk';
+
+  function getCsrfToken() {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    return token ? token.trim() : '';
+  }
 
   // Star rating interaction
   document.querySelectorAll('.star-rating').forEach((container) => {
@@ -219,6 +230,62 @@
     });
   });
 
+  // Feedback Timer - 10 seconds countdown
+  const FEEDBACK_TIMEOUT_SECONDS = 10;
+  let feedbackTimerInterval = null;
+  let remainingTime = FEEDBACK_TIMEOUT_SECONDS;
+
+  function startFeedbackTimer() {
+    const timerElement = document.getElementById('feedback-timer');
+    const timerCount = document.getElementById('feedback-timer-count');
+    if (!timerElement || !timerCount) return;
+
+    timerElement.style.display = 'flex';
+
+    feedbackTimerInterval = setInterval(() => {
+      remainingTime--;
+      timerCount.textContent = remainingTime;
+
+      if (remainingTime <= 0) {
+        clearInterval(feedbackTimerInterval);
+        // Auto-submit or skip
+        const form = document.getElementById('feedback-form');
+        if (form) {
+          skipFeedback({ confirm: false, redirectToThankYou: true });
+        }
+      }
+    }, 1000);
+  }
+
+  function stopFeedbackTimer() {
+    if (feedbackTimerInterval) {
+      clearInterval(feedbackTimerInterval);
+      feedbackTimerInterval = null;
+    }
+  }
+
+  function skipFeedback(options = {}) {
+    const { confirm = true, redirectToThankYou = true } = options;
+    stopFeedbackTimer();
+    if (confirm && !window.confirm('¿Estás seguro de omitir el feedback?')) {
+      return;
+    }
+    window.location.href = redirectToThankYou ? '/thank-you' : '/';
+  }
+
+  // Expose skipFeedback to global scope
+  window.skipFeedback = skipFeedback;
+
+  // Start timer when page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    startFeedbackTimer();
+  });
+
+  // Stop timer on form submit
+  document.getElementById('feedback-form')?.addEventListener('submit', () => {
+    stopFeedbackTimer();
+  });
+
   // Form submission
   document.getElementById('feedback-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -257,10 +324,18 @@
     }));
 
     try {
-      const response = await fetch(`${EMPLOYEES_API_BASE}/api/feedback/bulk`, {
+      const csrfToken = getCsrfToken();
+      if (!csrfToken) {
+        alert('No se encontró token CSRF. Recarga la página e inténtalo de nuevo.');
+        return;
+      }
+
+      const response = await fetch(FEEDBACK_BULK_ENDPOINT, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
         },
         body: JSON.stringify({
           session_id: sessionId,
@@ -270,24 +345,21 @@
         }),
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
 
-      if (result.success) {
+      if (response.ok && (result.success || result.status === 'success')) {
         // Show thank you and redirect
         window.location.href = '/thank-you?feedback=sent';
       } else {
-        alert('Error al enviar feedback: ' + (result.message || 'Error desconocido'));
+        alert(
+          'Error al enviar feedback: ' +
+            (result.error || result.message || 'Error desconocido')
+        );
       }
     } catch (error) {
       console.error('Error:', error);
       alert('Error al enviar feedback');
     }
   });
-
-  function skipFeedback() {
-    if (confirm('¿Estás seguro de omitir el feedback?')) {
-      window.location.href = '/thank-you';
-    }
-  }
 </script>
 {% endblock %}

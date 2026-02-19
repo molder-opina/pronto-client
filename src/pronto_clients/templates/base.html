@@ -1055,7 +1055,7 @@
 
   <!-- API Base URL Configuration -->
   <script>
-    window.API_BASE = "{{ api_base_url|default('http://localhost:6082') }}";
+    window.API_BASE = "{{ api_base_url|default('') }}";
   </script>
 </head>
 
@@ -1200,13 +1200,41 @@
           </button>
           <button class="profile-menu-item" data-profile-action="settings">
             <span>⚙️</span>
-            <span>Configuración</span>
+            <span>Datos Fiscales</span>
           </button>
           <button class="profile-menu-item" data-profile-action="logout">
             <span>🚪</span>
             <span>Cerrar Sesión</span>
           </button>
         </div>
+      </div>
+
+      <!-- Settings View (Tax Info) -->
+      <div id="profile-settings" class="profile-view" style="display: none">
+        <div class="profile-header">
+           <button class="btn-link" id="settings-back-btn" style="position: absolute; left: 1rem; top: 1rem;">← Volver</button>
+           <h3>Datos de Facturación</h3>
+        </div>
+        <form id="tax-info-form" class="profile-form">
+            <div class="form-group">
+                <label for="tax-id">RFC</label>
+                <input type="text" id="tax-id" placeholder="XAXX010101000" style="text-transform: uppercase;" />
+            </div>
+            <div class="form-group">
+                <label for="tax-name">Razón Social</label>
+                <input type="text" id="tax-name" placeholder="Nombre o Razón Social" />
+            </div>
+            <div class="form-group">
+                <label for="tax-email">Correo para Factura</label>
+                <input type="email" id="tax-email" placeholder="facturacion@empresa.com" />
+            </div>
+            <div class="form-group">
+                <label for="tax-address">Domicilio Fiscal (C.P.)</label>
+                <input type="text" id="tax-address" placeholder="Código Postal" />
+            </div>
+            <button type="submit" class="btn btn-primary btn--full">Guardar Cambios</button>
+            <div class="form-feedback" id="tax-feedback"></div>
+        </form>
       </div>
     </div>
   </div>
@@ -3277,7 +3305,7 @@
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
   <script type="module" src="{{ assets_js_clients }}/base.js?v=cachebust1"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v=cachebust2"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">

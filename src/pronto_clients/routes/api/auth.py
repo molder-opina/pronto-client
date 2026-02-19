@@ -13,7 +13,6 @@ from __future__ import annotations
 from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request, session
-from pronto_shared.extensions import csrf
 from pronto_shared.db import get_session
 from pronto_shared.services.customer_service import (
     authenticate_customer,
@@ -28,11 +27,92 @@ from pronto_shared.security_middleware import rate_limit
 auth_bp = Blueprint("client_auth", __name__)
 
 
-from pronto_shared.security_middleware import rate_limit
+@auth_bp.post("/login")
+@rate_limit(max_requests=5, window_seconds=60, key_prefix="login")
+def login():
+    """Authenticate customer and create Redis-backed customer_ref session."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+
+    if not email or not password:
+        return jsonify({"error": "Email y password requeridos"}), HTTPStatus.BAD_REQUEST
+
+    customer = authenticate_customer(db, email=email, password=password)
+    
+    # Authenticated successfully. Now fetch full details for session (including tax info)
+    if customer:
+        from pronto_shared.services.customer_service import get_customer_by_id
+        # authenticate_customer returns a dict with 'id', verify it's there
+        # but create_customer returns 'id' as str, get_customer_by_id takes int/str?
+        # get_customer_by_id takes int but casts to str in SQL.
+        full_customer = get_customer_by_id(db, customer["id"])
+        if full_customer:
+            customer.update(full_customer)
+
+    if not customer:
+        return jsonify({"error": "Credenciales inválidas"}), HTTPStatus.UNAUTHORIZED
+
+    try:
+        # Create payload with extra fields (tax info)
+        payload_extras = {
+            "tax_id": customer.get("tax_id"),
+            "tax_name": customer.get("tax_name"),
+            "tax_address": customer.get("tax_address"),
+            "tax_email": customer.get("tax_email")
+        }
+        
+        customer_ref = customer_session_store.create_customer_ref(
+            customer_id=str(customer["id"]),
+            email=customer.get("email") or "",
+            name=customer.get("first_name") or "",
+            phone=customer.get("phone"),
+            kind=customer.get("kind", "customer"),
+            # We can't pass extras to create_customer_ref directly as arguments if the signature doesn't match
+            # But we can update the session immediately after?
+            # Or reliance on customer_session_store to accept kwargs is risky if not defined.
+            # create_customer_ref signature: (self, customer_id, email, name, phone=None, kind='customer', kiosk_location=None)
+            # It blindly constructs payload from arguments. It does NOT accept **kwargs.
+            # So I must update the session after creation OR modify create_customer_ref.
+            # Updating after creation is safer for now.
+        )
+        
+        # Inject extras into the session we just created
+        # We need to construct the full payload and update
+        full_payload = {
+            "customer_id": str(customer["id"]),
+            "email": customer.get("email") or "",
+            "name": customer.get("first_name") or "",
+            "phone": customer.get("phone"),
+            "kind": customer.get("kind", "customer"),
+            "kiosk_location": customer.get("kiosk_location"),
+            **payload_extras
+        }
+        customer_session_store.update_session(customer_ref, full_payload)
+        
+    except RedisUnavailableError:
+        return jsonify({"error": "Servicio no disponible"}), HTTPStatus.SERVICE_UNAVAILABLE
+
+    session.clear()
+    session["customer_ref"] = customer_ref
+    session.permanent = True
+
+    return jsonify(
+        {
+            "success": True,
+            "customer": {
+                "id": str(customer["id"]),
+                "email": customer.get("email"),
+                "name": customer.get("first_name") or "",
+                "tax_id": customer.get("tax_id"),
+                "tax_name": customer.get("tax_name"),
+            },
+        }
+    ), HTTPStatus.OK
 
 
 @auth_bp.post("/register")
-@rate_limit(limit="5/minute", key_prefix="register")
+@rate_limit(max_requests=5, window_seconds=60, key_prefix="register")
 def register():
     """
     Create new customer account and auto-login.
@@ -204,3 +284,66 @@ def me():
         return jsonify({"customer": None})
 
     return jsonify({"customer": customer})
+
+
+@auth_bp.put("/me")
+@customer_session_required
+def update_profile():
+    """Update current customer info (including tax info)."""
+    customer_ref = session.get("customer_ref")
+    try:
+        current_data = customer_session_store.get_customer(customer_ref)
+        if not current_data:
+            return jsonify({"error": "Sesión inválida"}), HTTPStatus.UNAUTHORIZED
+            
+        customer_id = current_data["id"] if "id" in current_data else current_data.get("customer_id")
+        data = request.get_json(silent=True) or {}
+        
+        # Extract fields to update
+        update_data = {}
+        allowed_fields = [
+            "name", "phone", "email", 
+            "tax_id", "tax_name", "tax_address", "tax_email"
+        ]
+        
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field]
+                
+        if "name" in update_data:
+            # Split name into first and last
+            parts = update_data["name"].split(None, 1)
+            update_data["first_name"] = parts[0]
+            update_data["last_name"] = parts[1] if len(parts) > 1 else ""
+            del update_data["name"]
+
+        updated_customer = None
+        with get_session() as db:
+            from pronto_shared.services.customer_service import update_customer
+            updated_customer = update_customer(db, customer_id, **update_data)
+            
+        # Update Redis session with merged data
+        # Use existing session data as base, overlay updated fields
+        new_payload = current_data.copy()
+        
+        # Map updated_customer keys to session keys
+        # updated_customer has keys: id, name, email, phone, tax_...
+        # session keys: customer_id, email, name, phone, tax_...
+        
+        new_payload["name"] = updated_customer.get("name", current_data.get("name"))
+        new_payload["email"] = updated_customer.get("email", current_data.get("email"))
+        new_payload["phone"] = updated_customer.get("phone", current_data.get("phone"))
+        new_payload["tax_id"] = updated_customer.get("tax_id")
+        new_payload["tax_name"] = updated_customer.get("tax_name")
+        new_payload["tax_address"] = updated_customer.get("tax_address")
+        new_payload["tax_email"] = updated_customer.get("tax_email")
+        
+        customer_session_store.update_session(customer_ref, new_payload)
+        
+        return jsonify({"success": True, "customer": updated_customer})
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+

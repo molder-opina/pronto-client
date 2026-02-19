@@ -27,7 +27,8 @@ def _safe_config_value(key: str, default):
     try:
         return get_config_value(key, default)
     except Exception as exc:
-        current_app.logger.warning("Error reading config key '%s': %s", key, exc)
+        from pronto_shared.trazabilidad import get_logger
+        get_logger("clients.api.config").warning("Error reading config key '%s': %s", key, exc, error={"message": str(exc)})
         return default
 
 

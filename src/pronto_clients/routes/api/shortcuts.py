@@ -5,11 +5,12 @@ Allows managing configurable keyboard shortcuts.
 
 from http import HTTPStatus
 
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, jsonify
 from sqlalchemy import select
 
 from pronto_shared.db import get_session
 from pronto_shared.models import KeyboardShortcut
+from pronto_shared.trazabilidad import get_logger
 
 shortcuts_bp = Blueprint("client_shortcuts", __name__)
 
@@ -41,7 +42,8 @@ def get_enabled_shortcuts():
             return jsonify({"shortcuts": result}), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error getting shortcuts: {e}", exc_info=True)
+        logger = get_logger("clients.api.shortcuts")
+        logger.error(f"Error getting shortcuts: {e}", error={"message": str(e), "traceback": str(e)})
         return jsonify({"error": "Error al obtener atajos"}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
@@ -75,5 +77,6 @@ def get_feedback_questions():
             return jsonify({"questions": result}), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error getting feedback questions: {e}", exc_info=True)
+        logger = get_logger("clients.api.shortcuts")
+        logger.error(f"Error getting feedback questions: {e}", error={"message": str(e), "traceback": str(e)})
         return jsonify({"error": "Error al obtener preguntas"}), HTTPStatus.INTERNAL_SERVER_ERROR

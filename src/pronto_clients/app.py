@@ -90,26 +90,17 @@ def init_runtime(app: Flask, config) -> None:
         if raw_origins
         else []
     )
-    if config.debug_mode or not allowed_origins:
-        allowed_origins = [
-            "http://localhost:6080",
-            "http://127.0.0.1:6080",
-        ]
+    if config.debug_mode and not allowed_origins:
+        local_origin = os.getenv("PRONTO_CLIENT_PUBLIC_ORIGIN", "").strip()
+        if local_origin:
+            allowed_origins = [local_origin]
+    if allowed_origins:
         CORS(
             app,
             resources={
                 r"/api/*": {"origins": allowed_origins, "supports_credentials": True},
                 r"/web/*": {"origins": allowed_origins, "supports_credentials": True},
             },
-        )
-    else:
-        CORS(
-            app,
-            resources={
-                r"/api/*": {"origins": allowed_origins, "supports_credentials": True},
-                r"/web/*": {"origins": allowed_origins, "supports_credentials": True},
-            },
-            supports_credentials=True,
         )
 
     csrf_protection.init_app(app)
@@ -180,6 +171,7 @@ def init_runtime(app: Flask, config) -> None:
             RedisUnavailableError,
         )
         from flask import current_app
+        from pronto_shared.trazabilidad import get_logger
 
         customer_ref = session.get("customer_ref")
         current_user = None
@@ -187,14 +179,16 @@ def init_runtime(app: Flask, config) -> None:
             try:
                 current_user = customer_session_store.get_customer(customer_ref)
             except RedisUnavailableError:
-                current_app.logger.warning(
+                logger = get_logger("clients")
+                logger.warning(
                     "Customer session store (Redis) is unavailable."
                 )
                 current_user = None
             except Exception as e:
-                current_app.logger.error(
+                logger = get_logger("clients")
+                logger.error(
                     f"An unexpected error occurred fetching customer session: {e}",
-                    exc_info=True,
+                    error={"type": type(e).__name__, "message": str(e)},
                 )
                 current_user = None
 
@@ -275,13 +269,15 @@ def create_app() -> Flask:
     app.config["DEBUG"] = config.flask_debug
     app.config["DEBUG_AUTO_TABLE"] = config.debug_auto_table
     app.config["AUTO_READY_QUICK_SERVE"] = config.auto_ready_quick_serve
-    app.config["EMPLOYEE_API_BASE_URL"] = os.getenv(
-        "PRONTO_EMPLOYEES_BASE_URL", ""
+    app.config["EMPLOYEE_API_BASE_URL"] = (
+        os.getenv("EMPLOYEE_API_BASE_URL")
+        or os.getenv("PRONTO_EMPLOYEES_BASE_URL")
+        or ""
     ).strip()
 
     # API base URL for browser direct access to pronto-api (6082)
     app.config["API_BASE_URL"] = os.getenv(
-        "PRONTO_API_BASE_URL", "http://localhost:6082"
+        "PRONTO_API_BASE_URL", ""
     ).strip()
 
     init_runtime(app, config)

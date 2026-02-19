@@ -4,8 +4,9 @@ Stripe and Clip payment endpoints for clients API.
 
 from decimal import Decimal
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, current_app, jsonify, request, session
+from flask import Blueprint, jsonify, request, session
 
 from pronto_shared.services.customer_session_store import (
     customer_session_store,
@@ -41,8 +42,8 @@ def _require_customer_auth():
     return None
 
 
-@stripe_payments_bp.post("/sessions/<int:session_id>/pay/stripe")
-def pay_with_stripe(session_id):
+@stripe_payments_bp.post("/sessions/<uuid:session_id>/pay/stripe")
+def pay_with_stripe(session_id: UUID):
     """Process payment with Stripe for a dining session."""
     # Require authentication
     auth_error = _require_customer_auth()
@@ -107,8 +108,8 @@ def pay_with_stripe(session_id):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@stripe_payments_bp.post("/sessions/<int:session_id>/pay/clip")
-def pay_with_clip(session_id):
+@stripe_payments_bp.post("/sessions/<uuid:session_id>/pay/clip")
+def pay_with_clip(session_id: UUID):
     """Register a Clip/Terminal payment request for a dining session."""
     # Require authentication
     auth_error = _require_customer_auth()
@@ -165,7 +166,13 @@ def pay_with_clip(session_id):
                 recipient_id=None,
                 title=f"Pago con Terminal - Mesa {table_number}",
                 message=f"Cliente solicita pagar ${dining_session.total_amount:.2f} con terminal Clip",
-                data=f'{{"table_number": "{table_number}", "session_id": {session_id}, "waiter_call_id": {waiter_call.id}, "payment_method": "clip", "amount": {float(dining_session.total_amount)}}}',
+                data={
+                    "table_number": table_number,
+                    "session_id": str(session_id),
+                    "waiter_call_id": waiter_call.id,
+                    "payment_method": "clip",
+                    "amount": float(dining_session.total_amount),
+                },
                 priority="high",
             )
             db_session.add(notification)

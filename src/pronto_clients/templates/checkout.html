@@ -312,6 +312,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
 <script>
   (function () {
+    function getCsrfToken() {
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      return token ? token.trim() : '';
+    }
+
     const form = document.getElementById('checkout-form');
     const submitBtn = document.getElementById('checkout-submit-btn');
     const notesTextarea = document.getElementById('notes');
@@ -709,9 +714,19 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       }
 
       try {
-        const response = await fetch(`${window.API_BASE}/api/orders`, {
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+          throw new Error('No se encontró token CSRF. Recarga la página e inténtalo de nuevo.');
+        }
+
+        const jsonHeaders = {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        };
+
+        const response = await fetch(`/api/orders`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: jsonHeaders,
           credentials: 'include',
           body: JSON.stringify(payload),
         });
@@ -735,12 +750,12 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         const customerEmail = payload.customer.email || '';
         if (customerEmail && customerEmail.trim() !== '') {
           try {
-            await fetch(`${window.API_BASE}/api/orders/send-confirmation`, {
+            await fetch(`/api/orders/send-confirmation`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: jsonHeaders,
               credentials: 'include',
               body: JSON.stringify({
-                order_id: data.order_id,
+                session_id: data.session_id,
                 email: customerEmail,
               }),
             });

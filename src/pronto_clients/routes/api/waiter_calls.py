@@ -248,8 +248,8 @@ def call_waiter():
     ), 200
 
 
-@waiter_calls_bp.get("/call-waiter/status/<int:call_id>")
-def get_waiter_call_status(call_id):
+@waiter_calls_bp.get("/call-waiter/status/<int:call>")
+def get_waiter_call_status(call):
     """Check the status of a waiter call."""
     customer_ref = session.get("customer_ref")
     if not customer_ref:
@@ -262,7 +262,7 @@ def get_waiter_call_status(call_id):
 
     with get_session() as db_session:
         waiter_call = (
-            db_session.execute(select(WaiterCall).where(WaiterCall.id == call_id))
+            db_session.execute(select(WaiterCall).where(WaiterCall.id == call))
             .scalars()
             .one_or_none()
         )
@@ -285,7 +285,7 @@ def get_waiter_call_status(call_id):
         ), 200
 
 
-@waiter_calls_bp.get("/notifications/waiter/status/<int:call_id>")
+@waiter_calls_bp.get("/notifications/waiter/status/<int:call>")
 def get_waiter_call_status_alt(call_id):
     """Check the status of a waiter call (notification status endpoint)."""
     customer_ref = session.get("customer_ref")
@@ -299,7 +299,7 @@ def get_waiter_call_status_alt(call_id):
 
     with get_session() as db_session:
         waiter_call = (
-            db_session.execute(select(WaiterCall).where(WaiterCall.id == call_id))
+            db_session.execute(select(WaiterCall).where(WaiterCall.id == call))
             .scalars()
             .one_or_none()
         )

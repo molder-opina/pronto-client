@@ -1,3 +1,5 @@
+from flask import Blueprint, session
+
 from pronto_clients.routes.api.auth import customer_session_required
 from pronto_shared.services.customer_session_store import (
     customer_session_store,
@@ -135,7 +137,7 @@ def request_payment(session_id):
         f"Payment requested for session {session_id}",
         table=table_number,
         method=payment_method,
-        call_id=call_id
+        call_id=call_id,
     )
 
     emit_waiter_call(
@@ -230,7 +232,7 @@ def confirm_tip():
         logger.info(
             f"Tip confirmed: session_id={session_id}",
             tip_amount=float(tip_amount),
-            new_total=float(dining_session.total_amount)
+            new_total=float(dining_session.total_amount),
         )
 
         return jsonify(
@@ -323,7 +325,9 @@ def request_session_checkout(session_id):
         return jsonify(response_data), HTTPStatus.OK
 
     except Exception as e:
-        logger.error("Error requesting checkout", error={"exception": str(e), "traceback": True})
+        logger.error(
+            "Error requesting checkout", error={"exception": str(e), "traceback": True}
+        )
         return jsonify(
             {"error": "Error al solicitar cuenta"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -388,7 +392,9 @@ def request_check(session_id):
             ), HTTPStatus.OK
 
     except Exception as e:
-        logger.error("Error requesting check", error={"exception": str(e), "traceback": True})
+        logger.error(
+            "Error requesting check", error={"exception": str(e), "traceback": True}
+        )
         return jsonify(
             {"error": "Error al solicitar cuenta"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -446,6 +452,46 @@ def validate_session(session_id):
         return jsonify(
             {"error": "Error al validar sesión"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+@payments_bp.get("/session/<uuid:session_id>/timeout")
+@customer_session_required
+def get_session_timeout(session_id):
+    """Return session timeout metadata for client timeout monitor."""
+    from sqlalchemy import select
+
+    from pronto_shared.db import get_session
+    from pronto_shared.models import DiningSession
+
+    try:
+        with get_session() as db_session:
+            dining_session = (
+                db_session.execute(
+                    select(DiningSession).where(DiningSession.id == session_id)
+                )
+                .scalars()
+                .one_or_none()
+            )
+
+            if not dining_session:
+                return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
+
+            authed_user = _get_authenticated_customer()
+            if not authed_user or dining_session.customer_id != authed_user.get("id"):
+                return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
+
+            return jsonify(
+                {
+                    "session_id": str(dining_session.id),
+                    "status": dining_session.status,
+                    "expires_at": dining_session.expires_at.isoformat()
+                    if dining_session.expires_at
+                    else None,
+                }
+            ), HTTPStatus.OK
+    except Exception as e:
+        logger.error("Error getting session timeout", error={"exception": str(e)})
+        return jsonify({"error": "Error al obtener tiempo de sesión"}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
 @payments_bp.get("/session/<uuid:session_id>/orders")

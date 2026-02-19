@@ -5,8 +5,10 @@ Customer facing web views rendered via Jinja templates.
 from __future__ import annotations
 
 import os
+from uuid import UUID
 from flask import Blueprint, current_app, render_template, request, session, jsonify
 from sqlalchemy import select
+from pronto_shared.trazabilidad import get_logger
 
 from pronto_shared.db import get_session
 from pronto_shared.jwt_middleware import get_current_user
@@ -23,6 +25,9 @@ from pronto_shared.services.customer_session_store import (
 web_bp = Blueprint("client_web", __name__)
 
 _KIOSK_SECRET = os.getenv("PRONTO_KIOSK_SECRET", "")
+_KIOSK_PASSWORD = os.getenv(
+    "PRONTO_KIOSK_PASSWORD", "kiosk-no-auth-change-in-production"
+)
 
 
 @web_bp.get("/")
@@ -54,14 +59,17 @@ def home():
                     for t, a in results
                 ]
         except Exception as e:
-            current_app.logger.error(f"Error fetching tables for debug: {e}")
+            logger = get_logger("clients.web")
+            logger.error(
+                f"Error fetching tables for debug: {e}", error={"message": str(e)}
+            )
 
     return render_template(
         "index.html",
         debug_auto_table=debug_auto_table,
         customer_data=customer_data,
         available_tables=available_tables,
-        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
+        api_base_url=current_app.config.get("API_BASE_URL", ""),
     )
 
 
@@ -77,7 +85,7 @@ def checkout():
         "checkout.html",
         debug_auto_table=debug_auto_table,
         customer_data=customer_data,
-        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
+        api_base_url=current_app.config.get("API_BASE_URL", ""),
     )
 
 
@@ -92,106 +100,8 @@ def menu_alt():
         "index-alt.html",
         debug_auto_table=debug_auto_table,
         customer_data=customer_data,
-        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
+        api_base_url=current_app.config.get("API_BASE_URL", ""),
     )
-
-
-# DISABLED: Users are redirected to Orders tab instead of thank you page
-# @web_bp.get("/thanks")
-# def thank_you():
-#     """
-#     Thank you page shown after completing an order, with order history.
-#     """
-#     # Try to get session_id from Flask session first, then query param (backwards compatibility)
-#     session_id = session.get("dining_session_id") or request.args.get("session_id", type=int)
-#
-#     current_app.logger.info(f"[THANK YOU PAGE] Session ID from Flask session: {session.get('dining_session_id')}")
-#     current_app.logger.info(f"[THANK YOU PAGE] Session ID from URL: {request.args.get('session_id')}")
-#     current_app.logger.info(f"[THANK YOU PAGE] Using session_id: {session_id}")
-#
-#     orders = []
-#     session_data = None
-#
-#     can_pay_digitally = False
-#
-#     if session_id:
-#         try:
-#             with get_session() as db_session:
-#                 # Fetch the dining session with all orders (regardless of status)
-#                 # After placing an order, the user should always see their order
-#                 stmt = (
-#                     select(DiningSession)
-#                     .where(DiningSession.id == session_id)
-#                 )
-#                 dining_session = db_session.execute(stmt).scalars().first()
-#
-#                 current_app.logger.info(f"[THANK YOU PAGE] Found dining_session: {dining_session is not None}")
-#
-#                 if dining_session:
-#                     current_app.logger.info(f"[THANK YOU PAGE] Session ID: {dining_session.id}, Status: {dining_session.status}, Orders count: {len(dining_session.orders)}")
-#                     session_data = {
-#                         "id": dining_session.id,
-#                         "table_number": dining_session.table_number,
-#                         "subtotal": float(dining_session.subtotal),
-#                         "tax_amount": float(dining_session.tax_amount),
-#                         "total_amount": float(dining_session.total_amount),
-#                     }
-#                     customer = dining_session.customer
-#                     if customer and customer.email:
-#                         can_pay_digitally = not customer.email.startswith("anonimo+")
-#
-#                     # Fetch all orders in this session
-#                     for order in dining_session.orders:
-#                         order_items = []
-#                         for item in order.items:
-#                             # Build modifiers list
-#                             modifiers = []
-#                             for modifier in item.modifiers:
-#                                 modifiers.append({
-#                                     "name": modifier.modifier.name,
-#                                     "price": float(modifier.modifier.price) if modifier.modifier.price else 0.0
-#                                 })
-#
-#                             order_items.append({
-#                                 "name": item.menu_item.name,
-#                                 "quantity": item.quantity,
-#                                 "unit_price": float(item.unit_price),
-#                                 "total": float(item.unit_price * item.quantity),
-#                                 "modifiers": modifiers,
-#                             })
-#
-#                         orders.append({
-#                             "id": order.id,
-#                             "status": order.workflow_status,
-#                             "items": order_items,
-#                             "subtotal": float(order.subtotal),
-#                             "tax_amount": float(order.tax_amount),
-#                             "total_amount": float(order.total_amount),
-#                             "created_at": order.created_at,
-#                         })
-#         except Exception as e:
-#             current_app.logger.error(f"[THANK YOU PAGE] Error loading session: {e}")
-#             # Continue rendering without session info rather than crashing
-#
-#     current_app.logger.info(f"[THANK YOU PAGE] Rendering template with session={session_data is not None}, orders count={len(orders)}")
-#
-#     # Debug: Log the type and structure of orders
-#     if orders:
-#         current_app.logger.info(f"[THANK YOU PAGE] First order type: {type(orders[0])}")
-#         current_app.logger.info(f"[THANK YOU PAGE] First order keys: {orders[0].keys() if isinstance(orders[0], dict) else 'NOT A DICT'}")
-#         if isinstance(orders[0], dict) and 'items' in orders[0]:
-#             current_app.logger.info(f"[THANK YOU PAGE] First order items type: {type(orders[0]['items'])}")
-#
-#     return render_template(
-#         "thank_you.html",
-#         session=session_data,
-#         orders=orders,
-#         show_estimated_time=True,
-#         estimated_time_min=15,
-#         estimated_time_max=25,
-#         config=current_app.config,
-#         can_pay_digitally=can_pay_digitally,
-#     )
 
 
 @web_bp.get("/feedback")
@@ -205,13 +115,25 @@ def feedback_form():
     """
     # Try to get session_id from JWT first, then query param
     current_user = get_current_user()
-    session_id = (
+    session_id_raw = (
         current_user.get("session_id") if current_user else None
-    ) or request.args.get("session_id", type=int)
-    employee_id = request.args.get("employee_id", type=int)
+    ) or request.args.get("session_id")
+    employee_id_raw = request.args.get("employee_id")
 
-    if not session_id:
+    if not session_id_raw:
         return "Session ID requerido", 400
+
+    try:
+        session_id = UUID(str(session_id_raw))
+    except (TypeError, ValueError):
+        return "Session ID inválido", 400
+
+    employee_id = None
+    if employee_id_raw:
+        try:
+            employee_id = UUID(str(employee_id_raw))
+        except (TypeError, ValueError):
+            return "Employee ID inválido", 400
 
     # Verify session exists
     with get_session() as db_session:
@@ -223,10 +145,10 @@ def feedback_form():
 
     return render_template(
         "feedback.html",
-        session_id=session_id,
-        employee_id=employee_id,
+        session_id=str(session_id),
+        employee_id=str(employee_id) if employee_id else "",
         feedback_api_base_url=current_app.config.get("EMPLOYEE_API_BASE_URL"),
-        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
+        api_base_url=current_app.config.get("API_BASE_URL", ""),
     )
 
 
@@ -241,7 +163,7 @@ def kiosk_screen(location: str):
     return render_template(
         "kiosk.html",
         location=location,
-        api_base_url=current_app.config.get("API_BASE_URL", "http://localhost:6082"),
+        api_base_url=current_app.config.get("API_BASE_URL", ""),
     )
 
 
@@ -277,7 +199,7 @@ def kiosk_start(location: str):
                     db,
                     first_name=f"Kiosk {location}",
                     email=kiosk_email,
-                    password="kiosk-no-auth",
+                    password=_KIOSK_PASSWORD,
                     kind="kiosk",
                     kiosk_location=location,
                 )

@@ -4,16 +4,18 @@ Proxies calls to pronto-api with customer_ref from Flask session.
 """
 
 import json
-import logging
 import requests
 from http import HTTPStatus
-from flask import Blueprint, current_app, jsonify, request, session
+from uuid import UUID
+from flask import Blueprint, jsonify, request, session
 
+from pronto_clients.routes.api.auth import customer_session_required
 from pronto_shared.serializers import error_response, success_response
+from pronto_shared.trazabilidad import get_logger
 
 orders_bp = Blueprint("client_orders_api", __name__)
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _get_customer_ref() -> str | None:
@@ -31,7 +33,7 @@ def _forward_to_api(method: str, endpoint: str, payload: dict | None = None) -> 
     Forward request to pronto-api with customer_ref header and HMAC signature.
 
     Returns:
-        tuple: (response_json, status_code)
+        tuple: (response_json, status_code, cookies)
     """
     import os
 
@@ -61,30 +63,31 @@ def _forward_to_api(method: str, endpoint: str, payload: dict | None = None) -> 
 
         url = f"{api_base_url}{endpoint}"
 
+        cookies_dict = dict(request.cookies)
         if method == "GET":
-            resp = requests.get(url, headers=headers, timeout=10)
+            resp = requests.get(url, headers=headers, cookies=cookies_dict, timeout=10)
         elif method == "POST":
-            resp = requests.post(url, data=body_str, headers=headers, timeout=10)
+            resp = requests.post(url, data=body_str, headers=headers, cookies=cookies_dict, timeout=10)
         elif method == "PUT":
-            resp = requests.put(url, data=body_str, headers=headers, timeout=10)
+            resp = requests.put(url, data=body_str, headers=headers, cookies=cookies_dict, timeout=10)
         elif method == "DELETE":
-            resp = requests.delete(url, headers=headers, timeout=10)
+            resp = requests.delete(url, headers=headers, cookies=cookies_dict, timeout=10)
         else:
-            return {"error": "Invalid method"}, HTTPStatus.INTERNAL_SERVER_ERROR
+            return {"error": "Invalid method"}, HTTPStatus.INTERNAL_SERVER_ERROR, {}
 
         if resp.status_code == HTTPStatus.UNAUTHORIZED:
             _clear_customer_session()
 
         try:
-            return resp.json(), resp.status_code
+            return resp.json(), resp.status_code, resp.cookies
         except Exception:
-            return {"error": "Invalid response from API"}, resp.status_code
+            return {"error": "Invalid response from API"}, resp.status_code, resp.cookies
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error communicating with pronto-api: {e}")
         return {
             "error": "Error de comunicacion con el servicio central"
-        }, HTTPStatus.SERVICE_UNAVAILABLE
+        }, HTTPStatus.SERVICE_UNAVAILABLE, {}
 
 
 @orders_bp.post("/orders")
@@ -94,7 +97,7 @@ def create_order():
     Uses customer_ref from session for authentication.
     """
     payload = request.get_json(silent=True) or {}
-    data, status = _forward_to_api("POST", "/api/customer/orders", payload)
+    data, status, _ = _forward_to_api("POST", "/api/customer/orders", payload)
     return jsonify(data), status
 
 
@@ -111,12 +114,41 @@ def get_current_session_orders():
             error_response("session_id query parameter is required")
         ), HTTPStatus.BAD_REQUEST
 
-    data, status = _forward_to_api("GET", f"/api/orders?session_id={session_id}")
+    data, status, _ = _forward_to_api("GET", f"/api/orders?session_id={session_id}")
     return jsonify(data), status
 
 
-@orders_bp.get("/orders/<int:order_id>")
-def get_order(order_id: int):
+@orders_bp.get("/orders/<uuid:order_id>")
+def get_order(order_id: UUID):
     """Get a specific order by ID."""
-    data, status = _forward_to_api("GET", f"/api/orders/{order_id}")
+    data, status, _ = _forward_to_api("GET", f"/api/orders/{order_id}")
+    return jsonify(data), status
+
+
+@orders_bp.post("/orders/send-confirmation")
+def send_order_confirmation():
+    """
+    Compatibility endpoint for checkout confirmation email requests.
+    Proxies to customer ticket email endpoint using session_id.
+    """
+    payload = request.get_json(silent=True) or {}
+    session_id = payload.get("session_id")
+    if not session_id:
+        return jsonify(error_response("session_id is required")), HTTPStatus.BAD_REQUEST
+
+    data, status, _ = _forward_to_api(
+        "POST", f"/api/customer/orders/session/{session_id}/send-ticket-email", {}
+    )
+    return jsonify(data), status
+
+
+@orders_bp.post("/feedback/bulk")
+@customer_session_required
+def submit_feedback_bulk():
+    """
+    Proxy endpoint for customer feedback submission from client pages.
+    Keeps frontend calls same-origin and forwards auth context to pronto-api.
+    """
+    payload = request.get_json(silent=True) or {}
+    data, status, _ = _forward_to_api("POST", "/api/feedback/bulk", payload)
     return jsonify(data), status

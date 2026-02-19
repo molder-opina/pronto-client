@@ -77,8 +77,8 @@ def get_notifications():
         ), HTTPStatus.OK
 
 
-@notifications_bp.post("/notifications/<int:notification_id>/read")
-def mark_notification_read(notification_id: int):
+@notifications_bp.post("/notifications/<int:notification>/read")
+def mark_notification_read(notification: int):
     """Mark a notification as read (requires auth + ownership check)."""
     from pronto_shared.db import get_session as get_db_session
     from pronto_shared.models import Notification
@@ -90,7 +90,7 @@ def mark_notification_read(notification_id: int):
     customer_id = customer.get("customer_id")
 
     with get_db_session() as db_session:
-        notification = db_session.get(Notification, notification_id)
+        notification = db_session.get(Notification, notification)
         if not notification:
             return jsonify({"error": "Notification not found"}), HTTPStatus.NOT_FOUND
 

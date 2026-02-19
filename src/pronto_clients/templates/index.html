@@ -337,7 +337,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       // Load hours if not already loaded
       if (!businessHoursData) {
         try {
-          const response = await fetch(`${window.API_BASE}/api/business-info`);
+          const response = await fetch(`/api/business-info`);
           const data = await response.json();
 
           if (data.schedule) {
@@ -475,6 +475,21 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
     // Remove updateBusinessStatus call from page initialization
   </script>
+
+  <!-- Checkout Offers Overlay -->
+  <div class="checkout-offers" id="checkout-offers-overlay" aria-hidden="true" style="display: none">
+    <div class="checkout-offers__card">
+      <button class="checkout-offers__close" id="checkout-offers-close" type="button">✕</button>
+      <h3 class="checkout-offers__title">🍴 Ofertas Especiales</h3>
+      <div class="checkout-offers__list" id="checkout-offers-list">
+        <div class="checkout-offers__loading">
+          <div class="spinner"></div>
+          <p>Cargando ofertas...</p>
+        </div>
+      </div>
+      <p class="checkout-offers__helper">Tu mesero viene en breve</p>
+    </div>
+  </div>
 
   <!-- Checkout Waiting Overlay -->
   <div class="checkout-waiting-overlay checkout-waiting-overlay--hidden" id="checkout-waiting-overlay">
@@ -630,7 +645,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
       const loadTableOptions = () => {
         if (tableOptionsPromise) return tableOptionsPromise;
-        tableOptionsPromise = fetch(`${window.API_BASE}/api/tables`, {
+        tableOptionsPromise = fetch(`/api/tables`, {
           method: 'GET',
           credentials: 'include',
           headers: { Accept: 'application/json' },

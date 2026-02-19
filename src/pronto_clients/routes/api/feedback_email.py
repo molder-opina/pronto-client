@@ -6,8 +6,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 from sqlalchemy import select
 from pronto_shared.trazabilidad import get_logger
 
@@ -16,8 +17,8 @@ logger = get_logger(__name__)
 feedback_email_bp = Blueprint("feedback_email", __name__)
 
 
-@feedback_email_bp.post("/orders/<int:order_id>/feedback/email-trigger")
-def trigger_feedback_email(order_id: int):
+@feedback_email_bp.post("/orders/<uuid:order_id>/feedback/email-trigger")
+def trigger_feedback_email(order_id: UUID):
     """
     Trigger feedback email after timer expires.
     Called from frontend when feedback prompt times out.
