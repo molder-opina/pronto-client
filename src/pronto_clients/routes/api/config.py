@@ -48,6 +48,7 @@ def client_session_validation_interval_minutes() -> tuple[dict, int]:
     return success_response({"value": value}), HTTPStatus.OK
 
 
+@config_bp.get("/public/config")
 @config_bp.get("/config/public")
 def get_public_config() -> tuple[dict, int]:
     tax_rate = _safe_config_value("tax_rate", current_app.config.get("TAX_RATE", 0.16))

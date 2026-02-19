@@ -2,10 +2,10 @@
 Customer Authentication API - Redis-backed customer_ref sessions.
 
 Endpoints:
-- POST /login - Authenticate customer, create session
-- POST /register - Create new customer account
-- POST /logout - Revoke customer_ref, clear session
-- GET /me - Get current customer info
+- POST /auth/login - Authenticate customer, create session
+- POST /auth/register - Create new customer account
+- POST /auth/logout - Revoke customer_ref, clear session
+- GET /auth/me - Get current customer info
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from pronto_shared.security_middleware import rate_limit
 auth_bp = Blueprint("client_auth", __name__)
 
 
+@auth_bp.post("/auth/login")
 @auth_bp.post("/login")
 @rate_limit(max_requests=5, window_seconds=60, key_prefix="login")
 def login():
@@ -111,6 +112,7 @@ def login():
     ), HTTPStatus.OK
 
 
+@auth_bp.post("/auth/register")
 @auth_bp.post("/register")
 @rate_limit(max_requests=5, window_seconds=60, key_prefix="register")
 def register():
@@ -198,6 +200,7 @@ def register():
     ), HTTPStatus.CREATED
 
 
+@auth_bp.post("/auth/logout")
 @auth_bp.post("/logout")
 def logout():
     """
@@ -251,6 +254,7 @@ def customer_session_required(f):
     return decorated_function
 
 
+@auth_bp.get("/auth/me")
 @auth_bp.get("/me")
 @customer_session_required
 def me():
@@ -286,6 +290,7 @@ def me():
     return jsonify({"customer": customer})
 
 
+@auth_bp.put("/auth/me")
 @auth_bp.put("/me")
 @customer_session_required
 def update_profile():
@@ -346,4 +351,3 @@ def update_profile():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
-
