@@ -63,7 +63,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   }
 </style>
 <link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css?v={{ range(1, 100000) | random }}" />
 
 <div class="menu-page" data-menu-root>
   <!-- Category Tabs -->
@@ -319,6 +319,95 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       currency_symbol: '{{ currency_symbol }}',
       debug_mode: {{ 'true' if config.get('DEBUG') else 'false' }},
     };
+
+    // Bridge for Vue app and legacy DOM modals
+    (function () {
+      let menuCache = null;
+
+      async function getMenu() {
+        if (menuCache) return menuCache;
+        try {
+          const response = await fetch('/api/menu');
+          const data = await response.json();
+          menuCache = data.categories || [];
+          return menuCache;
+        } catch (e) {
+          console.error('[BRIDGE] Failed to load menu for modal', e);
+          return [];
+        }
+      }
+
+      window.openProductModal = async function (productId) {
+        console.log('[BRIDGE] openProductModal called for ID:', productId);
+        const categories = await getMenu();
+        let product = null;
+        for (const cat of categories) {
+          if (cat.items) {
+            product = cat.items.find((item) => item.id == productId);
+            if (product) break;
+          }
+        }
+
+        if (!product) {
+          console.error('[BRIDGE] Product not found in cache:', productId);
+          return;
+        }
+
+        const modal = document.getElementById('item-modal');
+        if (!modal) return;
+
+        // Populate modal
+        const nameEl = document.getElementById('modal-item-name');
+        const descEl = document.getElementById('modal-item-description');
+        const imgEl = document.getElementById('modal-item-image');
+        const basePriceEl = document.getElementById('modal-base-price');
+        const totalPriceEl = document.getElementById('modal-total-price');
+        const breakdownTotalEl = document.getElementById('modal-breakdown-total');
+        const qtyEl = document.getElementById('modal-quantity');
+
+        if (nameEl) nameEl.textContent = product.name;
+        if (descEl) descEl.textContent = product.description || '';
+        if (imgEl) {
+          imgEl.src = product.image_path || '{{ restaurant_assets }}/branding/placeholder.png';
+          imgEl.alt = product.name;
+        }
+
+        const price = parseFloat(product.price) || 0;
+        const formattedPrice = `{{ currency_symbol }}${price.toFixed(2)}`;
+
+        if (basePriceEl) basePriceEl.textContent = formattedPrice;
+        if (totalPriceEl) totalPriceEl.textContent = formattedPrice;
+        if (breakdownTotalEl) breakdownTotalEl.textContent = formattedPrice;
+        if (qtyEl) qtyEl.textContent = '1';
+
+        // Toggle extras section (hide for now as we don't have details in simple fetch)
+        const extrasSection = document.getElementById('extras-section');
+        if (extrasSection) extrasSection.classList.add('extras-section--hidden');
+
+        // Show modal
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+      };
+
+      window.closeItemModal = function () {
+        const modal = document.getElementById('item-modal');
+        if (modal) {
+          modal.classList.remove('active');
+          document.body.classList.remove('modal-open');
+        }
+      };
+
+      // Add To Cart Bridge
+      window.addToCartFromModal = function () {
+        console.log('[BRIDGE] addToCartFromModal called');
+        // This will be handled by the legacy cart logic once we restore it
+        // For now, close modal as a feedback
+        window.closeItemModal();
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('¡Producto agregado! (Simulado)', 'success');
+        }
+      };
+    })();
   </script>
 
   <script>

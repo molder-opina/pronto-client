@@ -9,9 +9,8 @@
   <link rel="stylesheet" href="{{ assets_css }}/shared/components.css" />
   <link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css" />
-  <link rel="stylesheet" href="{{ assets_css_clients }}/qa-fixes.css" />
+  <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/color-improvements.css" />
-  <link rel="stylesheet" href="{{ assets_css_clients }}/qa-error-fixes-updated.css" />
   <link rel="icon" href="{{ restaurant_assets }}/branding/icon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -917,31 +916,7 @@
       }, 100);
     })();
   </script>
-  <!-- FINAL CSS OVERRIDE - LOADED LAST, HIGHEST PRIORITY -->
-  <style id="qa-error-fixes-final">
-    /* Override all checkout button styling */
-    button#checkout-submit-btn,
-    .checkout-submit-btn,
-    button[form='checkout-form'],
-    button[form='checkout-form'].checkout-submit-btn {
-      width: 100% !important;
-      height: 3rem !important;
-      min-height: 3rem !important;
-      display: inline-flex !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-      pointer-events: auto !important;
-      cursor: pointer !important;
-    }
 
-    /* Override accordion content */
-    .accordion-content {
-      opacity: 1 !important;
-      visibility: visible !important;
-      pointer-events: auto !important;
-      display: block !important;
-    }
-  </style>
   <script>
     window.APP_SETTINGS = {{ app_settings | tojson | safe }};
 
@@ -2898,169 +2873,7 @@
     }
   </style>
 
-  <style>
-    /* FORCE STICKY HELPER STYLES - INLINE TO EVADE CACHE */
-    .sticky-cart-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #ffffff !important;
-      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-      padding: 1rem;
-      z-index: 9000;
-      transform: translateY(110%);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border-top: 1px solid #e5e7eb;
-      display: block !important;
-      visibility: visible;
-    }
 
-    .sticky-cart-bar--visible {
-      transform: translateY(0) !important;
-    }
-
-    .sticky-cart-bar__content {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .sticky-cart-bar__info {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .sticky-cart-bar__icon {
-      position: relative;
-      width: 40px;
-      height: 40px;
-      background: #f3f4f6;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #4b5563;
-    }
-
-    .sticky-cart-bar__icon svg {
-      width: 20px !important;
-      height: 20px !important;
-    }
-
-    .sticky-cart-bar__badge {
-      position: absolute;
-      top: -5px;
-      right: -5px;
-      background: #ef4444;
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 700;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .sticky-cart-bar__details {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .sticky-cart-bar__label {
-      font-size: 0.75rem;
-      color: #6b7280;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-
-    .sticky-cart-bar__total {
-      font-weight: 800;
-      font-size: 1.1rem;
-      color: #111827;
-    }
-
-    .sticky-cart-bar__items {
-      font-size: 0.8rem;
-      color: #6b7280;
-    }
-
-    .sticky-cart-bar__btn {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: linear-gradient(135deg, #f97316 0%, #fb923c 100%) !important;
-      color: white !important;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 999px;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-      transition: all 0.2s ease;
-    }
-
-    .sticky-cart-bar__btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
-    }
-
-    .sticky-cart-bar__btn svg {
-      width: 1.25rem !important;
-      height: 1.25rem !important;
-      max-width: 20px !important;
-    }
-
-    /* UNDO SNACKBAR - INLINE FIX */
-    .undo-snackbar {
-      position: fixed;
-      bottom: 90px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: #1f2937 !important;
-      color: white !important;
-      padding: 0.75rem 1.5rem;
-      border-radius: 99px;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      z-index: 9010;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.3s;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .undo-snackbar.undo-snackbar--visible {
-      opacity: 1 !important;
-      pointer-events: auto !important;
-      transform: translateX(-50%) translateY(0) !important;
-      display: flex !important;
-    }
-
-    .undo-snackbar__action {
-      background: transparent !important;
-      border: 1px solid rgba(255, 255, 255, 0.2) !important;
-      color: #60a5fa !important;
-      padding: 0.25rem 0.75rem;
-      border-radius: 99px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      font-weight: 600;
-      margin-left: 0.5rem;
-    }
-
-    .undo-snackbar__action:hover {
-      background: rgba(255, 255, 255, 0.1) !important;
-    }
-  </style>
 
   <!-- Keyboard Shortcuts Modal -->
   <div class="shortcuts-modal" id="shortcuts-modal" role="dialog" aria-labelledby="shortcuts-title" aria-modal="true">
