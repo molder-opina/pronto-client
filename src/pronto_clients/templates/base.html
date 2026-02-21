@@ -19,87 +19,6 @@
   <meta name="csrf-token" content="{{ csrf_token() }}" />
   <!-- <link rel="stylesheet" href="{{ assets_css }}/notifications.css"> -->
 
-  <!-- CRITICAL CSS FIXES - NUCLEAR OPTION -->
-  <style id="critical-visual-fixes">
-    /* FORCE WHITE BACKGROUND EVERYWHERE */
-    html,
-    body,
-    .menu-page,
-    .app-container,
-    .main-layout,
-    #app,
-    .menu-flow {
-      background: #ffffff !important;
-      background-image: none !important;
-      background-color: #ffffff !important;
-    }
-
-    /* Remove ALL pseudo-elements that might have gradients */
-    *::before,
-    *::after {
-      background-image: none !important;
-    }
-
-    /* FIX FILTER CHIPS - ORANGE NOT BLUE */
-    .filter-chip {
-      background: #ffffff !important;
-      background-image: none !important;
-      border: 2px solid #e5e7eb !important;
-      color: #374151 !important;
-      box-shadow: none !important;
-      background: transparent !important;
-    }
-
-    .filter-chip[data-active='true'],
-    .filter-chip:hover,
-    .filter-chip.active {
-      background: linear-gradient(135deg, #f97316 0%, #fb923c 100%) !important;
-      background-image: linear-gradient(135deg, #f97316 0%, #fb923c 100%) !important;
-      border-color: #f97316 !important;
-      color: #ffffff !important;
-      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3) !important;
-    }
-
-    /* Clean search bar */
-    .smart-search__input {
-      background: #ffffff !important;
-      background-image: none !important;
-      border: 2px solid #e5e7eb !important;
-    }
-
-    /* Menu sections subtle gray */
-    #menu-sections,
-    .container {
-      background: #f9fafb !important;
-      background-image: none !important;
-    }
-
-    /* FIX ERROR #1: Make accordion content visible (checkout button parent) */
-    .accordion-content {
-      opacity: 1 !important;
-      visibility: visible !important;
-      pointer-events: auto !important;
-    }
-
-    /* FIX ERROR #2: Modal overlay should not block form interactions */
-    #item-modal .modal-overlay {
-      pointer-events: none !important;
-    }
-
-    #item-modal .modal-body,
-    #item-modal .modal-footer {
-      pointer-events: auto !important;
-      z-index: 101 !important;
-    }
-
-    .modal-add-to-cart,
-    .extra-option,
-    .modal-quantity-input {
-      pointer-events: auto !important;
-      z-index: 102 !important;
-    }
-  </style>
-
   <style>
     /* Estilos adicionales para la nueva interfaz */
     /* Header & Navigation Redesign */
@@ -1025,9 +944,9 @@
   </style>
   <script>
     window.APP_SETTINGS = {{ app_settings | tojson | safe }};
-    
+
     // Immutable Configuration - Protection against legacy overwrites
-    (function() {
+    (function () {
       const config = {
         'app_name': '{{ app_name }}',
         'restaurant_name': '{{ restaurant_name }}',
@@ -1037,13 +956,13 @@
         'debug_mode': '{{ debug_mode }}' === 'True',
         'server_time': '{{ server_time }}'
       };
-      
+
       Object.defineProperty(window, 'APP_CONFIG', {
         value: Object.freeze(config),
         writable: false,
         configurable: false
       });
-      
+
       console.log('[Config] Initialized immutable APP_CONFIG');
     })();
   </script>
@@ -1188,7 +1107,8 @@
       <!-- Logged In View -->
       <div id="profile-logged-in" class="profile-view" style="display: none">
         <div class="profile-header">
-          <img id="profile-modal-avatar" class="profile-modal-avatar" src="{{ assets_images }}/default-avatar.png" alt="Avatar" />
+          <img id="profile-modal-avatar" class="profile-modal-avatar" src="{{ assets_images }}/default-avatar.png"
+            alt="Avatar" />
           <h2 id="profile-name">Usuario</h2>
           <p id="profile-email" style="color: var(--muted)"></p>
         </div>
@@ -1212,28 +1132,29 @@
       <!-- Settings View (Tax Info) -->
       <div id="profile-settings" class="profile-view" style="display: none">
         <div class="profile-header">
-           <button class="btn-link" id="settings-back-btn" style="position: absolute; left: 1rem; top: 1rem;">← Volver</button>
-           <h3>Datos de Facturación</h3>
+          <button class="btn-link" id="settings-back-btn" style="position: absolute; left: 1rem; top: 1rem;">←
+            Volver</button>
+          <h3>Datos de Facturación</h3>
         </div>
         <form id="tax-info-form" class="profile-form">
-            <div class="form-group">
-                <label for="tax-id">RFC</label>
-                <input type="text" id="tax-id" placeholder="XAXX010101000" style="text-transform: uppercase;" />
-            </div>
-            <div class="form-group">
-                <label for="tax-name">Razón Social</label>
-                <input type="text" id="tax-name" placeholder="Nombre o Razón Social" />
-            </div>
-            <div class="form-group">
-                <label for="tax-email">Correo para Factura</label>
-                <input type="email" id="tax-email" placeholder="facturacion@empresa.com" />
-            </div>
-            <div class="form-group">
-                <label for="tax-address">Domicilio Fiscal (C.P.)</label>
-                <input type="text" id="tax-address" placeholder="Código Postal" />
-            </div>
-            <button type="submit" class="btn btn-primary btn--full">Guardar Cambios</button>
-            <div class="form-feedback" id="tax-feedback"></div>
+          <div class="form-group">
+            <label for="tax-id">RFC</label>
+            <input type="text" id="tax-id" placeholder="XAXX010101000" style="text-transform: uppercase;" />
+          </div>
+          <div class="form-group">
+            <label for="tax-name">Razón Social</label>
+            <input type="text" id="tax-name" placeholder="Nombre o Razón Social" />
+          </div>
+          <div class="form-group">
+            <label for="tax-email">Correo para Factura</label>
+            <input type="email" id="tax-email" placeholder="facturacion@empresa.com" />
+          </div>
+          <div class="form-group">
+            <label for="tax-address">Domicilio Fiscal (C.P.)</label>
+            <input type="text" id="tax-address" placeholder="Código Postal" />
+          </div>
+          <button type="submit" class="btn btn-primary btn--full">Guardar Cambios</button>
+          <div class="form-feedback" id="tax-feedback"></div>
         </form>
       </div>
     </div>
@@ -3388,12 +3309,13 @@
   </script>
 
   <script defer src="{{ assets_js }}/shared/bindings.js"></script>
+  <script defer src="{{ assets_js }}/shared/keyboard-shortcuts.js"></script>
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    if (window.Lucide && window.Lucide.createIcons) {
-      window.Lucide.createIcons({ icons: window.Lucide.icons });
-    }
-  });
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.Lucide && window.Lucide.createIcons) {
+        window.Lucide.createIcons({ icons: window.Lucide.icons });
+      }
+    });
   </script>
 
   <!-- Vue Notification Center for SSE notifications -->
