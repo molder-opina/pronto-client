@@ -66,7 +66,7 @@ def request_payment(session_id):
 
         # Authorization check
         authed_user = _get_authenticated_customer()
-        if dining_session.customer_id != authed_user.get("id"):
+        if dining_session.customer_id != authed_user.get("customer_id"):
             return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
         if dining_session.status in ["closed", "paid"]:
@@ -203,7 +203,7 @@ def confirm_tip():
 
         # Authorization check
         authed_user = _get_authenticated_customer()
-        if dining_session.customer_id != authed_user.get("id"):
+        if dining_session.customer_id != authed_user.get("customer_id"):
             return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
         if dining_session.status != "open":
@@ -273,7 +273,7 @@ def request_session_checkout(session_id):
 
             # Authorization check
             authed_user = _get_authenticated_customer()
-            if dining_session.customer_id != authed_user.get("id"):
+            if dining_session.customer_id != authed_user.get("customer_id"):
                 return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             if dining_session.status == "paid":
@@ -360,7 +360,7 @@ def request_check(session_id):
 
             # Authorization check
             authed_user = _get_authenticated_customer()
-            if dining_session.customer_id != authed_user.get("id"):
+            if dining_session.customer_id != authed_user.get("customer_id"):
                 return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             if dining_session.status == "paid":
@@ -426,7 +426,7 @@ def validate_session(session_id):
 
             # Authorization check
             authed_user = _get_authenticated_customer()
-            if dining_session.customer_id != authed_user.get("id"):
+            if dining_session.customer_id != authed_user.get("customer_id"):
                 return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             # Get anonymous client ID if customer exists
@@ -479,7 +479,7 @@ def get_session_timeout(session_id):
                 return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
 
             authed_user = _get_authenticated_customer()
-            if not authed_user or dining_session.customer_id != authed_user.get("id"):
+            if not authed_user or dining_session.customer_id != authed_user.get("customer_id"):
                 return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             return jsonify(
@@ -520,7 +520,7 @@ def get_session_orders(session_id):
 
             # Authorization check: Ensure the authenticated customer owns this session
             authed_user = _get_authenticated_customer()
-            if not authed_user or dining_session.customer_id != authed_user.get("id"):
+            if not authed_user or dining_session.customer_id != authed_user.get("customer_id"):
                 return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             orders = (
