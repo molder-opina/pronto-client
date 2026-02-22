@@ -1,4 +1,4 @@
-from flask import Blueprint, session
+from flask import Blueprint, jsonify, session
 
 from pronto_clients.routes.api.auth import customer_session_required
 from pronto_shared.services.customer_session_store import (

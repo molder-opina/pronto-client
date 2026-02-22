@@ -5,11 +5,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ restaurant_name|title }} · Clientes</title>
-  <link rel="stylesheet" href="{{ assets_css }}/shared/base.css" />
-  <link rel="stylesheet" href="{{ assets_css }}/shared/components.css" />
-  <link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css" />
-  <link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css" />
-  <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css" />
+  <link rel="stylesheet" href="{{ assets_css }}/shared/base.css?v=2" />
+  <link rel="stylesheet" href="{{ assets_css }}/shared/components.css?v=2" />
+  <link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css?v=2" />
+  <link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css?v=2" />
+  <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css?v=2" />
   <link rel="icon" href="{{ restaurant_assets }}/branding/icon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,198 +18,6 @@
   <!-- <link rel="stylesheet" href="{{ assets_css }}/notifications.css"> -->
 
   <style>
-    /* Estilos adicionales para la nueva interfaz */
-    /* Header & Navigation Redesign */
-    .header {
-      background: rgba(255, 255, 255, 0.8) !important;
-      backdrop-filter: blur(12px) !important;
-      -webkit-backdrop-filter: blur(12px) !important;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
-      position: sticky;
-      top: 0;
-      z-index: 10000;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      border-bottom: 1px solid #f1f5f9 !important;
-    }
-
-    .header-container {
-      width: 100%;
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .logo-link {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-      transition: transform 0.2s ease;
-    }
-
-    .logo-link:hover {
-      transform: scale(1.02);
-    }
-
-    .logo-section img {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      object-fit: contain;
-      background: white;
-      padding: 2px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .brand-name {
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: #0f172a;
-      letter-spacing: -0.025em;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .header-btn {
-      position: relative;
-      background: #f8fafc;
-      border: 1px solid #f1f5f9;
-      cursor: pointer;
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      color: #64748b;
-    }
-
-    .header-btn:hover {
-      background: #ffffff;
-      border-color: #e2e8f0;
-      color: #0f172a;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transform: translateY(-1px);
-    }
-
-    .header-btn svg {
-      width: 20px;
-      height: 20px;
-      stroke-width: 2;
-    }
-
-    .cart-btn {
-      color: #FF6B35;
-      background: #fff7ed;
-      border-color: #ffedd5;
-    }
-
-    .cart-btn:hover {
-      background: #ffedd5;
-      border-color: #fed7aa;
-    }
-
-    .cart-badge {
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      background: #ef4444;
-      color: white;
-      border-radius: 8px;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 4px;
-      font-size: 10px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid white;
-    }
-
-    .profile-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      object-fit: cover;
-    }
-
-    /* View Tabs Navigation */
-    .view-tabs {
-      background: #ffffff !important;
-      border-bottom: 1px solid #f1f5f9 !important;
-      position: sticky;
-      top: 64px;
-      z-index: 9999;
-      padding: 0.5rem 0;
-    }
-
-    .view-tabs-container {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 0 1.25rem;
-      display: flex;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-
-    .view-tab {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.25rem;
-      background: transparent;
-      border: 2px solid transparent;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: #64748b;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .view-tab:hover {
-      background: #f8fafc;
-      color: #0f172a;
-    }
-
-    .view-tab.active {
-      background: #fff7ed;
-      color: #FF6B35;
-      border-color: transparent;
-    }
-
-    .view-tab__icon {
-      font-size: 1.1rem;
-    }
-
-    @media (max-width: 640px) {
-      .view-tab {
-        flex: 1;
-        justify-content: center;
-        padding: 0.75rem 0.5rem;
-      }
-
-      .view-tab__text {
-        font-size: 0.85rem;
-      }
-
-      .brand-name {
-        display: none;
-      }
-    }
-
     body {
       line-height: 1.4;
       color: var(--text);
@@ -2557,7 +2365,7 @@
       background: var(--color-primary);
       color: white;
     }
-    }
+
 
     .profile-menu-item:hover {
       border-color: var(--primary);
