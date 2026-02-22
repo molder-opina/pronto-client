@@ -6,9 +6,16 @@ from __future__ import annotations
 import os
 from http import HTTPStatus
 
-import stripe
 from flask import Blueprint, request, Response
-from stripe.error import SignatureVerificationError
+
+try:
+    import stripe
+    from stripe.error import SignatureVerificationError
+except ModuleNotFoundError:  # pragma: no cover - env without stripe sdk
+    stripe = None
+
+    class SignatureVerificationError(Exception):
+        pass
 
 from pronto_shared.trazabilidad import get_logger
 from pronto_shared.services.order_service import finalize_payment
@@ -24,7 +31,8 @@ stripe_webhooks_bp = Blueprint("stripe_webhooks", __name__)
 STRIPE_API_KEY = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
-stripe.api_key = STRIPE_API_KEY
+if stripe is not None:
+    stripe.api_key = STRIPE_API_KEY
 
 
 @stripe_webhooks_bp.post("/webhooks/stripe")
@@ -32,6 +40,10 @@ def stripe_webhook():
     """
     Handles incoming webhooks from Stripe.
     """
+    if stripe is None:
+        logger.error("Stripe SDK is not installed in this environment.")
+        return "Stripe SDK not available", HTTPStatus.SERVICE_UNAVAILABLE
+
     if not STRIPE_WEBHOOK_SECRET:
         logger.error("STRIPE_WEBHOOK_SECRET is not configured.")
         return "Configuration error", HTTPStatus.INTERNAL_SERVER_ERROR

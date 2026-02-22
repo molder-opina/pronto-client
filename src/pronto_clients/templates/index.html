@@ -247,7 +247,10 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         Ir a pagar
       </button>
     </div>
-    {% endblock %} {% block scripts %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
 
     <script>
       // Configuration for menu.js
@@ -597,7 +600,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       window.__PRONTO_TS_MENU__ = true;
       window.__PRONTO_TS_MENU_SHORTCUTS__ = true;
 
-      // Auto-assign table number based on QR code or debug mode
+      // Auto-assign table context for checkout details
       (function () {
         const tableLabel = document.getElementById('table-label');
         const tableSubtitle = document.getElementById('table-subtitle');
@@ -606,6 +609,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         const tableFromQR =
           urlParams.get('mesa') || urlParams.get('table') || urlParams.get('m') || urlParams.get('t');
         const tableInput = document.getElementById('table-number');
+        const tableIdInput = document.getElementById('table-id');
+        const tableSourceInput = document.getElementById('table-source');
+        const tableErrorMessage = document.getElementById('table-error-message');
+        const detailsTableSelect = document.getElementById('details-table-select');
+        const checkoutForm = document.getElementById('checkout-form');
         const modal = document.getElementById('table-selection-modal');
         const manualSelect = document.getElementById('manual-table-select');
         const confirmBtn = document.getElementById('confirm-table-btn');
@@ -637,7 +645,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         const DUMMY_TABLES = (() => {
           const make = (label, areaCode, number) => {
             const code = buildCode(areaCode, number);
-            return { fullName: label, areaCode, tableNumber: number, code };
+            return { id: code, fullName: label, areaCode, tableNumber: number, code };
           };
           const mesas = Array.from({ length: 10 }, (_, i) => make(`Mesa ${i + 1}`, 'M', i + 1));
           const terrazas = Array.from({ length: 8 }, (_, i) =>
@@ -657,14 +665,17 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         let tableOptions = [...DUMMY_TABLES];
         let tableOptionsPromise = null;
 
-        const buildTableEntry = (tableNumberValue, zoneLabel) => {
-          const value = String(tableNumberValue || '').trim();
+        const buildTableEntry = (tableData) => {
+          const value = String(tableData?.table_number || tableData?.code || tableData || '').trim();
           if (!value) return null;
+          const tableId = String(tableData?.id || '').trim();
+          const zoneLabel = tableData?.zone || tableData?.area_name || '';
           const utils = window.ProntoTableCode;
           const parsedCode = utils?.parseTableCode?.(value);
           if (parsedCode) {
             const label = AREA_LABELS[parsedCode.areaCode] || zoneLabel || 'Mesa';
             return {
+              id: tableId || null,
               areaCode: parsedCode.areaCode,
               tableNumber: parsedCode.tableNumber,
               code: value,
@@ -676,6 +687,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
           const areaCode = (zoneLabel || 'G').trim().slice(0, 1).toUpperCase() || 'G';
           return {
+            id: tableId || null,
             areaCode,
             tableNumber: tableNumber || 0,
             code: value,
@@ -692,11 +704,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           })
             .then((response) => (response.ok ? response.json() : null))
             .then((payload) => {
-              const tables = payload?.tables || [];
+              const tables = payload?.tables || payload?.data?.tables || [];
               if (!Array.isArray(tables) || tables.length === 0) return;
-              const normalized = tables
-                .map((table) => buildTableEntry(table.table_number, table.zone))
-                .filter(Boolean);
+              const normalized = tables.map((table) => buildTableEntry(table)).filter(Boolean);
               if (normalized.length > 0) {
                 tableOptions = normalized;
               }
@@ -704,6 +714,70 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             .catch(() => undefined);
           return tableOptionsPromise;
         };
+
+        function getCsrfToken() {
+          return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')?.trim() || '';
+        }
+
+        async function persistTableContext(tableData, source) {
+          try {
+            const csrfToken = getCsrfToken();
+            const response = await fetch('/api/sessions/table-context', {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+              },
+              body: JSON.stringify({
+                table_id: tableData.id || tableData.code,
+                table_number: tableData.code,
+                table_source: source,
+              }),
+            });
+            if (!response.ok) {
+              const data = await response.json().catch(() => ({}));
+              console.warn('[TABLE] persist table context failed', data);
+            }
+          } catch (error) {
+            console.warn('[TABLE] persist table context failed', error);
+          }
+        }
+
+        async function loadPersistedTableContext() {
+          try {
+            const response = await fetch('/api/sessions/table-context', {
+              method: 'GET',
+              credentials: 'include',
+              headers: { Accept: 'application/json' },
+            });
+            if (!response.ok) return null;
+            const payload = await response.json();
+            return payload?.data?.table_context || payload?.table_context || null;
+          } catch {
+            return null;
+          }
+        }
+
+        function clearTableError() {
+          if (detailsTableSelect) {
+            detailsTableSelect.style.borderColor = '#d1d5db';
+          }
+          if (tableErrorMessage) {
+            tableErrorMessage.style.display = 'none';
+          }
+        }
+
+        function showTableRequiredError(message = 'Selecciona una mesa para generar la orden') {
+          if (detailsTableSelect) {
+            detailsTableSelect.style.borderColor = '#b91c1c';
+          }
+          if (tableErrorMessage) {
+            tableErrorMessage.textContent = message;
+            tableErrorMessage.style.display = 'block';
+          }
+        }
 
         function parseIncomingTable(rawValue, preferSavedLabel = '') {
           console.log('[TABLE] parseIncomingTable called with:', rawValue);
@@ -717,18 +791,21 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           if (parsedCode) {
             console.log('[TABLE] Parsed using ProntoTableCode:', parsedCode);
             const friendlyName = preferSavedLabel || `Mesa ${parsedCode.tableNumber}`;
-            return { ...parsedCode, fullName: friendlyName, code: value };
+            const byCode = tableOptions.find((table) => table.code.toUpperCase() === value.toUpperCase());
+            return { ...parsedCode, id: byCode?.id || null, fullName: friendlyName, code: value };
           }
 
           console.log('[TABLE] Trying to find in tables list...');
           const candidate = tableOptions.find(
             (table) =>
+              String(table.id || '').toUpperCase() === value.toUpperCase() ||
               table.code.toUpperCase() === value.toUpperCase() ||
               table.fullName.toUpperCase() === value.toUpperCase()
           );
           if (candidate) {
             console.log('[TABLE] Found in tables list:', candidate);
             return {
+              id: candidate.id || null,
               areaCode: candidate.areaCode,
               tableNumber: candidate.tableNumber,
               code: candidate.code,
@@ -749,7 +826,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                 code,
                 fullName: value,
               });
-              return { areaCode, tableNumber, code, fullName: value };
+              const byCode = tableOptions.find((table) => table.code.toUpperCase() === code.toUpperCase());
+              return { id: byCode?.id || null, areaCode, tableNumber, code, fullName: value };
             }
           }
           const digitsMatch = value.match(/(\d{1,2})/);
@@ -759,7 +837,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           const fullName = preferSavedLabel || value || (tableNumber ? `Mesa ${tableNumber}` : '');
           console.log('[TABLE] Fallback result:', { areaCode, tableNumber, code, fullName });
           if (!code) return null;
-          return { areaCode, tableNumber, code, fullName };
+          const byCode = tableOptions.find((table) => table.code.toUpperCase() === code.toUpperCase());
+          return { id: byCode?.id || null, areaCode, tableNumber, code, fullName };
         }
 
         function formatTableLabel(table) {
@@ -768,23 +847,47 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           return table.code ? `${baseName} (${table.code})` : baseName || 'Mesa —';
         }
 
-        function assignTable(rawTable, source = 'qr') {
+        function applyTableLock(source) {
+          const isLocked = source === 'qr' || source === 'kiosk';
+          if (detailsTableSelect) {
+            detailsTableSelect.disabled = isLocked;
+          }
+          if (tableSourceInput) {
+            tableSourceInput.value = source || '';
+          }
+          if (tableSubtitle) {
+            if (source === 'qr') {
+              tableSubtitle.textContent = 'Asignada automáticamente por código QR (bloqueada)';
+            } else if (source === 'kiosk') {
+              tableSubtitle.textContent = 'Mesa fija de kiosko (bloqueada)';
+            } else if (source === 'manual') {
+              tableSubtitle.textContent = 'Seleccionada manualmente';
+            } else {
+              tableSubtitle.textContent = 'Selecciona una mesa para confirmar tu pedido';
+            }
+          }
+        }
+
+        function assignTable(rawTable, source = 'qr', persist = true) {
           if (!tableInput) return false;
           const savedLabel = sessionStorage.getItem('pronto-table-label') || undefined;
           const tableData = parseIncomingTable(rawTable, savedLabel);
           if (!tableData) return false;
 
           tableInput.value = tableData.code;
+          if (tableIdInput) {
+            tableIdInput.value = tableData.id || tableData.code;
+          }
+          if (detailsTableSelect) {
+            detailsTableSelect.value = tableData.id || tableData.code;
+          }
           sessionStorage.setItem('pronto-table-number', tableData.code);
           sessionStorage.setItem('pronto-table-label', tableData.fullName);
 
           if (tableLabel) {
             tableLabel.textContent = formatTableLabel(tableData);
           }
-          if (tableSubtitle) {
-            tableSubtitle.textContent =
-              source === 'qr' ? 'Asignada automáticamente por código QR' : 'Seleccionada manualmente';
-          }
+          applyTableLock(source);
 
           const menuTableLabel = document.getElementById('menu-table-label');
           if (menuTableLabel) {
@@ -796,11 +899,16 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             menuPage.classList.add('menu-visible');
           }
 
+          clearTableError();
+          if (persist) {
+            void persistTableContext(tableData, source);
+          }
+
           return true;
         }
 
         function renderTableOptions() {
-          if (!manualSelect) return;
+          if (!manualSelect && !detailsTableSelect) return;
           const createGroup = (label, values) => {
             const group = document.createElement('optgroup');
             group.label = label;
@@ -818,15 +926,33 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           const barras = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('barra'));
           const vips = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('vip'));
 
-          manualSelect.replaceChildren();
-          const placeholder = document.createElement('option');
-          placeholder.value = '';
-          placeholder.textContent = 'Elige tu mesa';
-          manualSelect.appendChild(placeholder);
-          manualSelect.appendChild(createGroup('Mesas', mesas));
-          manualSelect.appendChild(createGroup('Terraza', terrazas));
-          manualSelect.appendChild(createGroup('Barra', barras));
-          manualSelect.appendChild(createGroup('VIP', vips));
+          if (manualSelect) {
+            manualSelect.replaceChildren();
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Elige tu mesa';
+            manualSelect.appendChild(placeholder);
+            manualSelect.appendChild(createGroup('Mesas', mesas));
+            manualSelect.appendChild(createGroup('Terraza', terrazas));
+            manualSelect.appendChild(createGroup('Barra', barras));
+            manualSelect.appendChild(createGroup('VIP', vips));
+          }
+
+          if (detailsTableSelect) {
+            detailsTableSelect.replaceChildren();
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Selecciona una mesa';
+            detailsTableSelect.appendChild(placeholder);
+
+            tableOptions.forEach((table) => {
+              const option = document.createElement('option');
+              option.value = table.id || table.code;
+              option.dataset.code = table.code;
+              option.textContent = `${table.fullName} (${table.code})`;
+              detailsTableSelect.appendChild(option);
+            });
+          }
         }
 
         function showTableSelectionModal() {
@@ -838,7 +964,6 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                 manualSelect.value = savedTable;
               }
               modal.classList.add('active'); // Use standard .active for modals
-              // modal.style.display = 'flex'; // Handled by CSS
               if (manualSelect) manualSelect.focus();
             });
           }
@@ -881,7 +1006,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               return;
             }
             console.log('[TABLE] Attempting to assign table:', tableNumber);
-            const result = assignTable(tableNumber, 'manual');
+            const result = assignTable(tableNumber, 'manual', true);
             console.log('[TABLE] Assignment result:', result);
             if (result) {
               hideTableSelectionModal();
@@ -892,33 +1017,81 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           });
         }
 
+        if (detailsTableSelect) {
+          detailsTableSelect.addEventListener('change', () => {
+            const selectedValue = detailsTableSelect.value || '';
+            if (!selectedValue) {
+              if (tableIdInput) tableIdInput.value = '';
+              if (tableInput) tableInput.value = '';
+              applyTableLock('manual');
+              showTableRequiredError();
+              return;
+            }
+
+            const selectedOption = detailsTableSelect.options[detailsTableSelect.selectedIndex];
+            const selectedCode = selectedOption?.dataset?.code || selectedValue;
+            assignTable(selectedCode, 'manual', true);
+          });
+        }
+
+        if (checkoutForm) {
+          checkoutForm.addEventListener('submit', (event) => {
+            const selectedTable = String(tableIdInput?.value || detailsTableSelect?.value || '').trim();
+            if (!selectedTable) {
+              event.preventDefault();
+              event.stopPropagation();
+              showTableRequiredError();
+              detailsTableSelect?.focus();
+              return false;
+            }
+            clearTableError();
+            return true;
+          });
+        }
+
         // Main logic
-        let assigned = false;
-        if (tableFromQR) {
-          // Priority 1: QR code always wins
-          assigned = assignTable(tableFromQR, 'qr');
+        async function initializeTableState() {
+          await loadTableOptions();
+          renderTableOptions();
+
+          let assigned = false;
+          const persistedContext = await loadPersistedTableContext();
+
+          if (tableFromQR) {
+            // Priority 1: QR code always wins
+            assigned = assignTable(tableFromQR, 'qr', true);
+            if (!assigned) {
+              alert('Mesa del QR no es válida. Selecciona una mesa existente.');
+            }
+          } else if (persistedContext?.table_code || persistedContext?.table_id) {
+            assigned = assignTable(
+              persistedContext.table_code || persistedContext.table_id,
+              persistedContext.table_source || 'manual',
+              false
+            );
+          } else {
+            // Check if table was already assigned in browser session
+            const savedTable = sessionStorage.getItem('pronto-table-number');
+
+            if (savedTable) {
+              assigned = assignTable(savedTable, 'manual', false);
+            } else if (window.DEBUG_AUTO_TABLE) {
+              // Debug mode: auto-assign Mesa 1 (primer dummy)
+              console.log('[DEBUG] Auto-assigning Mesa 1 for testing');
+              assigned = assignTable('Mesa 1', 'manual', true);
+            }
+          }
+
           if (!assigned) {
-            alert('Mesa del QR no es válida. Selecciona una mesa existente.');
-          }
-        } else {
-          // Check if table was already assigned
-          const savedTable = sessionStorage.getItem('pronto-table-number');
-
-          if (savedTable) {
-            // Table already assigned, use it
-            assigned = assignTable(savedTable, 'session');
-          } else if (window.DEBUG_AUTO_TABLE) {
-            // Debug mode: auto-assign Mesa 1 (primer dummy)
-            console.log('[DEBUG] Auto-assigning Mesa 1 for testing');
-            assigned = assignTable('Mesa 1', 'manual');
+            sessionStorage.removeItem('pronto-table-number');
+            if (tableLabel) tableLabel.textContent = 'Mesa —';
+            if (tableIdInput) tableIdInput.value = '';
+            if (tableInput) tableInput.value = '';
+            applyTableLock('manual');
+            clearTableError();
           }
         }
-
-        if (!assigned) {
-          sessionStorage.removeItem('pronto-table-number');
-          // Production mode: show manual selection modal
-          showTableSelectionModal();
-        }
+        void initializeTableState();
 
         // Make showTableSelectionModal globally accessible
         window.showTableSelectionModal = showTableSelectionModal;

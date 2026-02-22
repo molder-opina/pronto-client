@@ -1445,6 +1445,24 @@
                   ">
                 <div class="mesa-info-card__content">
                   <h4 class="mesa-info-card__title" id="table-label" style="margin: 0">Mesa —</h4>
+                  <p class="mesa-info-card__text" id="table-subtitle" style="margin: 0.35rem 0 0; color: #6b7280">
+                    Selecciona una mesa para confirmar tu pedido
+                  </p>
+                  <div style="margin-top: 0.75rem">
+                    <label for="details-table-select" style="display: block; margin-bottom: 0.35rem">Mesa</label>
+                    <select
+                      id="details-table-select"
+                      name="table_id"
+                      style="width: 100%; padding: 0.65rem; border: 1px solid #d1d5db; border-radius: 8px"
+                    >
+                      <option value="">Selecciona una mesa</option>
+                    </select>
+                  </div>
+                  <p id="table-error-message" style="display: none; color: #b91c1c; margin-top: 0.5rem; font-size: 0.9rem">
+                    Selecciona una mesa para generar la orden
+                  </p>
+                  <input type="hidden" id="table-id" />
+                  <input type="hidden" id="table-source" name="table_source" />
                   <input type="hidden" id="table-number" name="table_number" />
                 </div>
               </div>

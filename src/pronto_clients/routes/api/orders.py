@@ -10,6 +10,11 @@ from uuid import UUID
 from flask import Blueprint, jsonify, request, session
 
 from pronto_clients.routes.api.auth import customer_session_required
+from pronto_clients.routes.api.table_context import (
+    TableContextError,
+    persist_table_context,
+    resolve_table_context,
+)
 from pronto_shared.serializers import error_response, success_response
 from pronto_shared.trazabilidad import get_logger
 
@@ -91,12 +96,38 @@ def _forward_to_api(method: str, endpoint: str, payload: dict | None = None) -> 
 
 
 @orders_bp.post("/orders")
+@customer_session_required
 def create_order():
     """
     Proxy to pronto-api for creating an order.
     Uses customer_ref from session for authentication.
     """
     payload = request.get_json(silent=True) or {}
+    customer_ref = _get_customer_ref()
+    if not customer_ref:
+        return jsonify(error_response("No autenticado")), HTTPStatus.UNAUTHORIZED
+
+    try:
+        resolved_context, customer_payload = resolve_table_context(
+            customer_ref, payload, enforce_required=True
+        )
+    except TableContextError as context_error:
+        return (
+            jsonify(
+                error_response(
+                    context_error.message,
+                    {"code": context_error.code},
+                )
+            ),
+            int(context_error.status),
+        )
+
+    persist_table_context(customer_ref, customer_payload, resolved_context)
+
+    payload["table_id"] = resolved_context["table_id"]
+    payload["table_source"] = resolved_context["table_source"]
+    payload["table_number"] = resolved_context["table_code"]
+
     data, status, _ = _forward_to_api("POST", "/api/customer/orders", payload)
     return jsonify(data), status
 

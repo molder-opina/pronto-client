@@ -746,3 +746,197 @@ def pay_session(session_id):
         from pronto_shared.trazabilidad import get_logger
         logger.error(f"Error processing payment: {e}", exc_info=True)
         return jsonify({"error": "Error al procesar pago"}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+@payments_bp.post("/sessions/<uuid:session_id>/pay")
+@jwt_required
+@scope_required(["customer", "cashier", "admin", "system"])
+def pay_session(session_id):
+    """Procesar pago para sesión (cliente o empleado).
+    Soporta tanto pagos de cliente como de empleado.
+    """
+    from datetime import datetime, timezone
+    from http import HTTPStatus
+    
+    from flask import Blueprint, jsonify, session
+    
+    from pronto_clients.routes.api.auth import customer_session_required
+    from pronto_shared.services.customer_session_store import (
+        customer_session_store,
+        RedisUnavailableError,
+    )
+    from pronto_shared.services.order_service import (
+        prepare_checkout as employee_prepare_checkout,
+        finalize_payment,
+    )
+    from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
+    from pronto_shared.supabase.realtime import emit_waiter_call
+    from pronto_shared.trazabilidad import get_logger
+    from pronto_shared.jwt_middleware import (
+        get_current_user,
+        jwt_required,
+        scope_required,
+    )
+    from pronto_shared.constants import OrderStatus
+    from pronto_shared.models import DiningSession, Order, Payment
+    from pronto_shared.db import get_session
+    
+    logger = get_logger(__name__)
+    
+    def _check_session_ownership(dining_session, authed_user: dict | None) -> bool:
+        """Check if authenticated user owns the dining session."""
+        if not authed_user:
+            return False
+        session_customer_id = str(dining_session.customer_id)
+        authed_customer_id = authed_user.get("customer_id") if authed_user else None
+        return session_customer_id == authed_customer_id
+    
+    try:
+        with get_session() as db_session:
+            # Obtener sesión
+            dining_session = (
+                db_session.execute(
+                    select(DiningSession).where(DiningSession.id == session_id)
+                )
+                .scalars()
+                .one_or_none()
+            )
+
+            if not dining_session:
+                return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
+
+            # Verificar estado
+            if dining_session.status == "paid":
+                return jsonify({"error": "Sesión ya cerrada"}), HTTPStatus.BAD_REQUEST
+
+            # Obtener actor
+            current_user = get_current_user()
+            if not current_user:
+                return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
+            
+            # Detectar tipo de pago (cliente vs empleado)
+            is_customer_payment = "customer" in current_user.get("active_scope", "")
+            user_id = current_user.get("user_id") if current_user else current_user.get("sub")
+            
+            logger.info(f"PAYMENT DEBUG: session_id={session_id}, actor={current_user.get('active_scope')}, is_customer={is_customer_payment}")
+            
+            # Cliente paga su propia sesión
+            if is_customer_payment:
+                # Validar monto
+                payload = request.get_json(silent=True) or {}
+                payment_method = (payload.get("payment_method") or "").strip().lower()
+                amount = payload.get("amount")
+                reference = (payload.get("payment_reference") or "").strip()
+                
+                if not amount or float(amount) <= 0:
+                    return jsonify({"error": "Monto inválido"}), HTTPStatus.BAD_REQUEST
+                
+                # Usar prepare_checkout (para clientes)
+                data, status = employee_prepare_checkout(
+                    session_id=session_id,
+                    customer_id=user_id,
+                )
+                if status != HTTPStatus.OK:
+                    return jsonify(data), status
+                
+                # Crear pago
+                payment = Payment(
+                    session=dining_session,
+                    amount=float(amount),
+                    payment_method=payment_method,
+                    payment_reference=reference,
+                    created_by=user_id,
+                    created_at=datetime.now(timezone.utc),
+                )
+                
+                # Marcar sesión como pagada
+                dining_session.status = "paid"
+                dining_session.closed_at = datetime.now(timezone.utc)
+                
+                # Notificar
+                try:
+                    emit_waiter_call(
+                        "payment_ready",
+                        f"Pago de ${'$12.99} USD por cliente",
+                        {"order_id": dining_session.orders[0].id if dining_session.orders else None}
+                    )
+                except Exception as e:
+                    logger.warning(f"Error notificando: {e}")
+                
+                db_session.add(payment)
+                db_session.commit()
+                
+                return jsonify({
+                    "status": "paid",
+                    "payment_id": payment.id,
+                    "amount": payment.amount,
+                    "payment_method": payment.method,
+                    "payment_reference": f"EFECTIVO-{payment.payment_reference}"
+                }), HTTPStatus.CREATED
+            
+            # Empleado procesa pago del cliente
+            else:
+                # Validar monto
+                payload = request.get_json(silent=True) or {}
+                payment_method = (payload.get("payment_method") or "").strip().lower()
+                amount = payload.get("amount")
+                reference = (payload.get("payment_reference") or "").strip()
+                
+                if not amount or float(amount) <= 0:
+                    return jsonify({"error": "Monto inválido"}), HTTPStatus.BAD_REQUEST
+                
+                # Usar finalize_payment (para empleados)
+                employee_id = current_user.get("user_id")
+                payment_reference = f"EFFECTIVO-{reference}" if reference else None
+                
+                data, status = finalize_payment(
+                    session_id=session_id,
+                    amount=float(amount),
+                    method=payment_method,
+                    reference=payment_reference,
+                    employee_id=employee_id,
+                )
+                if status != HTTPStatus.OK:
+                    return jsonify(data), status
+                
+                # Crear pago
+                payment = Payment(
+                    session=dining_session,
+                    amount=float(amount),
+                    payment_method=payment_method,
+                    payment_reference=payment_reference,
+                    created_by=employee_id,
+                    created_at=datetime.now(timezone.utc),
+                )
+                
+                # Marcar sesión como pagada
+                dining_session.status = "paid"
+                dining_session.closed_at = datetime.now(timezone.utc)
+                
+                # Notificar
+                try:
+                    emit_waiter_call(
+                        "payment_ready",
+                        f"Pago de ${'$12.99} USD por mesero",
+                        {"order_id": dining_session.orders[0].id if dining_session.orders else None}
+                    )
+                except Exception as e:
+                    logger.warning(f"Error notificando: {e}")
+                
+                db_session.add(payment)
+                db_session.commit()
+                
+                return jsonify({
+                    "status": "paid",
+                    "payment_id": payment.id.id,
+                    "amount": payment.amount,
+                    "payment_method": payment.method,
+                    "payment_reference": payment.payment_reference
+                }), HTTPStatus.CREATED
+    
+    except Exception as e:
+        from pronto_shared.trazabilidad import get_logger
+        logger.error(f"Error procesando pago: {e}", exc_info=True)
+        return jsonify(
+            {"error": "Error al procesar pago"}
+        ), HTTPStatus.INTERNAL_SERVER_ERROR
+
