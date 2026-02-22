@@ -14,6 +14,11 @@ from pronto_shared.services.order_service import (
 from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
 from pronto_shared.supabase.realtime import emit_waiter_call
 from pronto_shared.trazabilidad import get_logger
+from pronto_shared.jwt_middleware import (
+    get_current_user,
+    jwt_required,
+    scope_required,
+)
 
 logger = get_logger(__name__)
 
