@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from flask import Blueprint, jsonify, session
 
 from pronto_clients.routes.api.auth import customer_session_required
