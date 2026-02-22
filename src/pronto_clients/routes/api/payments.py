@@ -364,10 +364,10 @@ def request_check(session_id):
 
             # Authorization check
             authed_user = _get_authenticated_customer()
-            logger.info(f"AUTH DEBUG: dining_session.customer_id={dining_session.customer_id}")
-            logger.info(f"AUTH DEBUG: authed_user={authed_user}")
+            print(f"AUTH DEBUG: dining_session.customer_id={dining_session.customer_id}")
+            print(f"AUTH DEBUG: authed_user={authed_user}")
             if not authed_user or dining_session.customer_id != authed_user.get("customer_id"):
-                logger.warning(f"AUTH FAILED: authed_user is None or customer_id mismatch")
+                print(f"AUTH FAILED: authed_user is None or customer_id mismatch")
                 return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             if dining_session.status == "paid":
