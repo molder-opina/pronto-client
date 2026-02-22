@@ -22,13 +22,16 @@ payments_bp = Blueprint("client_payments", __name__)
 def _get_authenticated_customer() -> dict | None:
     """Get authenticated customer from flask.session + Redis."""
     customer_ref = session.get("customer_ref")
+    logger.info(f"_get_authenticated_customer: customer_ref={customer_ref}")
     if not customer_ref:
         return None
     try:
         if customer_session_store.is_revoked(customer_ref):
             session.pop("customer_ref", None)
             return None
-        return customer_session_store.get_customer(customer_ref)
+        customer = customer_session_store.get_customer(customer_ref)
+        logger.info(f"_get_authenticated_customer: customer={customer}")
+        return customer
     except RedisUnavailableError:
         return None
 
