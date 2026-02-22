@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" style="color-scheme: dark">
+<html lang="es" class="dark">
 
 <head>
   <meta charset="UTF-8" />
@@ -15,6 +15,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
+  
+  <!-- Dark Mode Variables -->
+  <style>
+    /* Force dark mode variables */
+    :root {
+      --primary: #ff8c5a;
+      --primary-dark: #ff6b35;
+      --text: #f7fafc;
+      --text-primary: #f7fafc;
+      --text-secondary: #a0aec0;
+      --text-tertiary: #718096;
+      --muted: #a0aec0;
+      --background: #1a202c;
+      --bg-secondary: #2d3748;
+      --bg-surface: #2d3748;
+      --border: #2d3748;
+      --surface: #2d3748;
+      --surface-light: #4a5568;
+      --surface-hover: #4a5568;
+      --success: #68d391;
+      --error: #fc8181;
+    }
+    
+    body {
+      background: var(--background);
+      color: var(--text);
+    }
+  </style>
+  
   <!-- <link rel="stylesheet" href="{{ assets_css }}/notifications.css"> -->
 
   <style>
