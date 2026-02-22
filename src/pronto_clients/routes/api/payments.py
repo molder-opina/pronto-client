@@ -273,7 +273,8 @@ def request_session_checkout(session_id):
 
             # Authorization check
             authed_user = _get_authenticated_customer()
-            if dining_session.customer_id != authed_user.get("customer_id"):
+            logger.info(f"Auth check: session.customer_id={dining_session.customer_id}, authed_user.customer_id={authed_user.get('customer_id') if authed_user else None}")
+            if not authed_user or dining_session.customer_id != authed_user.get("customer_id"):
                 return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
 
             if dining_session.status == "paid":
