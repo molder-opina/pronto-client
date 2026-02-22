@@ -54,7 +54,7 @@ def pay_with_stripe(session_id: UUID):
 
     from pronto_shared.db import get_session
     from pronto_shared.models import DiningSession
-    from pronto_shared.services.payment_providers.stripe_provider import PaymentError, StripeProvider
+    from pronto_shared.services.payment_providers import process_payment, PaymentError
 
     payload = request.get_json(silent=True) or {}
     tip_amount = payload.get("tip_amount")
@@ -84,8 +84,7 @@ def pay_with_stripe(session_id: UUID):
             db_session.commit()
             db_session.refresh(dining_session)
 
-            stripe_provider = StripeProvider()
-            result = stripe_provider.process_payment(dining_session)
+            result = process_payment(provider_name="stripe", session=dining_session)
 
             return jsonify(
                 {

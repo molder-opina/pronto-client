@@ -24,6 +24,7 @@ from pronto_clients.routes.api.sessions import sessions_bp
 from pronto_clients.routes.api.shortcuts import shortcuts_bp
 from pronto_clients.routes.api.split_bills import split_bills_bp
 from pronto_clients.routes.api.stripe_payments import stripe_payments_bp
+from pronto_clients.routes.api.stripe_webhooks import stripe_webhooks_bp
 from pronto_clients.routes.api.support import support_bp
 from pronto_clients.routes.api.waiter_calls import waiter_calls_bp
 from pronto_clients.routes.api.tables import tables_bp
@@ -42,6 +43,7 @@ api_bp.register_blueprint(business_info_bp)
 api_bp.register_blueprint(feedback_email_bp)
 api_bp.register_blueprint(shortcuts_bp)
 api_bp.register_blueprint(stripe_payments_bp)
+api_bp.register_blueprint(stripe_webhooks_bp)
 api_bp.register_blueprint(orders_bp)
 api_bp.register_blueprint(sessions_bp)
 api_bp.register_blueprint(tables_bp)

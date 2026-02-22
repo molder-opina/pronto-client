@@ -122,12 +122,25 @@
       color: var(--text-secondary);
     }
 
-    .header-btn:hover {
+    .header-btn:hover:not(:disabled):not(.waiter-btn--disabled) {
       background: var(--surface-hover);
       border-color: var(--primary);
       color: var(--primary);
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
       transform: translateY(-1px);
+    }
+
+    .header-btn:disabled,
+    .header-btn.waiter-btn--disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .header-btn.waiter-btn.waiter-btn--hidden {
+      display: none !important;
     }
 
     .header-btn svg {
@@ -170,6 +183,61 @@
       height: 32px;
       border-radius: 8px;
       object-fit: cover;
+    }
+
+    /* Uniformidad visual del menú cliente */
+    main .products-grid {
+      width: 100%;
+      max-width: min(1520px, calc(100vw - 2rem));
+      grid-template-columns: repeat(auto-fit, minmax(clamp(180px, 22vw, 240px), 1fr)) !important;
+      gap: clamp(0.75rem, 1.6vw, 1.25rem) !important;
+      align-items: stretch;
+      grid-auto-flow: row;
+    }
+
+    main .products-grid .grid-item {
+      display: flex;
+      min-width: 0;
+      height: 100%;
+    }
+
+    main .products-grid .product-card {
+      width: 100%;
+      min-width: 0;
+      height: 100%;
+      min-height: 360px;
+    }
+
+    main .products-grid .product-card__title {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 2.6em;
+    }
+
+    main .products-grid .product-card__desc {
+      min-height: 2.8em;
+    }
+
+    @media (max-width: 767px) {
+      main .products-grid {
+        max-width: calc(100vw - 1rem);
+        grid-template-columns: repeat(2, minmax(150px, 1fr)) !important;
+        gap: 0.75rem !important;
+      }
+    }
+
+    @media (max-width: 479px) {
+      main .products-grid {
+        grid-template-columns: repeat(2, minmax(140px, 1fr)) !important;
+      }
+    }
+
+    @media (max-width: 359px) {
+      main .products-grid {
+        grid-template-columns: 1fr !important;
+      }
     }
 
     /* View Tabs Navigation */
@@ -1129,6 +1197,10 @@
           <button class="profile-menu-item" data-profile-action="orders">
             <span>📋</span>
             <span>Mis Pedidos</span>
+          </button>
+          <button class="profile-menu-item" data-profile-action="order-history">
+            <span>📜</span>
+            <span>Historial de Pedidos</span>
           </button>
           <button class="profile-menu-item" data-profile-action="settings">
             <span>⚙️</span>
@@ -2913,6 +2985,127 @@
       background: var(--border);
       color: var(--text);
     }
+
+    /* Logged-in profile: compact dropdown near avatar */
+    #profile-modal.profile-modal--compact.active {
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: flex-end !important;
+      padding: 4.2rem 0.9rem 0.8rem !important;
+      z-index: 10020 !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-modal-overlay {
+      background: transparent !important;
+      backdrop-filter: none !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-modal-content {
+      width: min(340px, calc(100vw - 1.2rem)) !important;
+      max-width: 340px !important;
+      max-height: calc(100vh - 5rem) !important;
+      border-radius: 16px !important;
+      padding: 0.9rem !important;
+      background: #fff !important;
+      border: 1px solid #e8edf5 !important;
+      box-shadow: 0 18px 34px rgba(15, 23, 42, 0.18) !important;
+      overflow-y: auto !important;
+      position: relative !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-modal-close {
+      top: 0.45rem !important;
+      right: 0.45rem !important;
+      width: 30px !important;
+      height: 30px !important;
+      font-size: 1.2rem !important;
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 999px !important;
+      color: #475569 !important;
+      z-index: 3 !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-header {
+      margin-bottom: 0.8rem !important;
+      text-align: center !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-modal-avatar {
+      width: 56px !important;
+      height: 56px !important;
+      border-radius: 999px !important;
+      border: 2px solid #ff6b35 !important;
+      margin: 0 auto 0.5rem !important;
+      object-fit: cover !important;
+      display: block !important;
+    }
+
+    #profile-modal.profile-modal--compact #profile-name {
+      font-size: 1.05rem !important;
+      margin: 0 !important;
+      line-height: 1.2 !important;
+    }
+
+    #profile-modal.profile-modal--compact #profile-email {
+      margin-top: 0.25rem !important;
+      font-size: 0.82rem !important;
+      color: #64748b !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-menu {
+      margin-top: 0.8rem !important;
+      gap: 0.5rem !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-menu-item {
+      padding: 0.68rem 0.8rem !important;
+      border-radius: 10px !important;
+      border: 1px solid #e2e8f0 !important;
+      font-size: 0.95rem !important;
+      font-weight: 700 !important;
+      color: #1e293b !important;
+      background: #fff !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-menu-item:hover {
+      background: #f8fafc !important;
+      border-color: #ff6b35 !important;
+      color: #ff6b35 !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-menu-item[data-profile-action="logout"] {
+      border-color: #fecaca !important;
+      color: #dc2626 !important;
+      background: #fff9f9 !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-menu-item[data-profile-action="logout"]:hover {
+      background: #fef2f2 !important;
+      border-color: #ef4444 !important;
+    }
+
+    @media (max-width: 700px) {
+      #profile-modal.profile-modal--compact.active {
+        align-items: flex-end !important;
+        justify-content: center !important;
+        padding: 0.5rem !important;
+      }
+
+      #profile-modal.profile-modal--compact .profile-modal-overlay {
+        background: rgba(15, 23, 42, 0.42) !important;
+        backdrop-filter: blur(2px) !important;
+      }
+
+      #profile-modal.profile-modal--compact .profile-modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: min(72vh, 560px) !important;
+        border-radius: 14px !important;
+      }
+    }
   </style>
 
 
@@ -3080,8 +3273,8 @@
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
-  <script type="module" src="{{ assets_js_clients }}/base.js?v=cachebust1"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v=cachebust2"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260222g"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260222d"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">
@@ -3130,8 +3323,103 @@
     });
   </script>
 
+  <script>
+    (function () {
+      function getCartNodes() {
+        const panel = document.querySelector('#vue-cart-root #cart-panel, #cart-panel');
+        const backdrop = document.querySelector('#vue-cart-root #cart-backdrop, #cart-backdrop');
+        return { panel, backdrop };
+      }
+
+      function setLegacyCartOpen(open) {
+        const nodes = getCartNodes();
+        if (!nodes.panel || !nodes.backdrop) return false;
+        nodes.panel.classList.toggle('open', open);
+        nodes.backdrop.classList.toggle('open', open);
+        document.body.classList.toggle('modal-open', open);
+        return true;
+      }
+
+      function isCartOpen() {
+        const nodes = getCartNodes();
+        return !!nodes.panel && nodes.panel.classList.contains('open');
+      }
+
+      function openCartFallback() {
+        if (typeof window.showCart === 'function' && window.showCart !== openCartFallback) {
+          window.showCart();
+          return;
+        }
+        if (typeof window.toggleCart === 'function' && window.toggleCart !== toggleCartFallback) {
+          if (!isCartOpen()) window.toggleCart();
+          return;
+        }
+        setLegacyCartOpen(true);
+      }
+
+      function closeCartFallback() {
+        if (typeof window.closeCart === 'function' && window.closeCart !== closeCartFallback) {
+          window.closeCart();
+          return;
+        }
+        if (typeof window.toggleCart === 'function' && window.toggleCart !== toggleCartFallback) {
+          if (isCartOpen()) window.toggleCart();
+          return;
+        }
+        setLegacyCartOpen(false);
+      }
+
+      function toggleCartFallback() {
+        if (typeof window.toggleCart === 'function' && window.toggleCart !== toggleCartFallback) {
+          window.toggleCart();
+          return;
+        }
+        setLegacyCartOpen(!isCartOpen());
+      }
+
+      function bindCartButtons() {
+        document.querySelectorAll('[data-toggle-cart]').forEach((btn) => {
+          if (btn.dataset.cartBound === '1') return;
+          btn.addEventListener('click', function (event) {
+            event.preventDefault();
+            toggleCartFallback();
+          });
+          btn.dataset.cartBound = '1';
+        });
+
+        const stickyBtn = document.getElementById('sticky-cart-btn');
+        if (stickyBtn && stickyBtn.dataset.cartBound !== '1') {
+          stickyBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            openCartFallback();
+          });
+          stickyBtn.dataset.cartBound = '1';
+        }
+
+        const nodes = getCartNodes();
+        if (nodes.backdrop && nodes.backdrop.dataset.cartBound !== '1') {
+          nodes.backdrop.addEventListener('click', function () {
+            closeCartFallback();
+          });
+          nodes.backdrop.dataset.cartBound = '1';
+        }
+      }
+
+      if (typeof window.showCart !== 'function') window.showCart = openCartFallback;
+      if (typeof window.toggleCart !== 'function') window.toggleCart = toggleCartFallback;
+      if (typeof window.closeCart !== 'function') window.closeCart = closeCartFallback;
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindCartButtons, { once: true });
+      } else {
+        bindCartButtons();
+      }
+    })();
+  </script>
+
   <!-- Vue Notification Center for SSE notifications -->
   <div id="notification-center-root"></div>
+  <div id="order-history-root"></div>
 
   {% block scripts %}{% endblock %}
 </body>

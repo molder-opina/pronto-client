@@ -2,8 +2,8 @@
 '$') %} {% set
 currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css?v=2" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css?v={{ system_version }}&rev=20260222d" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css?v={{ system_version }}&rev=20260222d" />
 <div class="menu-page" data-menu-root="">
   <!-- Category Tabs -->
   <div class="category-tabs" id="category-tabs"></div>
@@ -297,6 +297,15 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
           const modal = document.getElementById('item-modal');
           if (!modal) return;
+
+          if (!modal.dataset.backdropCloseBound) {
+            modal.addEventListener('click', function (event) {
+              if (event.target === modal) {
+                window.closeItemModal();
+              }
+            });
+            modal.dataset.backdropCloseBound = '1';
+          }
 
           // Populate modal
           const nameEl = document.getElementById('modal-item-name');
@@ -927,7 +936,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       })();
     </script>
 
-    <script type="module" src="{{ assets_js_clients }}/menu.js?v=cachebust2"></script>
+    <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260222d"></script>
     {% if config.get('DEBUG') %} {% if debug_auto_table %}
     <!-- Draggable Debug Table Selector (DEBUG MODE ONLY) -->
     <div id="debug-table-panel" class="draggable-panel" style="
