@@ -39,17 +39,15 @@ def login():
     if not email or not password:
         return jsonify({"error": "Email y password requeridos"}), HTTPStatus.BAD_REQUEST
 
-    customer = authenticate_customer(db, email=email, password=password)
-    
-    # Authenticated successfully. Now fetch full details for session (including tax info)
-    if customer:
-        from pronto_shared.services.customer_service import get_customer_by_id
-        # authenticate_customer returns a dict with 'id', verify it's there
-        # but create_customer returns 'id' as str, get_customer_by_id takes int/str?
-        # get_customer_by_id takes int but casts to str in SQL.
-        full_customer = get_customer_by_id(db, customer["id"])
-        if full_customer:
-            customer.update(full_customer)
+    with get_session() as db:
+        customer = authenticate_customer(db, email=email, password=password)
+        
+        # Authenticated successfully. Now fetch full details for session (including tax info)
+        if customer:
+            from pronto_shared.services.customer_service import get_customer_by_id
+            full_customer = get_customer_by_id(db, customer["id"])
+            if full_customer:
+                customer.update(full_customer)
 
     if not customer:
         return jsonify({"error": "Credenciales inválidas"}), HTTPStatus.UNAUTHORIZED

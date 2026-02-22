@@ -10,7 +10,6 @@
   <link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css" />
-  <link rel="stylesheet" href="{{ assets_css_clients }}/color-improvements.css" />
   <link rel="icon" href="{{ restaurant_assets }}/branding/icon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -211,8 +210,9 @@
       }
     }
 
-    line-height: 1.4;
-    color: var(--text);
+    body {
+      line-height: 1.4;
+      color: var(--text);
     }
 
     .checkbox-group a {
@@ -3076,50 +3076,7 @@
   <!-- Debug Panel -->
   {# {% if debug_auto_table %} {% include 'debug_panel.html'} {% endif %} #}
 
-  <!-- Force hide broken modals -->
-  <script>
-    // Hide broken modals that appear empty in the footer
-    (function () {
-      const hideModals = () => {
-        const selectors = [
-          '#keyboard-shortcuts-modal',
-          '#shortcuts-modal',
-          '#business-hours-modal',
-          '#business-hours-display',
-          '.shortcuts-modal',
-          '.business-hours-display',
-          '.business-hours-title',
-        ];
 
-        selectors.forEach((selector) => {
-          const elements = document.querySelectorAll(selector);
-          elements.forEach((el) => {
-            if (el) {
-              el.style.setProperty('display', 'none', 'important');
-              el.style.setProperty('visibility', 'hidden', 'important');
-              el.style.setProperty('opacity', '0', 'important');
-              el.style.setProperty('pointer-events', 'none', 'important');
-              el.style.setProperty('height', '0', 'important');
-              el.style.setProperty('overflow', 'hidden', 'important');
-            }
-          });
-        });
-      };
-
-      // Run immediately
-      hideModals();
-
-      // Run after DOM is fully loaded
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', hideModals);
-      }
-
-      // Run after a short delay to catch dynamically added elements
-      setTimeout(hideModals, 500);
-      setTimeout(hideModals, 1000);
-      setTimeout(hideModals, 2000);
-    })();
-  </script>
 
   <script defer src="{{ assets_js }}/shared/bindings.js"></script>
   <script defer src="{{ assets_js }}/shared/keyboard-shortcuts.js"></script>
@@ -3133,6 +3090,8 @@
 
   <!-- Vue Notification Center for SSE notifications -->
   <div id="notification-center-root"></div>
+
+  {% block scripts %}{% endblock %}
 </body>
 
 </html>
