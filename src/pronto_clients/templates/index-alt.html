@@ -316,13 +316,13 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
 <script>
   // Configuration for menu.js
-  window.APP_CONFIG = {
+  window.APP_SETTINGS = Object.assign({}, window.APP_SETTINGS || {}, {
     assets_css_clients: '{{ assets_css_clients }}',
     assets_js_clients: '{{ assets_js_clients }}',
     restaurant_assets: '{{ restaurant_assets }}',
     currency_code: '{{ currency_code }}',
     currency_symbol: '{{ currency_symbol }}',
-  };
+  });
 </script>
 
 <script>

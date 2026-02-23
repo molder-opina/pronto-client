@@ -655,100 +655,6 @@ def get_session_orders(session_id):
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 @payments_bp.post("/sessions/<uuid:session_id>/pay")
 @jwt_required
-@scope_required(["cashier", "admin", "system"])
-def pay_session(session_id):
-    """Process payment for a dining session (cash only)."""
-    from sqlalchemy import select
-    from pronto_shared.db import get_session
-    from pronto_shared.models import DiningSession, Payment
-    from pronto_shared.jwt_middleware import get_current_user
-    from pronto_shared.constants import OrderStatus
-    from http import HTTPStatus
-
-    try:
-        with get_session() as db_session:
-            # Get dining session
-            dining_session = (
-                db_session.execute(
-                    select(DiningSession).where(DiningSession.id == session_id)
-                )
-                .scalars()
-                .one_or_none()
-            )
-
-            if not dining_session:
-                return jsonify({"error": "Sesión no encontrada"}), HTTPStatus.NOT_FOUND
-
-            # Check if session is open
-            if dining_session.status != "open":
-                return jsonify({"error": "Sesión no está abierta"}), HTTPStatus.BAD_REQUEST
-
-            # Get customer for authorization
-            customer = _get_authenticated_customer()
-
-            if not customer or not _check_session_ownership(dining_session, customer):
-                return jsonify({"error": "No autorizado"}), HTTPStatus.FORBIDDEN
-
-            # Create payment record
-            payload = request.get_json(silent=True) or {}
-            payment_method = (payload.get("payment_method") or "").strip().lower()
-            amount = payload.get("amount")
-            reference = (payload.get("payment_reference") or "").strip()
-
-            if payment_method != "cash":
-                return jsonify({"error": "Solo se acepta efectivo en este endpoint"}), HTTPStatus.BAD_REQUEST
-
-            if not amount:
-                return jsonify({"error": "Monto es requerido"}), HTTPStatus.BAD_REQUEST
-
-            # Check if session already has a payment
-            existing_payment = (
-                db_session.execute(
-                    select(Payment)
-                    .where(Payment.session_id == session_id)
-                    .order_by(Payment.created_at.desc())
-                    .limit(1)
-                )
-                .scalars()
-                .one_or_none()
-            )
-
-            if existing_payment:
-                return jsonify({"error": "Ya hay un pago pendiente para esta sesión"}), HTTPStatus.BAD_REQUEST
-
-            # Create payment record
-            payment = Payment(
-                session_id=dining_session,
-                amount=float(amount),
-                payment_method="cash",
-                payment_reference=reference,
-                created_by=customer.get("user_id") if customer else None,
-                created_at=datetime.now(timezone.utc),
-            )
-
-            db_session.add(payment)
-            db_session.flush()
-
-            # Close session
-            dining_session.closed_at = datetime.now(timezone.utc)
-            dining_session.status = "paid"
-            db_session.commit()
-
-            return jsonify({
-                "status": "paid",
-                "payment_id": payment.id,
-                "amount": payment.amount,
-                "payment_method": payment_method,
-                "reference": payment.payment_reference,
-            }), HTTPStatus.OK
-
-    except Exception as e:
-        from pronto_shared.trazabilidad import get_logger
-        logger.error(f"Error processing payment: {e}", exc_info=True)
-        return jsonify({"error": "Error al procesar pago"}), HTTPStatus.INTERNAL_SERVER_ERROR
-
-@payments_bp.post("/sessions/<uuid:session_id>/pay")
-@jwt_required
 @scope_required(["customer", "cashier", "admin", "system"])
 def pay_session(session_id):
     """Procesar pago para sesión (cliente o empleado).
@@ -856,7 +762,7 @@ def pay_session(session_id):
                 try:
                     emit_waiter_call(
                         "payment_ready",
-                        f"Pago de ${'$12.99} USD por cliente",
+                        f"Pago de ${amount} USD por cliente",
                         {"order_id": dining_session.orders[0].id if dining_session.orders else None}
                     )
                 except Exception as e:
@@ -916,7 +822,7 @@ def pay_session(session_id):
                 try:
                     emit_waiter_call(
                         "payment_ready",
-                        f"Pago de ${'$12.99} USD por mesero",
+                        f"Pago de ${amount} USD por mesero",
                         {"order_id": dining_session.orders[0].id if dining_session.orders else None}
                     )
                 except Exception as e:

@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <meta name="csrf-token" content="{{ csrf_token() }}" />
-  
+
   <!-- Dark Mode Variables -->
   <style>
     /* Force dark mode variables */
@@ -37,13 +37,13 @@
       --success: #68d391;
       --error: #fc8181;
     }
-    
+
     body {
       background: var(--background);
       color: var(--text);
     }
   </style>
-  
+
   <!-- <link rel="stylesheet" href="{{ assets_css }}/notifications.css"> -->
 
   <style>
@@ -1037,13 +1037,14 @@
         'server_time': '{{ server_time }}'
       };
 
-      Object.defineProperty(window, 'APP_CONFIG', {
-        value: Object.freeze(config),
-        writable: false,
-        configurable: false
-      });
-
-      console.log('[Config] Initialized immutable APP_CONFIG');
+      if (!window.APP_CONFIG) {
+        Object.defineProperty(window, 'APP_CONFIG', {
+          value: Object.freeze(config),
+          writable: false,
+          configurable: false
+        });
+        console.log('[Config] Initialized immutable APP_CONFIG');
+      }
     })();
   </script>
   {% if customer_data is defined %}
@@ -1450,15 +1451,13 @@
                   </p>
                   <div style="margin-top: 0.75rem">
                     <label for="details-table-select" style="display: block; margin-bottom: 0.35rem">Mesa</label>
-                    <select
-                      id="details-table-select"
-                      name="table_id"
-                      style="width: 100%; padding: 0.65rem; border: 1px solid #d1d5db; border-radius: 8px"
-                    >
+                    <select id="details-table-select" name="table_id"
+                      style="width: 100%; padding: 0.65rem; border: 1px solid #d1d5db; border-radius: 8px">
                       <option value="">Selecciona una mesa</option>
                     </select>
                   </div>
-                  <p id="table-error-message" style="display: none; color: #b91c1c; margin-top: 0.5rem; font-size: 0.9rem">
+                  <p id="table-error-message"
+                    style="display: none; color: #b91c1c; margin-top: 0.5rem; font-size: 0.9rem">
                     Selecciona una mesa para generar la orden
                   </p>
                   <input type="hidden" id="table-id" />

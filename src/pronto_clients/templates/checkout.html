@@ -33,12 +33,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   <div class="breadcrumbs-container">
     <a href="/" class="breadcrumb-item">
       <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-        />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
       Menú
     </a>
@@ -47,12 +43,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     </svg>
     <a href="/" class="breadcrumb-item">
       <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-        />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
       Carrito
     </a>
@@ -61,12 +53,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     </svg>
     <span class="breadcrumb-item breadcrumb-item--active">
       <svg class="breadcrumb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       Checkout
     </span>
@@ -82,12 +70,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         <div class="checkout-form__header">
           <button type="button" class="back-to-menu-btn" data-action="navigate" data-href="/">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Volver al menú
           </button>
@@ -101,14 +84,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               Nombre
               <span class="label-hint" style="color: var(--muted)">(opcional)</span>
             </label>
-            <input
-              type="text"
-              id="customer-name"
-              name="name"
-              placeholder="Tu nombre"
-              maxlength="100"
-              autocomplete="name"
-            />
+            <input type="text" id="customer-name" name="name" placeholder="Tu nombre" maxlength="100"
+              autocomplete="name" />
             <span class="form-group__status" id="customer-name-status"></span>
             <span class="form-group__error" id="customer-name-error"></span>
           </div>
@@ -116,19 +93,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           <div class="form-group">
             <label for="customer-email">
               Email <span class="required-indicator" style="color: var(--danger, #e74c3c)">*</span>
-              <small class="text-muted" style="color: var(--muted); display: block; margin-top: 4px"
-                >Requerido para envío de ticket</small
-              >
+              <small class="text-muted" style="color: var(--muted); display: block; margin-top: 4px">Requerido para
+                envío de ticket</small>
             </label>
-            <input
-              type="email"
-              id="customer-email"
-              name="email"
-              class="form-group__input"
-              autocomplete="email"
-              placeholder="cliente@ejemplo.com"
-              required
-            />
+            <input type="email" id="customer-email" name="email" class="form-group__input" autocomplete="email"
+              placeholder="cliente@ejemplo.com" required />
             <span class="form-group__status" id="customer-email-status"></span>
             <span class="form-group__error" id="customer-email-error"></span>
           </div>
@@ -139,44 +108,22 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               <span class="label-hint" style="color: var(--muted)">(opcional)</span>
             </label>
             <div class="phone-input-group">
-              <select
-                id="phone-country-code"
-                class="phone-country-select"
-                aria-label="Código de país"
-              ></select>
-              <input
-                type="tel"
-                id="customer-phone"
-                name="phone"
-                placeholder="Número de contacto"
-                maxlength="15"
-                autocomplete="tel"
-                pattern="[0-9+\-\s]{7,15}"
-              />
+              <select id="phone-country-code" class="phone-country-select" aria-label="Código de país"></select>
+              <input type="tel" id="customer-phone" name="phone" placeholder="Número de contacto" maxlength="15"
+                autocomplete="tel" pattern="[0-9+\-\s]{7,15}" />
             </div>
             <span class="form-group__status" id="customer-phone-status"></span>
             <span class="form-group__error" id="customer-phone-error"></span>
           </div>
 
           <!-- Mesa como Badge Informativo -->
-          <div
-            class="mesa-info-card"
-            style="background: white !important; background-image: none !important"
-          >
+          <div class="mesa-info-card" style="background: white !important; background-image: none !important">
             <div class="mesa-info-card__icon">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </div>
             <div class="mesa-info-card__content">
@@ -190,18 +137,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
           <!-- Estimated Wait Time -->
           <div class="estimated-wait-time" id="estimated-wait-time" style="display: none">
-            <svg
-              class="estimated-wait-time__icon"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+            <svg class="estimated-wait-time__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div class="estimated-wait-time__content">
               <div class="estimated-wait-time__label">Tiempo estimado de preparación</div>
@@ -220,13 +158,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               Notas especiales
               <span class="label-hint">(opcional)</span>
             </label>
-            <textarea
-              id="notes"
-              name="notes"
-              rows="3"
-              placeholder="Alergias, preferencias, etc."
-              maxlength="500"
-            ></textarea>
+            <textarea id="notes" name="notes" rows="3" placeholder="Alergias, preferencias, etc."
+              maxlength="500"></textarea>
             <span class="form-group__counter" id="notes-counter">0/500</span>
           </div>
 
@@ -252,44 +185,23 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           </span>
         </div>
 
-        <button
-          type="submit"
-          form="checkout-form"
-          class="checkout-submit-btn"
-          id="checkout-submit-btn"
-        >
+        <button type="submit" form="checkout-form" class="checkout-submit-btn" id="checkout-submit-btn">
           <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 13l4 4L19 7"
-            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
           <span class="btn-text">Confirmar pedido</span>
           <span class="btn-loader" hidden>
             <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle
-                cx="12"
-                cy="12"
-                r="10"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-dasharray="31.4"
-                stroke-dashoffset="10"
-              />
+              <circle cx="12" cy="12" r="10" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.4"
+                stroke-dashoffset="10" />
             </svg>
           </span>
         </button>
 
         <p class="checkout-summary__secure">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
           Conexión segura y cifrada
         </p>
@@ -301,13 +213,13 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 <!-- All styles are now in menu.css for better maintainability -->
 
 <script>
-  window.APP_CONFIG = {
+  window.APP_SETTINGS = Object.assign({}, window.APP_SETTINGS || {}, {
     assets_css_clients: '{{ assets_css_clients }}',
     assets_js_clients: '{{ assets_js_clients }}',
     restaurant_assets: '{{ restaurant_assets }}',
     currency_code: '{{ currency_code }}',
     currency_symbol: '{{ currency_symbol }}',
-  };
+  });
 </script>
 
 <script>
