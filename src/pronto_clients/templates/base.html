@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{{ assets_css }}/shared/components.css?v=2" />
   <link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css?v=2" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css?v=2" />
+  <link rel="stylesheet" href="{{ assets_css_clients }}/audit-fixes.css?v=2" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css?v=2" />
   <link rel="icon" href="{{ restaurant_assets }}/branding/icon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -667,6 +668,45 @@
       box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
     }
 
+    .footer {
+      width: 100%;
+      border-top: 1px solid var(--border);
+      padding: 1.25rem 1rem;
+      background: rgba(15, 23, 42, 0.04);
+    }
+
+    .footer-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .footer-main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      width: 100%;
+      text-align: center;
+    }
+
+    .footer-hours-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .footer-copyright {
+      margin: 0;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.45;
+    }
+
     #request-check-btn:hover:not(:disabled) {
       box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
       transform: translateY(-2px);
@@ -690,6 +730,16 @@
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
+    }
+
+    @media (max-width: 768px) {
+      .footer-main {
+        gap: 0.625rem;
+      }
+
+      .footer-copyright {
+        width: 100%;
+      }
     }
 
     /* Single Order Tracker - Detailed visual progress */
@@ -1070,7 +1120,7 @@
       <div id="profile-not-logged-in" class="profile-view">
         <div class="profile-header">
           <h2>Bienvenido a Pronto</h2>
-          <p style="color: var(--muted); margin-top: 0.5rem">
+          <p class="profile-subheading">
             Inicia sesión o regístrate para guardar tus pedidos
           </p>
         </div>
@@ -1106,8 +1156,7 @@
             </div>
           </div>
           <button type="submit" class="btn btn-primary btn--full">Iniciar Sesión</button>
-          <button type="button" class="btn btn-link forgot-password-btn" id="forgot-password-btn"
-            style="margin-top: 1rem; align-self: flex-start">
+          <button type="button" class="btn btn-link forgot-password-btn forgot-password-btn-style" id="forgot-password-btn">
             ¿Olvidaste tu contraseña?
           </button>
           <div class="form-feedback" id="login-feedback"></div>
@@ -1133,7 +1182,7 @@
               <input type="tel" id="register-phone" placeholder="5512345678" maxlength="10" pattern="[0-9]{10}" required
                 autocomplete="tel" />
             </div>
-            <small style="color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; display: block">10 dígitos sin
+            <small class="phone-input-hint">10 dígitos sin
               espacios</small>
           </div>
           <div class="form-group">
@@ -1184,7 +1233,7 @@
           <img id="profile-modal-avatar" class="profile-modal-avatar" src="{{ assets_images }}/default-avatar.png"
             alt="Avatar" />
           <h2 id="profile-name">Usuario</h2>
-          <p id="profile-email" style="color: var(--muted)"></p>
+          <p id="profile-email" class="profile-subheading"></p>
         </div>
 
         <div class="profile-menu">
@@ -1207,8 +1256,7 @@
       <!-- Personal Info View -->
       <div id="profile-personal-info" class="profile-view" style="display: none">
         <div class="profile-header">
-          <button class="btn-link" id="profile-personal-info-back-btn"
-            style="position: absolute; left: 1rem; top: 1rem;">←
+          <button class="btn-link back-to-profile-btn" id="profile-personal-info-back-btn">←
             Volver</button>
           <h3>Perfil</h3>
         </div>
@@ -1585,17 +1633,19 @@
         </div>
       </div>
 
-      <div class="footer-hours-actions">
-        <button type="button" class="footer-hours-btn" id="footer-hours-btn">
-          🕒 Ver horarios de atención
-        </button>
-      </div>
+      <div class="footer-main">
+        <div class="footer-hours-actions">
+          <button type="button" class="footer-hours-btn" id="footer-hours-btn">
+            🕒 Ver horarios de atención
+          </button>
+        </div>
 
-      <p class="footer-copyright">
-        &copy; {{ restaurant_name|title }} {{ current_year }} · Hecho con pasión
-        · Versión {{ system_version }}
-        <button type="button" class="support-link" data-open-support>Soporte técnico</button>
-      </p>
+        <p class="footer-copyright">
+          &copy; {{ restaurant_name|title }} {{ current_year }} · Hecho con pasión
+          · Versión {{ system_version }}
+          <button type="button" class="support-link" data-open-support>Soporte técnico</button>
+        </p>
+      </div>
     </div>
   </footer>
 
@@ -3388,21 +3438,21 @@
 
       function bindCartButtons() {
         document.querySelectorAll('[data-toggle-cart]').forEach((btn) => {
-          if (btn.dataset.cartBound === '1') return;
+          if (btn.dataset.cartToggleBound === '1') return;
           btn.addEventListener('click', function (event) {
             event.preventDefault();
             toggleCartFallback();
           });
-          btn.dataset.cartBound = '1';
+          btn.dataset.cartToggleBound = '1';
         });
 
         const stickyBtn = document.getElementById('sticky-cart-btn');
-        if (stickyBtn && stickyBtn.dataset.cartBound !== '1') {
+        if (stickyBtn && stickyBtn.dataset.cartOpenBound !== '1') {
           stickyBtn.addEventListener('click', function (event) {
             event.preventDefault();
             openCartFallback();
           });
-          stickyBtn.dataset.cartBound = '1';
+          stickyBtn.dataset.cartOpenBound = '1';
         }
 
         const nodes = getCartNodes();

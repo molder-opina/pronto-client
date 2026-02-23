@@ -116,7 +116,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     </div>
     <div class="modal-body">
       <div class="modal-image-wrapper">
-        <img id="modal-item-image" class="modal-item-image" src="" alt="" />
+        <img id="modal-item-image" class="modal-item-image" src="" alt="Imagen del producto" />
       </div>
       <p id="modal-item-description" class="modal-item-description"></p>
 
@@ -265,6 +265,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   // Bridge for Vue app and legacy DOM modals
   (function () {
     let menuCache = null;
+    let currentModalProduct = null;
+    let modalQuantity = 1;
 
     async function getMenu() {
       if (menuCache) return menuCache;
@@ -327,6 +329,14 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
       const price = parseFloat(product.price) || 0;
       const formattedPrice = `{{ currency_symbol }}${price.toFixed(2)}`;
+      currentModalProduct = {
+        id: product.id,
+        name: product.name,
+        description: product.description || '',
+        image: product.image_path || '{{ restaurant_assets }}/branding/placeholder.png',
+        price,
+      };
+      modalQuantity = 1;
 
       if (basePriceEl) basePriceEl.textContent = formattedPrice;
       if (totalPriceEl) totalPriceEl.textContent = formattedPrice;
@@ -350,14 +360,50 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       }
     };
 
+    function updateModalTotals() {
+      const qtyEl = document.getElementById('modal-quantity');
+      const totalPriceEl = document.getElementById('modal-total-price');
+      const breakdownTotalEl = document.getElementById('modal-breakdown-total');
+      if (!currentModalProduct) return;
+      if (qtyEl) qtyEl.textContent = String(modalQuantity);
+      const total = (currentModalProduct.price || 0) * modalQuantity;
+      const formattedTotal = `{{ currency_symbol }}${total.toFixed(2)}`;
+      if (totalPriceEl) totalPriceEl.textContent = formattedTotal;
+      if (breakdownTotalEl) breakdownTotalEl.textContent = formattedTotal;
+    }
+
+    window.adjustModalQuantity = function (delta) {
+      const parsedDelta = Number(delta) || 0;
+      modalQuantity = Math.max(1, modalQuantity + parsedDelta);
+      updateModalTotals();
+    };
+
     // Add To Cart Bridge
     window.addToCartFromModal = function () {
-      console.log('[BRIDGE] addToCartFromModal called');
-      // This will be handled by the legacy cart logic once we restore it
-      // For now, close modal as a feedback
+      if (!currentModalProduct) return;
+      const addToCart = window.addToCart;
+      if (typeof addToCart !== 'function') {
+        console.error('[BRIDGE] addToCart no está disponible');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('No se pudo agregar al carrito', 'error');
+        }
+        return;
+      }
+
+      addToCart({
+        id: currentModalProduct.id,
+        name: currentModalProduct.name,
+        price: currentModalProduct.price,
+        quantity: modalQuantity,
+        image: currentModalProduct.image,
+        extras: [],
+        extrasTotal: 0,
+        modifiers: [],
+      });
+
       window.closeItemModal();
       if (typeof window.showNotification === 'function') {
-        window.showNotification('¡Producto agregado! (Simulado)', 'success');
+        window.showNotification('¡Producto agregado!', 'success');
       }
     };
   })();
@@ -511,9 +557,26 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     }
   }
 
+  function initBusinessHoursBindings() {
+    const footerButton = document.getElementById('footer-hours-btn');
+    if (footerButton && footerButton.dataset.boundBusinessHours !== '1') {
+      footerButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        void openBusinessHoursModal();
+      });
+      footerButton.dataset.boundBusinessHours = '1';
+    }
+  }
+
   // Make functions global
   window.openBusinessHoursModal = openBusinessHoursModal;
   window.closeBusinessHoursModal = closeBusinessHoursModal;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBusinessHoursBindings, { once: true });
+  } else {
+    initBusinessHoursBindings();
+  }
 
   // Remove updateBusinessStatus call from page initialization
 </script>
@@ -718,7 +781,14 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')?.trim() || '';
     }
 
+    function hasAuthenticatedCustomerSession() {
+      const appSessionCustomer = window.APP_SESSION?.customer;
+      return !!(appSessionCustomer && (appSessionCustomer.id || appSessionCustomer.email));
+    }
+
     async function persistTableContext(tableData, source) {
+      if (!hasAuthenticatedCustomerSession()) return;
+
       try {
         const csrfToken = getCsrfToken();
         const response = await fetch('/api/sessions/table-context', {
@@ -735,6 +805,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             table_source: source,
           }),
         });
+        if (response.status === 401) return;
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
           console.warn('[TABLE] persist table context failed', data);
@@ -745,12 +816,15 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     }
 
     async function loadPersistedTableContext() {
+      if (!hasAuthenticatedCustomerSession()) return null;
+
       try {
         const response = await fetch('/api/sessions/table-context', {
           method: 'GET',
           credentials: 'include',
           headers: { Accept: 'application/json' },
         });
+        if (response.status === 401) return null;
         if (!response.ok) return null;
         const payload = await response.json();
         return payload?.data?.table_context || payload?.table_context || null;

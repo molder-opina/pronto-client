@@ -20,7 +20,7 @@ from pronto_shared.db import get_session
 from pronto_shared.models import Table
 from pronto_shared.services.customer_session_store import customer_session_store
 
-ALLOWED_TABLE_SOURCES = {"kiosk", "qr", "manual"}
+ALLOWED_TABLE_SOURCES = {"kiosk", "qr", "manual", "session"}
 
 
 @dataclass
@@ -37,7 +37,7 @@ def _normalize_source(value: Any) -> str | None:
     return None
 
 
-def _resolve_table(identifier: Any) -> dict[str, str] | None:
+def _resolve_table(identifier: Any) -> dict[str, Any] | None:
     raw = str(identifier or "").strip()
     if not raw:
         return None
@@ -72,7 +72,12 @@ def _resolve_table(identifier: Any) -> dict[str, str] | None:
         if table is None:
             return None
 
-        return {"id": str(table.id), "code": table.table_number}
+        return {
+            "id": str(table.id),
+            "code": table.table_number,
+            "area_id": table.area_id,
+            "area_prefix": getattr(table.area, "prefix", None) if getattr(table, "area", None) else None,
+        }
 
 
 def _load_customer_payload(customer_ref: str) -> dict[str, Any]:
@@ -129,6 +134,8 @@ def resolve_table_context(
                 "table_code": kiosk_table["code"],
                 "table_source": "kiosk",
                 "table_locked": True,
+                "table_area_id": kiosk_table.get("area_id"),
+                "table_area_prefix": kiosk_table.get("area_prefix"),
             },
             current,
         )
@@ -149,13 +156,15 @@ def resolve_table_context(
                     "table_code": None,
                     "table_source": "qr",
                     "table_locked": True,
+                    "table_area_id": None,
+                    "table_area_prefix": None,
                 },
                 current,
             )
 
         if has_explicit_change:
             requested = _resolve_table(requested_id or requested_code)
-            if requested and requested["id"] != qr_table["id"]:
+            if not requested or requested["id"] != qr_table["id"]:
                 raise TableContextError(
                     code="TABLE_LOCKED_BY_QR",
                     message="La mesa de QR no puede modificarse manualmente",
@@ -168,6 +177,8 @@ def resolve_table_context(
                 "table_code": qr_table["code"],
                 "table_source": "qr",
                 "table_locked": True,
+                "table_area_id": qr_table.get("area_id"),
+                "table_area_prefix": qr_table.get("area_prefix"),
             },
             current,
         )
@@ -192,6 +203,8 @@ def resolve_table_context(
                 "table_code": requested["code"],
                 "table_source": source,
                 "table_locked": source in {"kiosk", "qr"},
+                "table_area_id": requested.get("area_id"),
+                "table_area_prefix": requested.get("area_prefix"),
             },
             current,
         )
@@ -206,6 +219,8 @@ def resolve_table_context(
                 "table_code": persisted["code"],
                 "table_source": source,
                 "table_locked": source in {"kiosk", "qr"},
+                "table_area_id": persisted.get("area_id"),
+                "table_area_prefix": persisted.get("area_prefix"),
             },
             current,
         )
@@ -223,6 +238,8 @@ def resolve_table_context(
             "table_code": None,
             "table_source": None,
             "table_locked": False,
+            "table_area_id": None,
+            "table_area_prefix": None,
         },
         current,
     )
@@ -234,8 +251,17 @@ def persist_table_context(
     resolved_context: dict[str, Any],
 ) -> bool:
     updated = dict(current_payload)
-    updated["table_id"] = resolved_context.get("table_id")
+    previous_table_id = current_payload.get("table_id")
+    next_table_id = resolved_context.get("table_id")
+    updated["table_id"] = next_table_id
     updated["table_code"] = resolved_context.get("table_code")
     updated["table_source"] = resolved_context.get("table_source")
     updated["table_locked"] = bool(resolved_context.get("table_locked"))
+    updated["table_area_id"] = resolved_context.get("table_area_id")
+    updated["table_area_prefix"] = resolved_context.get("table_area_prefix")
+    if next_table_id and str(previous_table_id or "") != str(next_table_id):
+        current_version = int(current_payload.get("table_version") or 0)
+        updated["table_version"] = current_version + 1
+    else:
+        updated["table_version"] = int(current_payload.get("table_version") or 1)
     return customer_session_store.update_session(customer_ref, updated)
