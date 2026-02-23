@@ -1037,14 +1037,7 @@
         'server_time': '{{ server_time }}'
       };
 
-      if (!window.APP_CONFIG) {
-        Object.defineProperty(window, 'APP_CONFIG', {
-          value: Object.freeze(config),
-          writable: false,
-          configurable: false
-        });
-        console.log('[Config] Initialized immutable APP_CONFIG');
-      }
+      // Defer APP_CONFIG to useAppConfig.ts to avoid strictly frozen redeclare issues
     })();
   </script>
   {% if customer_data is defined %}
@@ -1195,17 +1188,14 @@
         </div>
 
         <div class="profile-menu">
-          <button class="profile-menu-item" data-profile-action="orders">
-            <span>📋</span>
-            <span>Mis Pedidos</span>
-          </button>
+
           <button class="profile-menu-item" data-profile-action="order-history">
             <span>📜</span>
             <span>Historial de Pedidos</span>
           </button>
-          <button class="profile-menu-item" data-profile-action="settings">
+          <button class="profile-menu-item" data-profile-action="profile">
             <span>⚙️</span>
-            <span>Datos Fiscales</span>
+            <span>Perfil</span>
           </button>
           <button class="profile-menu-item" data-profile-action="logout">
             <span>🚪</span>
@@ -1214,32 +1204,34 @@
         </div>
       </div>
 
-      <!-- Settings View (Tax Info) -->
-      <div id="profile-settings" class="profile-view" style="display: none">
+      <!-- Personal Info View -->
+      <div id="profile-personal-info" class="profile-view" style="display: none">
         <div class="profile-header">
-          <button class="btn-link" id="settings-back-btn" style="position: absolute; left: 1rem; top: 1rem;">←
+          <button class="btn-link" id="profile-personal-info-back-btn"
+            style="position: absolute; left: 1rem; top: 1rem;">←
             Volver</button>
-          <h3>Datos de Facturación</h3>
+          <h3>Perfil</h3>
         </div>
-        <form id="tax-info-form" class="profile-form">
+        <form id="profile-personal-info-form" class="profile-form">
           <div class="form-group">
-            <label for="tax-id">RFC</label>
-            <input type="text" id="tax-id" placeholder="XAXX010101000" style="text-transform: uppercase;" />
+            <label for="personal-info-tax-id">RFC</label>
+            <input type="text" id="personal-info-tax-id" placeholder="XAXX010101000"
+              style="text-transform: uppercase;" />
           </div>
           <div class="form-group">
-            <label for="tax-name">Razón Social</label>
-            <input type="text" id="tax-name" placeholder="Nombre o Razón Social" />
+            <label for="personal-info-tax-name">Razón Social</label>
+            <input type="text" id="personal-info-tax-name" placeholder="Nombre o Razón Social" />
           </div>
           <div class="form-group">
-            <label for="tax-email">Correo para Factura</label>
-            <input type="email" id="tax-email" placeholder="facturacion@empresa.com" />
+            <label for="personal-info-tax-email">Correo para Factura</label>
+            <input type="email" id="personal-info-tax-email" placeholder="facturacion@empresa.com" />
           </div>
           <div class="form-group">
-            <label for="tax-address">Domicilio Fiscal (C.P.)</label>
-            <input type="text" id="tax-address" placeholder="Código Postal" />
+            <label for="personal-info-tax-address">Domicilio Fiscal (C.P.)</label>
+            <input type="text" id="personal-info-tax-address" placeholder="Código Postal" />
           </div>
           <button type="submit" class="btn btn-primary btn--full">Guardar Cambios</button>
-          <div class="form-feedback" id="tax-feedback"></div>
+          <div class="form-feedback" id="personal-info-feedback"></div>
         </form>
       </div>
     </div>
@@ -3290,7 +3282,7 @@
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
-  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260222g"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260223i"></script>
   <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260222d"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->

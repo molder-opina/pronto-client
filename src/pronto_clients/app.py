@@ -142,6 +142,7 @@ def init_runtime(app: Flask, config) -> None:
         except Exception:
             business_settings = {}
         app_settings = {
+            "static_host_url": config.pronto_static_public_host,
             "currency_code": business_settings.get("currency_code", "MXN"),
             "currency_locale": business_settings.get("currency_locale", "es-MX"),
             "currency_symbol": business_settings.get("currency_symbol", "$"),
