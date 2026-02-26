@@ -78,7 +78,7 @@ def open_session():
     
     if cookies:
         for cookie in cookies:
-            # Forward upstream cookies (access_token is critical)
+            # Forward upstream cookies (client session cookie is security-critical)
             # We enforce HttpOnly/Secure defaults if compatible, or try to copy attributes
             # Requests Cookie object: name, value, path, domain, secure, expires
             resp.set_cookie(
@@ -86,7 +86,7 @@ def open_session():
                 value=cookie.value,
                 path=cookie.path if cookie.path else "/",
                 secure=cookie.secure,
-                httponly=True if cookie.name == "access_token" else False,
+                httponly=True if cookie.name == "pronto_client_session" else False,
                 # domain=cookie.domain # Skip domain proxying to allow localhost
             )
             
