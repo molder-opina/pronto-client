@@ -1,82 +1,19 @@
-"""
-Keyboard shortcuts endpoints for clients API.
-Allows managing configurable keyboard shortcuts.
-"""
-
-from http import HTTPStatus
+"""Client UI proxy routes."""
 
 from flask import Blueprint, jsonify
-from sqlalchemy import select
 
-from pronto_shared.db import get_session
-from pronto_shared.models import KeyboardShortcut
-from pronto_shared.trazabilidad import get_logger
+from pronto_clients.routes.api.orders import _forward_to_api
 
 shortcuts_bp = Blueprint("client_shortcuts", __name__)
 
 
 @shortcuts_bp.get("/shortcuts")
 def get_enabled_shortcuts():
-    """Get all enabled keyboard shortcuts for the client app."""
-    try:
-        with get_session() as db_session:
-            stmt = (
-                select(KeyboardShortcut)
-                .where(KeyboardShortcut.is_enabled)
-                .order_by(KeyboardShortcut.sort_order, KeyboardShortcut.category)
-            )
-            shortcuts = db_session.execute(stmt).scalars().all()
-
-            result = [
-                {
-                    "id": s.id,
-                    "combo": s.combo,
-                    "description": s.description,
-                    "category": s.category,
-                    "callback_function": s.callback_function,
-                    "prevent_default": s.prevent_default,
-                }
-                for s in shortcuts
-            ]
-
-            return jsonify({"shortcuts": result}), HTTPStatus.OK
-
-    except Exception as e:
-        logger = get_logger("clients.api.shortcuts")
-        logger.error(f"Error getting shortcuts: {e}", error={"message": str(e), "traceback": str(e)})
-        return jsonify({"error": "Error al obtener atajos"}), HTTPStatus.INTERNAL_SERVER_ERROR
+    data, status, _ = _forward_to_api("GET", "/api/shortcuts")
+    return jsonify(data), status
 
 
 @shortcuts_bp.post("/feedback/questions")
 def get_feedback_questions():
-    """Get all enabled feedback questions for the form."""
-    try:
-        with get_session() as db_session:
-            from pronto_shared.models import FeedbackQuestion
-
-            stmt = (
-                select(FeedbackQuestion)
-                .where(FeedbackQuestion.is_enabled)
-                .order_by(FeedbackQuestion.sort_order)
-            )
-            questions = db_session.execute(stmt).scalars().all()
-
-            result = [
-                {
-                    "id": q.id,
-                    "question_text": q.question_text,
-                    "question_type": q.question_type,
-                    "category": q.category,
-                    "is_required": q.is_required,
-                    "min_rating": q.min_rating,
-                    "max_rating": q.max_rating,
-                }
-                for q in questions
-            ]
-
-            return jsonify({"questions": result}), HTTPStatus.OK
-
-    except Exception as e:
-        logger = get_logger("clients.api.shortcuts")
-        logger.error(f"Error getting feedback questions: {e}", error={"message": str(e), "traceback": str(e)})
-        return jsonify({"error": "Error al obtener preguntas"}), HTTPStatus.INTERNAL_SERVER_ERROR
+    data, status, _ = _forward_to_api("POST", "/api/feedback/questions", {})
+    return jsonify(data), status

@@ -18,7 +18,7 @@ orders_bp = Blueprint("client_orders_api", __name__)
 
 def _resolve_api_base() -> str:
     bases = _resolve_api_bases()
-    return bases[0] if bases else "http://pronto-api-1:5000"
+    return bases[0] if bases else "http://api:5000"
 
 
 def _resolve_api_bases() -> list[str]:
@@ -26,6 +26,7 @@ def _resolve_api_bases() -> list[str]:
     Build candidate API bases ordered by reliability for container runtime.
 
     If a configured base points to localhost, prefer internal Docker DNS first.
+    Default matches docker-compose service name "api" and internal port 5000.
     """
     configured = [
         (current_app.config.get("API_BASE_URL") or "").strip().rstrip("/"),
@@ -33,7 +34,7 @@ def _resolve_api_bases() -> list[str]:
         (os.getenv("PRONTO_API_INTERNAL_BASE_URL") or "").strip().rstrip("/"),
     ]
     raw_candidates = [value for value in configured if value]
-    raw_candidates.append("http://pronto-api-1:5000")
+    raw_candidates.append("http://api:5000")
 
     candidates: list[str] = []
     seen: set[str] = set()
@@ -49,7 +50,7 @@ def _resolve_api_bases() -> list[str]:
         parsed = urlparse(raw)
         hostname = (parsed.hostname or "").lower()
         if hostname in {"localhost", "127.0.0.1", "0.0.0.0"}:
-            append_candidate("http://pronto-api-1:5000")
+            append_candidate("http://api:5000")
         append_candidate(raw)
 
     return candidates
@@ -72,6 +73,9 @@ def _forward_to_api(
     customer_ref = session.get("customer_ref")
     if customer_ref:
         headers["X-PRONTO-CUSTOMER-REF"] = str(customer_ref)
+    dining_session_id = session.get("dining_session_id")
+    if dining_session_id:
+        headers["X-Pronto-Dining-Session-ID"] = str(dining_session_id)
 
     # NO cookies propagation - clients use session + Redis, not JWT cookies
     # The X-PRONTO-CUSTOMER-REF header is sufficient for backend authentication
