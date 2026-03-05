@@ -273,7 +273,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
       </div>
       <p class="checkout-preference__helper">
         Se cerrará en
-        <span id="checkout-preference-timer">{{ app_settings.checkout_prompt_duration_seconds or 6 }}</span>s · Método
+        <span id="checkout-preference-timer">{{ app_settings.checkout_redirect_seconds or 6 }}</span>s · Método
         por defecto: <span id="checkout-preference-default">Efectivo</span>
       </p>
     </div>
@@ -310,7 +310,6 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
       </div>
     </div>
   </div>
-</div>
 
 {% endblock %} {% block scripts %}
 
@@ -337,6 +336,12 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
     // Show modal immediately
     modal.classList.add('active');
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('visibility', 'visible', 'important');
+    modal.style.setProperty('opacity', '1', 'important');
+    modal.style.setProperty('pointer-events', 'auto', 'important');
+    modal.style.setProperty('height', '100vh', 'important');
+    modal.style.setProperty('overflow', 'visible', 'important');
 
     // Load hours if not already loaded
     if (!businessHoursData) {
@@ -474,6 +479,12 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     const modal = document.getElementById('business-hours-modal');
     if (modal) {
       modal.classList.remove('active');
+      modal.style.setProperty('display', 'none', 'important');
+      modal.style.setProperty('visibility', 'hidden', 'important');
+      modal.style.setProperty('opacity', '0', 'important');
+      modal.style.setProperty('pointer-events', 'none', 'important');
+      modal.style.setProperty('height', '0px', 'important');
+      modal.style.setProperty('overflow', 'hidden', 'important');
     }
   }
 
