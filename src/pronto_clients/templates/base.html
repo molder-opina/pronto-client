@@ -4149,6 +4149,50 @@
       max-height: min(90dvh, 900px) !important;
     }
 
+    #item-modal #modal-add-to-cart-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 0.45rem !important;
+      min-height: 52px !important;
+      padding: 0.85rem 1rem !important;
+      border: 1px solid #ff7d44 !important;
+      border-radius: 12px !important;
+      background: linear-gradient(135deg, #ff6b35 0%, #ff874f 100%) !important;
+      color: #ffffff !important;
+      font-size: 1.1rem !important;
+      font-weight: 800 !important;
+      line-height: 1.2 !important;
+      text-align: center !important;
+      cursor: pointer !important;
+      box-shadow: 0 12px 24px rgba(249, 115, 22, 0.35) !important;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease !important;
+    }
+
+    #item-modal #modal-add-to-cart-btn::before {
+      content: '🛒';
+      font-size: 0.95em;
+      line-height: 1;
+    }
+
+    #item-modal #modal-add-to-cart-btn:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 16px 30px rgba(249, 115, 22, 0.4) !important;
+      filter: saturate(1.06) !important;
+    }
+
+    #item-modal #modal-add-to-cart-btn:active {
+      transform: translateY(0) !important;
+      box-shadow: 0 8px 16px rgba(249, 115, 22, 0.3) !important;
+    }
+
+    #item-modal #modal-add-to-cart-btn:disabled {
+      opacity: 0.55 !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+      filter: grayscale(0.2) !important;
+    }
+
     @media (max-width: 700px) {
       #profile-modal.profile-modal--compact.active {
         align-items: flex-end !important;
