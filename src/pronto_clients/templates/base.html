@@ -9,10 +9,10 @@
   <link rel="stylesheet" href="{{ assets_css }}/shared/components.css?v={{ system_version }}&rev=20260305j" />
   <link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css?v={{ system_version }}&rev=20260305j" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css?v={{ system_version }}&rev=20260305j" />
+  <link rel="stylesheet" href="{{ assets_css_clients }}/client-base.css?v={{ system_version }}&rev=20260305k" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/audit-fixes.css?v={{ system_version }}&rev=20260305j" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css?v={{ system_version }}&rev=20260305j" />
   <style>
-    .sticky-cart-bar {
       position: fixed;
       left: 0.75rem;
       right: 0.75rem;
@@ -4197,6 +4197,39 @@
       filter: grayscale(0.2) !important;
     }
 
+    /* Floating forms: no internal scrollbars, responsive fit. */
+    #support-modal .support-modal-content,
+    #profile-modal .profile-modal-content,
+    #password-recovery-modal .password-recovery-modal-content {
+      overflow-y: hidden !important;
+      max-height: min(92dvh, 860px) !important;
+    }
+
+    #support-modal #support-form {
+      gap: 0.72rem !important;
+    }
+
+    #support-modal .form-group textarea {
+      min-height: 112px !important;
+      max-height: 112px !important;
+      resize: none !important;
+    }
+
+    #support-modal .file-upload-wrapper {
+      padding: 0.85rem 0.8rem !important;
+    }
+
+    #support-modal .support-modal-content h2 {
+      margin-bottom: 0.25rem !important;
+      font-size: 1.55rem !important;
+    }
+
+    #support-modal .support-modal-content>p {
+      margin-bottom: 0.65rem !important;
+      font-size: 0.96rem !important;
+      line-height: 1.3 !important;
+    }
+
     @media (max-width: 700px) {
       #profile-modal.profile-modal--compact.active {
         align-items: flex-end !important;
@@ -4214,6 +4247,19 @@
         max-width: 100% !important;
         max-height: min(72vh, 560px) !important;
         border-radius: 14px !important;
+      }
+
+      #support-modal {
+        align-items: flex-start !important;
+        padding: 0.5rem !important;
+      }
+
+      #support-modal .support-modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: calc(100dvh - 1rem) !important;
+        border-radius: 14px !important;
+        padding: 0.95rem !important;
       }
     }
 
