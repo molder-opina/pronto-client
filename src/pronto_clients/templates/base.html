@@ -1336,7 +1336,9 @@
     .support-modal {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(15, 23, 42, 0.58);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       display: none;
       align-items: center;
       justify-content: center;
@@ -1349,48 +1351,75 @@
     }
 
     .support-modal-content {
-      background: white;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
       max-width: 640px;
       width: min(100%, 640px);
       border-radius: 20px;
-      padding: 2rem;
-      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.3);
+      border: 1px solid #e2e8f0;
+      padding: 1.25rem;
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
       position: relative;
       max-height: min(90vh, 860px);
       overflow-y: auto;
     }
 
     .support-modal-content h2 {
-      margin: 0 0 0.5rem 0;
-      color: var(--text);
+      margin: 0 2.5rem 0.4rem 0;
+      color: #0f172a;
+      font-size: 1.75rem;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
     }
 
-    .support-modal-content p {
-      margin: 0 0 1.5rem 0;
-      color: var(--muted);
+    .support-modal-content>p {
+      margin: 0 0 1rem 0;
+      color: #475569;
+      font-size: 1.04rem;
+      line-height: 1.45;
     }
 
     .support-modal-close {
       position: absolute;
-      top: 16px;
-      right: 16px;
-      background: none;
-      border: none;
+      top: 14px;
+      right: 14px;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
       font-size: 1.3rem;
+      line-height: 1;
       cursor: pointer;
-      color: var(--muted);
+      color: #334155;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .support-modal-close:hover {
+      border-color: #94a3b8;
+      background: #eef2f7;
+      color: #0f172a;
+    }
+
+    .support-modal #support-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
     }
 
     .support-modal .form-group {
-      margin-bottom: 1rem;
+      margin-bottom: 0;
     }
 
     .support-modal .form-group label {
       display: block;
-      margin-bottom: 0.45rem;
+      margin-bottom: 0.42rem;
       color: #334155;
-      font-weight: 600;
-      font-size: 0.92rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.01em;
     }
 
     .support-modal .form-group input,
@@ -1398,32 +1427,46 @@
     .support-modal .form-group textarea {
       width: 100%;
       display: block;
-      border: 2px solid #334155;
+      border: 1.5px solid #94a3b8;
       border-radius: 12px;
-      background: #fff;
+      background: #ffffff;
       color: #0f172a;
-      font-size: 1rem;
+      font-size: 1.02rem;
       line-height: 1.4;
-      padding: 0.8rem 0.9rem;
+      padding: 0.78rem 0.9rem;
       outline: none;
       box-sizing: border-box;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+    .support-modal .form-group select {
+      min-height: 46px;
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, #64748b 50%),
+        linear-gradient(135deg, #64748b 50%, transparent 50%);
+      background-position: calc(100% - 18px) 19px, calc(100% - 12px) 19px;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+      padding-right: 2.2rem;
     }
 
     .support-modal .form-group textarea {
-      min-height: 120px;
+      min-height: 132px;
       resize: vertical;
     }
 
     .support-modal .form-group input::placeholder,
     .support-modal .form-group textarea::placeholder {
       color: #64748b;
+      opacity: 1;
     }
 
     .support-modal .form-group input:focus-visible,
     .support-modal .form-group select:focus-visible,
     .support-modal .form-group textarea:focus-visible {
       border-color: #ff6b35;
-      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.16);
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.18);
+      background: #ffffff;
     }
 
     .support-feedback {
@@ -1445,16 +1488,17 @@
     /* File Upload Styles */
     .file-upload-wrapper {
       position: relative;
-      border: 2px dashed var(--border);
+      border: 2px dashed #64748b;
       border-radius: 12px;
-      padding: 1.5rem;
+      padding: 1.2rem 1rem;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s;
+      background: #f8fafc;
     }
 
     .file-upload-wrapper:hover {
-      border-color: var(--primary);
+      border-color: #ff6b35;
       background: rgba(255, 107, 53, 0.05);
     }
 
@@ -1468,6 +1512,14 @@
         border-radius: 16px;
         padding: 1rem;
         max-height: 92vh;
+      }
+
+      .support-modal-content h2 {
+        font-size: 1.42rem;
+      }
+
+      .support-modal-content>p {
+        font-size: 0.98rem;
       }
     }
 
