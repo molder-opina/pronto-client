@@ -179,12 +179,38 @@ def kiosk_start(location: str):
         - In production: requires PRONTO_KIOSK_SECRET header
         - In dev mode: no secret required
     """
-    debug_mode = current_app.config.get("DEBUG_MODE", False)
+    logger = get_logger("client.web.kiosk")
+    debug_mode = bool(current_app.config.get("DEBUG_MODE", False))
+    provided_secret = request.headers.get("X-PRONTO-KIOSK-SECRET", "")
 
-    if _KIOSK_SECRET and not debug_mode:
-        provided_secret = request.headers.get("X-PRONTO-KIOSK-SECRET", "")
+    if _KIOSK_SECRET:
         if provided_secret != _KIOSK_SECRET:
+            logger.warning(
+                "kiosk secret mismatch",
+                extra={"location": location, "remote_addr": request.remote_addr},
+            )
             return jsonify({"error": "Unauthorized"}), 401
+    else:
+        if not debug_mode:
+            logger.error(
+                "kiosk secret missing in non-debug mode",
+                extra={"location": location},
+            )
+            return jsonify({"error": "Kiosk misconfigured"}), 503
+
+        forwarded_for = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        source_ip = forwarded_for or request.remote_addr or ""
+        if source_ip not in {"127.0.0.1", "::1", "localhost"}:
+            logger.warning(
+                "kiosk start blocked in debug due non-local source",
+                extra={"location": location, "remote_addr": source_ip},
+            )
+            return jsonify({"error": "Unauthorized"}), 401
+
+        logger.warning(
+            "kiosk start in debug mode without kiosk secret",
+            extra={"location": location, "remote_addr": source_ip},
+        )
 
     kiosk_email = f"kiosk+{location}@pronto.local"
 

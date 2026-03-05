@@ -7,8 +7,13 @@ from http import HTTPStatus
 
 from flask import Blueprint, current_app, jsonify, request, session
 
+from pronto_shared.datetime_utils import utcnow
 from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
 from pronto_shared.services.waiter_table_assignment_service import get_table_assignment
+from pronto_shared.services.waiter_calls import (
+    cache_waiter_call_state,
+    get_cached_waiter_call_state,
+)
 from pronto_shared.supabase.realtime import emit_waiter_call
 
 from pronto_shared.services.customer_session_store import customer_session_store
@@ -67,9 +72,9 @@ def call_waiter():
     table_id = None
     table_created_at = None
 
-    with get_session() as session:
+    with get_session() as db_session:
         table_obj = (
-            session.execute(select(Table).where(Table.table_number == table_number))
+            db_session.execute(select(Table).where(Table.table_number == table_number))
             .scalars()
             .one_or_none()
         )
@@ -81,15 +86,18 @@ def call_waiter():
         table_id = table_obj.id
         table_created_at = table_obj.created_at
 
-        two_minutes_ago = datetime.utcnow() - timedelta(minutes=2)
+        from pronto_shared.services.settings_service import get_setting
+
+        cooldown_seconds = int(get_setting("waiter.call_cooldown_seconds", 120))
+        cooldown_threshold = utcnow() - timedelta(seconds=cooldown_seconds)
 
         recent_call = (
-            session.execute(
+            db_session.execute(
                 select(WaiterCall).where(
                     and_(
                         WaiterCall.table_number == table_number,
                         WaiterCall.status == "pending",
-                        WaiterCall.created_at >= two_minutes_ago,
+                        WaiterCall.created_at >= cooldown_threshold,
                     )
                 )
             )
@@ -107,7 +115,7 @@ def call_waiter():
                 waiter_id = None
                 waiter_name = None
                 if session_id:
-                    dining_session = session.get(DiningSession, session_id)
+                    dining_session = db_session.get(DiningSession, session_id)
                     if dining_session:
                         waiter_id, waiter_name = (
                             get_waiter_assignment_from_dining_session(dining_session)
@@ -131,9 +139,23 @@ def call_waiter():
                     waiter_name=waiter_name,
                     created_at=recent_call.created_at,
                 )
+
+                cache_waiter_call_state(
+                    call_id=recent_call.id,
+                    status=recent_call.status,
+                    table_number=recent_call.table_number,
+                    session_id=recent_call.session_id,
+                    waiter_id=waiter_id,
+                    waiter_name=waiter_name,
+                    created_at=recent_call.created_at,
+                    confirmed_at=recent_call.confirmed_at,
+                    confirmed_by=recent_call.confirmed_by,
+                    notes=recent_call.notes,
+                )
             except Exception as emit_error:
                 logger.warning(
-                    f"Error re-emitting waiter call", error={"exception": str(emit_error)}
+                    f"Error re-emitting waiter call",
+                    error={"exception": str(emit_error)},
                 )
 
             return jsonify(
@@ -145,15 +167,15 @@ def call_waiter():
             table_number=table_number,
             status="pending",
         )
-        session.add(waiter_call)
-        session.flush()
+        db_session.add(waiter_call)
+        db_session.flush()
 
         # Capture values immediately after flush to avoid detached instance errors
         call_id = waiter_call.id
         waiter_call_created_at = waiter_call.created_at
 
         # Resolver mesero asignado (sesión o asignación de mesa)
-        waiter_id, waiter_name = get_waiter_assignment_from_db(session, session_id)
+        waiter_id, waiter_name = get_waiter_assignment_from_db(db_session, session_id)
         if not waiter_id:
             table_assignment = get_table_assignment(table_id)
             if table_assignment:
@@ -170,7 +192,7 @@ def call_waiter():
             data=f'{{"table_number": "{table_number}", "session_id": {session_id}, "waiter_call_id": {call_id}}}',
             priority="high",
         )
-        session.add(notification)
+        db_session.add(notification)
 
         # Si no hay mesero asignado, alertar a administradores tras N minutos sin asignación
         if not waiter_id:
@@ -185,7 +207,7 @@ def call_waiter():
                 alert_minutes = 5
 
             last_assignment = (
-                session.execute(
+                db_session.execute(
                     select(WaiterTableAssignment)
                     .where(WaiterTableAssignment.table_id == table_id)
                     .order_by(
@@ -201,9 +223,7 @@ def call_waiter():
                 if last_assignment
                 else table_created_at
             )
-            if base_time and (datetime.utcnow() - base_time) > timedelta(
-                minutes=alert_minutes
-            ):
+            if base_time and (utcnow() - base_time) > timedelta(minutes=alert_minutes):
                 admin_notification = Notification(
                     notification_type="table_unassigned",
                     recipient_type="admin",
@@ -213,23 +233,40 @@ def call_waiter():
                     data=f'{{"table_number": "{table_number}", "waiter_call_id": {call_id}}}',
                     priority="high",
                 )
-                session.add(admin_notification)
+                db_session.add(admin_notification)
 
-        session.commit()
+        db_session.commit()
+
+        cache_waiter_call_state(
+            call_id=call_id,
+            status=waiter_call.status,
+            table_number=waiter_call.table_number,
+            session_id=waiter_call.session_id,
+            waiter_id=waiter_id,
+            waiter_name=waiter_name,
+            created_at=waiter_call.created_at,
+            confirmed_at=waiter_call.confirmed_at,
+            confirmed_by=waiter_call.confirmed_by,
+            notes=waiter_call.notes,
+        )
 
         # Get order numbers if session exists (call_id and waiter_call_created_at already captured)
         if session_id:
             order_numbers = (
-                session.execute(select(Order.id).where(Order.session_id == session_id))
+                db_session.execute(
+                    select(Order.id).where(Order.session_id == session_id)
+                )
                 .scalars()
                 .all()
             )
-            waiter_id, waiter_name = get_waiter_assignment_from_db(session, session_id)
+            waiter_id, waiter_name = get_waiter_assignment_from_db(
+                db_session, session_id
+            )
 
     logger.info(
         f"Waiter called from table {table_number}",
         session_id=session_id,
-        call_id=call_id
+        call_id=call_id,
     )
 
     emit_waiter_call(
@@ -254,6 +291,10 @@ def get_waiter_call_status(call):
     customer_ref = session.get("customer_ref")
     if not customer_ref:
         return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+
+    cached = get_cached_waiter_call_state(int(call))
+    if cached:
+        return jsonify(cached), HTTPStatus.OK
 
     from sqlalchemy import select
 
@@ -285,12 +326,16 @@ def get_waiter_call_status(call):
         ), 200
 
 
-@waiter_calls_bp.get("/notifications/waiter/status/<int:call>")
+@waiter_calls_bp.get("/notifications/waiter/status/<int:call_id>")
 def get_waiter_call_status_alt(call_id):
     """Check the status of a waiter call (notification status endpoint)."""
     customer_ref = session.get("customer_ref")
     if not customer_ref:
         return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+
+    cached = get_cached_waiter_call_state(int(call_id))
+    if cached:
+        return jsonify(cached), HTTPStatus.OK
 
     from sqlalchemy import select
 
@@ -299,7 +344,7 @@ def get_waiter_call_status_alt(call_id):
 
     with get_session() as db_session:
         waiter_call = (
-            db_session.execute(select(WaiterCall).where(WaiterCall.id == call))
+            db_session.execute(select(WaiterCall).where(WaiterCall.id == call_id))
             .scalars()
             .one_or_none()
         )

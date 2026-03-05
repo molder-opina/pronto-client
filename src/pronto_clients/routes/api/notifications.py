@@ -8,6 +8,7 @@ from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request, session
 
+from pronto_shared.datetime_utils import utcnow
 from pronto_shared.services.customer_session_store import (
     customer_session_store,
     RedisUnavailableError,
@@ -94,10 +95,12 @@ def mark_notification_read(notification: int):
         if not notification:
             return jsonify({"error": "Notification not found"}), HTTPStatus.NOT_FOUND
 
-        if notification.recipient_type != "customer" or str(notification.recipient_id) != str(customer_id):
+        if notification.recipient_type != "customer" or str(
+            notification.recipient_id
+        ) != str(customer_id):
             return jsonify({"error": "Notification not found"}), HTTPStatus.NOT_FOUND
 
         notification.status = "read"
-        notification.read_at = datetime.utcnow()
+        notification.read_at = utcnow()
         db_session.commit()
         return jsonify({"status": "ok"}), HTTPStatus.OK

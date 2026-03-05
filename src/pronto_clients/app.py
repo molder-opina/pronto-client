@@ -105,6 +105,15 @@ def init_runtime(app: Flask, config) -> None:
 
     csrf_protection.init_app(app)
 
+    @app.before_request
+    def set_app_locale():
+        """Set the global i18n locale from system settings."""
+        from pronto_shared.i18n.service import i18n
+        from pronto_shared.services.settings_service import get_setting
+
+        locale = get_setting("system.locale.default", "es")
+        i18n.set_locale(locale)
+
     @app.context_processor
     def inject_employees_base_url():
         base_url = (app.config.get("EMPLOYEE_API_BASE_URL") or "").rstrip("/")
@@ -126,44 +135,23 @@ def init_runtime(app: Flask, config) -> None:
     def inject_globals():
         from pronto_shared.services.settings_service import get_setting
 
-        config_keys = [
-            "currency_code",
-            "currency_locale",
-            "currency_symbol",
-            "default_country_code",
-            "phone_country_options",
-            "checkout_default_method",
-            "checkout_prompt_duration_seconds",
-            "waiter_call_sound",
-            "waiter_call_cooldown_seconds",
-        ]
-        try:
-            business_settings = get_config_map(config_keys)
-        except Exception:
-            business_settings = {}
         app_settings = {
             "static_host_url": config.pronto_static_public_host,
-            "currency_code": business_settings.get("currency_code", "MXN"),
-            "currency_locale": business_settings.get("currency_locale", "es-MX"),
-            "currency_symbol": business_settings.get("currency_symbol", "$"),
-            "default_country_code": business_settings.get(
-                "default_country_code", "+52"
-            ),
-            "phone_country_options": business_settings.get("phone_country_options")
+            "currency_code": get_setting("currency_code", "MXN"),
+            "currency_locale": get_setting("currency_locale", "es-MX"),
+            "currency_symbol": get_setting("currency_symbol", "$"),
+            "default_country_code": get_setting("default_country_code", "+52"),
+            "phone_country_options": get_setting("phone_country_options")
             or [
                 {"iso": "MX", "label": "Mexico", "dial_code": "+52", "flag": ""},
             ],
-            "checkout_default_method": business_settings.get(
-                "checkout_default_method", "cash"
+            "checkout_default_method": get_setting("checkout_default_method", "cash"),
+            "checkout_redirect_seconds": int(
+                get_setting("client.checkout.redirect_seconds", 6)
             ),
-            "checkout_prompt_duration_seconds": int(
-                business_settings.get("checkout_prompt_duration_seconds", 6) or 6
-            ),
-            "waiter_call_sound": business_settings.get(
-                "waiter_call_sound", "bell1.mp3"
-            ),
+            "waiter_call_sound": get_setting("waiter_call_sound", "bell1.mp3"),
             "waiter_call_cooldown_seconds": int(
-                business_settings.get("waiter_call_cooldown_seconds", 10) or 10
+                get_setting("waiter.call_cooldown_seconds", 60)
             ),
         }
 
@@ -181,9 +169,7 @@ def init_runtime(app: Flask, config) -> None:
                 current_user = customer_session_store.get_customer(customer_ref)
             except RedisUnavailableError:
                 logger = get_logger("clients")
-                logger.warning(
-                    "Customer session store (Redis) is unavailable."
-                )
+                logger.warning("Customer session store (Redis) is unavailable.")
                 current_user = None
             except Exception as e:
                 logger = get_logger("clients")
@@ -201,13 +187,13 @@ def init_runtime(app: Flask, config) -> None:
             "app_name": config.app_name,
             "system_version": config.system_version,
             "static_host_url": base_url,
-            "restaurant_name": config.restaurant_name,
+            "restaurant_name": get_setting("restaurant_name", config.restaurant_name),
             "restaurant_assets": f"{base_url}{assets_path}/{restaurant_slug}",
             "current_year": datetime.now(timezone.utc).year,
             "debug_mode": config.debug_mode,
-            "show_estimated_time": get_setting("show_estimated_time", True),
-            "estimated_time_min": get_setting("estimated_time_min", 25),
-            "estimated_time_max": get_setting("estimated_time_max", 30),
+            "show_estimated_time": get_setting("orders.show_estimated_time", True),
+            "estimated_time_min": get_setting("orders.estimated_time_min", 25),
+            "estimated_time_max": get_setting("orders.estimated_time_max", 30),
             "app_settings": app_settings,
             "employee_api_base_url": app.config.get("EMPLOYEE_API_BASE_URL"),
             "current_user": current_user,
@@ -277,9 +263,7 @@ def create_app() -> Flask:
     ).strip()
 
     # API base URL for browser direct access to pronto-api (6082)
-    app.config["API_BASE_URL"] = os.getenv(
-        "PRONTO_API_BASE_URL", ""
-    ).strip()
+    app.config["API_BASE_URL"] = os.getenv("PRONTO_API_BASE_URL", "").strip()
 
     init_runtime(app, config)
 

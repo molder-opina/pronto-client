@@ -13,6 +13,7 @@ from __future__ import annotations
 from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request, session
+from flask_wtf.csrf import generate_csrf
 from pronto_shared.db import get_session
 from pronto_shared.services.customer_service import (
     authenticate_customer,
@@ -23,6 +24,9 @@ from pronto_shared.services.customer_session_store import (
     RedisUnavailableError,
 )
 from pronto_shared.security_middleware import rate_limit
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 auth_bp = Blueprint("client_auth", __name__)
 
@@ -99,6 +103,8 @@ def login():
     return jsonify(
         {
             "success": True,
+            "csrf_token": generate_csrf(),
+            "customer_ref": customer_ref,
             "customer": {
                 "id": str(customer["id"]),
                 "email": customer.get("email"),
@@ -189,6 +195,8 @@ def register():
     return jsonify(
         {
             "success": True,
+            "csrf_token": generate_csrf(),
+            "customer_ref": customer_ref,
             "customer": {
                 "id": customer["id"],
                 "email": customer["email"],
@@ -234,6 +242,12 @@ def customer_session_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         customer_ref = session.get("customer_ref")
+        header_customer_ref = (request.headers.get("X-PRONTO-CUSTOMER-REF") or "").strip()
+        if not customer_ref and header_customer_ref:
+            customer_ref = header_customer_ref
+            session["customer_ref"] = customer_ref
+            session.permanent = True
+
         if not customer_ref:
             return jsonify({"error": "No autenticado"}), HTTPStatus.UNAUTHORIZED
         try:
@@ -241,6 +255,11 @@ def customer_session_required(f):
                 session.clear()
                 session.modified = True
                 return jsonify({"error": "Sesión inválida"}), HTTPStatus.UNAUTHORIZED
+            customer_payload = customer_session_store.get_customer(customer_ref)
+            if not customer_payload:
+                session.clear()
+                session.modified = True
+                return jsonify({"error": "No autenticado"}), HTTPStatus.UNAUTHORIZED
         except RedisUnavailableError:
             return (
                 jsonify({"error": "Servicio no disponible"}),
@@ -285,7 +304,14 @@ def me():
         session.modified = True
         return jsonify({"customer": None})
 
-    return jsonify({"customer": customer})
+    return jsonify({"customer": customer, "customer_ref": customer_ref})
+
+
+@auth_bp.get("/auth/csrf")
+@customer_session_required
+def refresh_csrf():
+    """Return a fresh CSRF token for authenticated customer session flows."""
+    return jsonify({"csrf_token": generate_csrf()}), HTTPStatus.OK
 
 
 @auth_bp.put("/auth/me")
@@ -342,10 +368,52 @@ def update_profile():
         new_payload["tax_email"] = updated_customer.get("tax_email")
         
         customer_session_store.update_session(customer_ref, new_payload)
-        
+
         return jsonify({"success": True, "customer": updated_customer})
-        
+
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        logger.error("Error updating customer profile", error={"exception": str(e)})
+        return jsonify({"error": "Error al actualizar perfil"}), HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+@auth_bp.post("/auth/forgot-password")
+@auth_bp.post("/forgot-password")
+def forgot_password():
+    """Request a password recovery link."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "El correo es requerido"}), HTTPStatus.BAD_REQUEST
+
+    from pronto_shared.services.auth_service import auth_service
+
+    result = auth_service.request_password_recovery(email, user_type="customer")
+    return jsonify(result), HTTPStatus.OK
+
+
+@auth_bp.post("/auth/reset-password")
+@auth_bp.post("/reset-password")
+def reset_password():
+    """Reset password using a recovery token."""
+    data = request.get_json(silent=True) or {}
+    token = data.get("token")
+    password = data.get("password")
+
+    if not token or not password:
+        return (
+            jsonify({"error": "Token y contraseña son requeridos"}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    if len(password) < 6:
+        return (
+            jsonify({"error": "La contraseña debe tener al menos 6 caracteres"}),
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    from pronto_shared.services.auth_service import auth_service
+
+    result = auth_service.reset_password(token, password, user_type="customer")
+    if result.get("status") == "error":
+        return jsonify(result), HTTPStatus.BAD_REQUEST
+    return jsonify(result), HTTPStatus.OK

@@ -1,0 +1,70 @@
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{{ restaurant_name|title }} · Clientes</title>
+<link rel="stylesheet" href="{{ assets_css }}/shared/base.css?v=2" />
+<link rel="stylesheet" href="{{ assets_css }}/shared/components.css?v=2" />
+<link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css?v=2" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css?v=2" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/audit-fixes.css?v=2" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css?v=2" />
+<link rel="icon" href="{{ restaurant_assets }}/branding/icon.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<meta name="csrf-token" content="{{ csrf_token() }}" />
+
+<!-- Dark Mode Variables -->
+<style>
+  /* Force dark mode variables */
+  :root {
+    --primary: #ff8c5a;
+    --primary-dark: #ff6b35;
+    --text: #f7fafc;
+    --text-primary: #f7fafc;
+    --text-secondary: #a0aec0;
+    --text-tertiary: #718096;
+    --muted: #a0aec0;
+    --background: #1a202c;
+    --bg-secondary: #2d3748;
+    --bg-surface: #2d3748;
+    --border: #2d3748;
+    --surface: #2d3748;
+    --surface-light: #4a5568;
+    --surface-hover: #4a5568;
+    --success: #68d391;
+    --error: #fc8181;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+  }
+</style>
+<script>
+  window.APP_SETTINGS = {{ app_settings | tojson | safe }};
+
+  // Immutable Configuration - Protection against legacy overwrites
+  (function () {
+    const config = {
+      'app_name': '{{ app_name }}',
+      'restaurant_name': '{{ restaurant_name }}',
+      'restaurant_assets': '{{ restaurant_assets }}',
+      'static_host_url': '{{ static_host_url }}',
+      'current_year': '{{ current_year }}',
+      'debug_mode': '{{ debug_mode }}' === 'True',
+      'server_time': '{{ server_time }}'
+    };
+
+    // Defer APP_CONFIG to useAppConfig.ts to avoid strictly frozen redeclare issues
+  })();
+</script>
+{% if customer_data is defined %}
+<script>
+  window.APP_SESSION = { customer: {{ customer_data | tojson | safe }} };
+</script>
+{% endif %}
+
+<!-- API Base URL Configuration -->
+<script>
+  window.API_BASE = "{{ api_base_url|default('') }}";
+</script>
