@@ -1191,6 +1191,13 @@
       line-height: 1.45;
     }
 
+    .footer-shortcuts-hint {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      text-align: center;
+    }
+
     #request-check-btn:hover:not(:disabled) {
       box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
       transform: translateY(-2px);
@@ -2257,6 +2264,7 @@
           · Versión {{ system_version }}
           <button type="button" class="support-link" data-open-support>Soporte técnico</button>
         </p>
+        <p class="footer-shortcuts-hint">Presiona <kbd>?</kbd> para atajos</p>
       </div>
     </div>
   </footer>
@@ -4518,22 +4526,6 @@
       <p class="shortcuts-hint">Presiona <kbd>?</kbd> para mostrar esta ayuda</p>
     </div>
   </div>
-
-  <!-- Shortcuts Hint Text -->
-  <div class="shortcuts-hint-text" style="
-        position: fixed;
-        bottom: 0.5rem;
-        right: 0.5rem;
-        font-size: 0.7rem;
-        color: #9ca3af;
-        z-index: 800;
-        pointer-events: none;
-        opacity: 0.7;
-      ">
-    Presiona <kbd style="font-family: inherit; font-weight: bold">?</kbd> para atajos
-  </div>
-
-
 
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
