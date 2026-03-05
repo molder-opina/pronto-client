@@ -4094,22 +4094,47 @@
       border-color: #ef4444 !important;
     }
 
-    /* Business hours modal must render only the floating panel (no extra background box). */
-    #business-hours-modal,
-    #business-hours-modal.active {
+    /* Business hours modal: centered floating window without gray frame. */
+    #business-hours-modal {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 12000 !important;
+      display: none !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 1rem !important;
       background: transparent !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
     }
 
-    #business-hours-modal::before {
+    #business-hours-modal.active {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+
+    #business-hours-modal::before,
+    #business-hours-modal>.modal__overlay {
       display: none !important;
       content: none !important;
     }
 
-    #business-hours-modal>.modal__overlay {
-      display: none !important;
-      content: none !important;
+    #business-hours-modal .modal__content.modal__content--hours {
+      position: relative !important;
+      margin: 0 !important;
+      width: min(92vw, 620px) !important;
+      max-width: 620px !important;
+      max-height: min(86vh, 760px) !important;
+      height: auto !important;
+      transform: none !important;
+      overflow: hidden !important;
+    }
+
+    #business-hours-modal .modal__body {
+      overflow-y: auto !important;
+      max-height: calc(min(86vh, 760px) - 74px) !important;
     }
 
     @media (max-width: 700px) {
