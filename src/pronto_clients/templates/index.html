@@ -935,6 +935,25 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   </div>
 </div>
 
+<style>
+  /* Keep table selection above sticky header/cart layers in legacy menu page */
+  #table-selection-modal {
+    z-index: 13070 !important;
+  }
+
+  #table-selection-modal .modal__overlay {
+    z-index: 1 !important;
+  }
+
+  #table-selection-modal .table-selection-modal__content {
+    position: relative !important;
+    z-index: 2 !important;
+    width: min(92vw, 520px) !important;
+    max-height: min(88dvh, 680px) !important;
+    overflow: auto !important;
+  }
+</style>
+
 <script>
   window.DEBUG_AUTO_TABLE = {{ 'true' if debug_auto_table else 'false' }};
 </script>

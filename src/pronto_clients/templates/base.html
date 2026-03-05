@@ -4197,6 +4197,55 @@
       filter: grayscale(0.2) !important;
     }
 
+    /* Modal z-index scale (client): keep all floating forms above header/tabs consistently. */
+    :root {
+      --z-client-header: 10000;
+      --z-client-modal-base: 13020;
+      --z-client-modal-profile: 13040;
+      --z-client-modal-recovery: 13050;
+      --z-client-modal-history: 13060;
+      --z-client-modal-table: 13070;
+      --z-client-modal-item: 13080;
+      --z-client-modal-support: 13090;
+      --z-client-modal-hours: 13100;
+      --z-client-modal-shortcuts: 13110;
+    }
+
+    #profile-modal {
+      z-index: var(--z-client-modal-profile) !important;
+    }
+
+    #password-recovery-modal {
+      z-index: var(--z-client-modal-recovery) !important;
+    }
+
+    #order-history-modal,
+    .order-history-modal {
+      z-index: var(--z-client-modal-history) !important;
+    }
+
+    #table-selection-modal,
+    #table-selection-modal.modal,
+    #table-selection-modal.table-selection-modal {
+      z-index: var(--z-client-modal-table) !important;
+    }
+
+    #item-modal {
+      z-index: var(--z-client-modal-item) !important;
+    }
+
+    #support-modal {
+      z-index: var(--z-client-modal-support) !important;
+    }
+
+    #business-hours-modal {
+      z-index: var(--z-client-modal-hours) !important;
+    }
+
+    #shortcuts-modal {
+      z-index: var(--z-client-modal-shortcuts) !important;
+    }
+
     /* Floating forms: no internal scrollbars, responsive fit. */
     #support-modal .support-modal-content,
     #profile-modal .profile-modal-content,
