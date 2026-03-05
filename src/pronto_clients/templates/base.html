@@ -12,395 +12,6 @@
   <link rel="stylesheet" href="{{ assets_css_clients }}/client-base.css?v={{ system_version }}&rev=20260305k" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/audit-fixes.css?v={{ system_version }}&rev=20260305j" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css?v={{ system_version }}&rev=20260305j" />
-  <style>
-      position: fixed;
-      left: 0.75rem;
-      right: 0.75rem;
-      bottom: 0.75rem;
-      z-index: 1100;
-      display: none;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity .2s ease, transform .2s ease;
-      pointer-events: none;
-    }
-
-    .sticky-cart-bar.sticky-cart-bar--visible {
-      display: block;
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-
-    .sticky-cart-bar__content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .75rem;
-      border-radius: 14px;
-      background: #0f172a;
-      color: #f8fafc;
-      border: 1px solid rgba(148, 163, 184, .25);
-      box-shadow: 0 14px 30px rgba(15, 23, 42, .35);
-      padding: .65rem .75rem;
-    }
-
-    .sticky-cart-bar__info {
-      display: inline-flex;
-      align-items: center;
-      gap: .65rem;
-      min-width: 0;
-    }
-
-    .sticky-cart-bar__icon {
-      position: relative;
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, .08);
-      color: #f8fafc;
-    }
-
-    .sticky-cart-bar__icon svg {
-      width: 18px;
-      height: 18px;
-    }
-
-    .sticky-cart-bar__badge {
-      position: absolute;
-      top: -5px;
-      right: -5px;
-      min-width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      background: #ff6b35;
-      color: #fff;
-      font-size: .7rem;
-      font-weight: 700;
-      line-height: 18px;
-      text-align: center;
-      padding: 0 4px;
-    }
-
-    .sticky-cart-bar__details {
-      display: inline-flex;
-      align-items: baseline;
-      gap: .35rem;
-      min-width: 0;
-      flex-wrap: wrap;
-      font-size: .86rem;
-    }
-
-    .sticky-cart-bar__label {
-      color: #cbd5e1;
-    }
-
-    .sticky-cart-bar__total {
-      color: #fff;
-      font-weight: 700;
-    }
-
-    .sticky-cart-bar__items {
-      color: #94a3b8;
-    }
-
-    .sticky-cart-bar__btn {
-      display: inline-flex;
-      align-items: center;
-      gap: .35rem;
-      background: #ff6b35;
-      color: #fff;
-      border: 0;
-      border-radius: 10px;
-      padding: .55rem .7rem;
-      font-size: .83rem;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .sticky-cart-bar__btn svg {
-      width: 14px;
-      height: 14px;
-    }
-
-    .undo-snackbar {
-      position: fixed;
-      left: 50%;
-      bottom: 4.8rem;
-      transform: translateX(-50%) translateY(10px);
-      z-index: 1110;
-      display: inline-flex;
-      align-items: center;
-      gap: .65rem;
-      background: #1e293b;
-      color: #f8fafc;
-      border: 1px solid rgba(148, 163, 184, .25);
-      border-radius: 12px;
-      padding: .55rem .75rem;
-      box-shadow: 0 12px 26px rgba(15, 23, 42, .32);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .2s ease, transform .2s ease;
-    }
-
-    .undo-snackbar.undo-snackbar--visible {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .undo-snackbar__message {
-      font-size: .85rem;
-      font-weight: 600;
-    }
-
-    .undo-snackbar__action {
-      border: 0;
-      background: transparent;
-      color: #ff9f7a;
-      font-size: .82rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .mini-tracker {
-      position: fixed;
-      left: 50%;
-      bottom: 5.9rem;
-      transform: translateX(-50%) translateY(10px);
-      z-index: 1090;
-      width: min(96vw, 560px);
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      box-shadow: 0 16px 34px rgba(15, 23, 42, .22);
-      padding: .65rem .7rem;
-      display: none;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .2s ease, transform .2s ease;
-    }
-
-    .mini-tracker.visible {
-      display: block;
-      opacity: 1;
-      pointer-events: auto;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    .mini-tracker-close {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 26px;
-      height: 26px;
-      border: 1px solid #e2e8f0;
-      background: #f8fafc;
-      border-radius: 999px;
-      color: #475569;
-      font-size: .9rem;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .mini-tracker-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .75rem;
-      padding-right: 1.65rem;
-    }
-
-    .mini-tracker-left {
-      display: inline-flex;
-      align-items: center;
-      gap: .55rem;
-      min-width: 0;
-    }
-
-    .mini-tracker-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background: #fff7ed;
-      color: #f97316;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
-
-    .mini-tracker-info {
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .mini-tracker-title {
-      font-size: .8rem;
-      color: #64748b;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-
-    .mini-tracker-status {
-      font-size: .86rem;
-      color: #0f172a;
-      font-weight: 700;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 220px;
-    }
-
-    .mini-tracker-right {
-      display: inline-flex;
-      align-items: center;
-      gap: .55rem;
-      flex-shrink: 0;
-    }
-
-    .mini-tracker-order-select {
-      display: none;
-      align-items: center;
-      gap: .35rem;
-      font-size: .76rem;
-      color: #64748b;
-    }
-
-    .mini-tracker-order-select label {
-      font-weight: 700;
-      color: #64748b;
-    }
-
-    .mini-tracker-order-select select {
-      border: 1px solid #cbd5e1;
-      background: #fff;
-      border-radius: 8px;
-      color: #0f172a;
-      font-size: .76rem;
-      padding: .2rem .35rem;
-      max-width: 150px;
-    }
-
-    .mini-tracker-progress-container {
-      display: inline-flex;
-      align-items: center;
-      gap: .35rem;
-      min-width: 115px;
-    }
-
-    .mini-tracker-progress-bar {
-      width: 76px;
-      height: 7px;
-      border-radius: 999px;
-      background: #e2e8f0;
-      overflow: hidden;
-    }
-
-    .mini-tracker-progress-fill {
-      width: 0%;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #fb923c, #f97316);
-      transition: width .25s ease;
-    }
-
-    .mini-tracker-percentage {
-      font-size: .75rem;
-      font-weight: 700;
-      color: #475569;
-      min-width: 28px;
-      text-align: right;
-    }
-
-    .mini-tracker-btn {
-      border: 1px solid #cbd5e1;
-      background: #fff;
-      color: #0f172a;
-      border-radius: 8px;
-      font-size: .76rem;
-      font-weight: 700;
-      padding: .42rem .58rem;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .mini-tracker-btn--primary {
-      border-color: #ff6b35;
-      background: #ff6b35;
-      color: #fff;
-    }
-
-    @media (min-width: 769px) {
-      .sticky-cart-bar {
-        max-width: 620px;
-        margin: 0 auto;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .sticky-cart-bar {
-        left: .5rem;
-        right: .5rem;
-        bottom: .5rem;
-      }
-
-      .sticky-cart-bar__content {
-        padding: .55rem .6rem;
-        gap: .5rem;
-      }
-
-      .sticky-cart-bar__details {
-        font-size: .8rem;
-        gap: .2rem;
-      }
-
-      .sticky-cart-bar__btn {
-        padding: .5rem .6rem;
-        font-size: .78rem;
-      }
-
-      .undo-snackbar {
-        width: calc(100vw - 1rem);
-        max-width: 430px;
-        bottom: 4.25rem;
-        justify-content: space-between;
-        padding: .5rem .65rem;
-      }
-
-      .mini-tracker {
-        width: calc(100vw - 1rem);
-        bottom: 5.3rem;
-        padding: .55rem .6rem;
-      }
-
-      .mini-tracker-content {
-        flex-direction: column;
-        align-items: stretch;
-        gap: .45rem;
-        padding-right: 1.45rem;
-      }
-
-      .mini-tracker-right {
-        width: 100%;
-        justify-content: space-between;
-      }
-
-      .mini-tracker-status {
-        max-width: 100%;
-      }
-    }
-  </style>
   <link rel="icon" href="{{ restaurant_assets }}/branding/icon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -3817,7 +3428,7 @@
     }
 
     #profile-not-logged-in.profile-view {
-      overflow-y: auto;
+      overflow-y: hidden;
       max-height: min(92vh, 760px);
       padding: 1.25rem 1.35rem 1.2rem;
       scrollbar-gutter: stable both-edges;
@@ -4205,6 +3816,80 @@
       max-height: min(92dvh, 860px) !important;
     }
 
+    /* Register tab: fit full form without internal scroll. */
+    #profile-modal.profile-modal--register .profile-modal-content {
+      max-width: 620px !important;
+      width: min(96vw, 620px) !important;
+      max-height: min(95dvh, 900px) !important;
+    }
+
+    #profile-modal.profile-modal--register #profile-not-logged-in.profile-view {
+      overflow: hidden !important;
+      max-height: none !important;
+      padding: 1rem 1.1rem 0.9rem !important;
+    }
+
+    #profile-modal.profile-modal--register .profile-header {
+      margin-bottom: 0.65rem !important;
+    }
+
+    #profile-modal.profile-modal--register .profile-header h2 {
+      font-size: clamp(1.95rem, 2.1vw, 2.25rem) !important;
+      line-height: 1.1 !important;
+      margin-bottom: 0.2rem !important;
+    }
+
+    #profile-modal.profile-modal--register .profile-header p {
+      font-size: 0.92rem !important;
+      margin: 0 !important;
+    }
+
+    #profile-modal.profile-modal--register .profile-tabs {
+      margin-bottom: 0.75rem !important;
+    }
+
+    #profile-modal.profile-modal--register .profile-form {
+      gap: 0.5rem !important;
+      padding-bottom: 0 !important;
+    }
+
+    #profile-modal.profile-modal--register .form-group {
+      margin-bottom: 0 !important;
+    }
+
+    #profile-modal.profile-modal--register .form-group label {
+      margin-bottom: 0.25rem !important;
+      font-size: 0.86rem !important;
+    }
+
+    #profile-modal.profile-modal--register .form-group input,
+    #profile-modal.profile-modal--register .form-group select,
+    #profile-modal.profile-modal--register .phone-input-wrapper {
+      height: 46px !important;
+      min-height: 46px !important;
+      font-size: 0.96rem !important;
+    }
+
+    #profile-modal.profile-modal--register .password-strength {
+      margin-top: 0.25rem !important;
+      margin-bottom: 0 !important;
+    }
+
+    #profile-modal.profile-modal--register .password-requirements {
+      margin-bottom: 0 !important;
+      gap: 0.35rem !important;
+      font-size: 0.76rem !important;
+    }
+
+    #profile-modal.profile-modal--register .terms-group {
+      margin: 0.25rem 0 0.2rem !important;
+    }
+
+    #profile-modal.profile-modal--register .btn.btn-primary.btn--full {
+      margin-top: 0.15rem !important;
+      height: 46px !important;
+    }
+
     #support-modal #support-form {
       gap: 0.72rem !important;
     }
@@ -4270,6 +3955,21 @@
 
       .profile-view {
         padding: 1.1rem 0.95rem 0.9rem;
+      }
+
+      #profile-modal.profile-modal--register .profile-modal-content {
+        width: min(97vw, 560px) !important;
+      }
+
+      #profile-modal.profile-modal--register #profile-not-logged-in.profile-view {
+        padding: 0.9rem 0.9rem 0.8rem !important;
+      }
+
+      #profile-modal.profile-modal--register .form-group input,
+      #profile-modal.profile-modal--register .form-group select,
+      #profile-modal.profile-modal--register .phone-input-wrapper {
+        height: 44px !important;
+        min-height: 44px !important;
       }
     }
   </style>
@@ -4441,7 +4141,7 @@
 
 
   <script defer src="{{ assets_js }}/shared/bindings.js"></script>
-  <script defer src="{{ assets_js }}/shared/keyboard-shortcuts.js"></script>
+
 
 
 
