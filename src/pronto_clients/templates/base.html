@@ -5,12 +5,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ restaurant_name|title }} · Clientes</title>
-  <link rel="stylesheet" href="{{ assets_css }}/shared/base.css?v=2" />
-  <link rel="stylesheet" href="{{ assets_css }}/shared/components.css?v=2" />
-  <link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css?v=2" />
-  <link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css?v=2" />
-  <link rel="stylesheet" href="{{ assets_css_clients }}/audit-fixes.css?v=2" />
-  <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css?v=2" />
+  <link rel="stylesheet" href="{{ assets_css }}/shared/base.css?v={{ system_version }}&rev=20260305e" />
+  <link rel="stylesheet" href="{{ assets_css }}/shared/components.css?v={{ system_version }}&rev=20260305e" />
+  <link rel="stylesheet" href="{{ assets_css }}/shared/utilities.css?v={{ system_version }}&rev=20260305e" />
+  <link rel="stylesheet" href="{{ assets_css_clients }}/main-ux.css?v={{ system_version }}&rev=20260305e" />
+  <link rel="stylesheet" href="{{ assets_css_clients }}/audit-fixes.css?v={{ system_version }}&rev=20260305e" />
+  <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css?v={{ system_version }}&rev=20260305e" />
   <link rel="icon" href="{{ restaurant_assets }}/branding/icon.png" type="image/png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -56,7 +56,7 @@
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2) !important;
       position: sticky;
       top: 0;
-      z-index: 10000;
+      z-index: 12060 !important;
       height: 64px;
       display: flex;
       align-items: center;
@@ -186,6 +186,47 @@
       object-fit: cover;
     }
 
+    .profile-btn {
+      position: relative;
+      overflow: visible;
+    }
+
+    .profile-btn .profile-avatar {
+      border: 2px solid transparent;
+      transition: border-color 0.2s ease, filter 0.2s ease, transform 0.2s ease;
+    }
+
+    .profile-btn::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      right: -2px;
+      bottom: -2px;
+      border-radius: 999px;
+      border: 2px solid #0f172a;
+      background: #64748b;
+      box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.35);
+    }
+
+    .profile-btn.profile-btn--anonymous .profile-avatar {
+      border-color: #64748b;
+      filter: grayscale(1) contrast(1.05);
+    }
+
+    .profile-btn.profile-btn--anonymous::after {
+      background: #94a3b8;
+    }
+
+    .profile-btn.profile-btn--authenticated .profile-avatar {
+      border-color: #22c55e;
+      filter: none;
+    }
+
+    .profile-btn.profile-btn--authenticated::after {
+      background: #22c55e;
+    }
+
     /* Uniformidad visual del menú cliente */
     main .products-grid {
       width: 100%;
@@ -279,6 +320,13 @@
     .view-tab:hover {
       background: var(--surface-light);
       color: var(--text);
+    }
+
+    .view-tab:disabled,
+    .view-tab.view-tab--disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
     }
 
     .view-tab.active {
@@ -685,22 +733,22 @@
     }
 
     .footer-main {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      flex-wrap: wrap;
+      column-gap: 1rem;
       width: 100%;
-      text-align: center;
     }
 
     .footer-hours-actions {
-      display: flex;
+      grid-column: 3;
+      justify-self: end;
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
     }
 
     .footer-copyright {
+      grid-column: 2;
       margin: 0;
       color: var(--muted);
       text-align: center;
@@ -734,11 +782,17 @@
 
     @media (max-width: 768px) {
       .footer-main {
+        display: flex;
+        flex-direction: column;
         gap: 0.625rem;
       }
 
       .footer-copyright {
         width: 100%;
+      }
+
+      .footer-hours-actions {
+        justify-self: center;
       }
     }
 
@@ -1012,65 +1066,7 @@
       font-size: 1.25rem;
     }
   </style>
-  <script id="qa-fixes-injection">
-    // Immediate injection - runs before anything else
-    (function () {
-      function applyFixes() {
-        // Force button to be visible
-        const btnSelector = [
-          'button#checkout-submit-btn',
-          '.checkout-submit-btn',
-          'button[form="checkout-form"]',
-        ];
-        for (const sel of btnSelector) {
-          const btn = document.querySelector(sel);
-          if (btn) {
-            btn.style.cssText = `
-              width: 100% !important;
-              height: 3rem !important;
-              min-height: 3rem !important;
-              display: inline-flex !important;
-              opacity: 1 !important;
-              visibility: visible !important;
-              pointer-events: auto !important;
-              cursor: pointer !important;
-              flex-direction: row !important;
-              align-items: center !important;
-              justify-content: center !important;
-              padding: 1rem !important;
-              margin-top: 1rem !important;
-              box-sizing: border-box !important;
-              position: relative !important;
-              float: none !important;
-            `;
-          }
-        }
 
-        // Force accordion content visible
-        document.querySelectorAll('.accordion-content').forEach((el) => {
-          el.style.cssText = `
-            opacity: 1 !important;
-            visibility: visible !important;
-            pointer-events: auto !important;
-            display: block !important;
-            width: 100% !important;
-          `;
-        });
-      }
-
-      applyFixes();
-      document.addEventListener('DOMContentLoaded', applyFixes);
-      window.addEventListener('load', applyFixes);
-
-      // Re-run every 100ms for first 10 seconds
-      let count = 0;
-      const fixInterval = setInterval(() => {
-        applyFixes();
-        count++;
-        if (count >= 100) clearInterval(fixInterval);
-      }, 100);
-    })();
-  </script>
 
   <script>
     window.APP_SETTINGS = {{ app_settings | tojson | safe }};
@@ -1234,6 +1230,11 @@
             alt="Avatar" />
           <h2 id="profile-name">Usuario</h2>
           <p id="profile-email" class="profile-subheading"></p>
+        </div>
+
+        <div class="profile-avatar-picker" id="profile-avatar-picker">
+          <p class="profile-avatar-picker__label">Icono de perfil</p>
+          <div class="profile-avatar-picker__options" id="profile-avatar-options"></div>
         </div>
 
         <div class="profile-menu">
@@ -1463,17 +1464,79 @@
           background: #dcfce7;
           color: #166534;
         }
+
+        /* Details tab contrast hardening */
+        #checkout-section .checkout-shell,
+        #checkout-section .accordion-content,
+        #checkout-section .mesa-info-card,
+        #checkout-section .checkout-summary-header,
+        #checkout-section .checkout-summary__items,
+        #checkout-section .checkout-summary__total,
+        #checkout-section .form-group,
+        #checkout-section #checkout-form {
+          color: #0f172a !important;
+        }
+
+        #checkout-section .mesa-info-card__title,
+        #checkout-section .checkout-summary__title,
+        #checkout-section .checkout-summary__total-label,
+        #checkout-section .checkout-summary__total-amount,
+        #checkout-section label,
+        #checkout-section .form-group__counter {
+          color: #0f172a !important;
+        }
+
+        #checkout-section .checkout-accordion-header,
+        #checkout-section .checkout-accordion-header .accordion-title,
+        #checkout-section .checkout-accordion-header .accordion-title span,
+        #checkout-section .checkout-accordion-header .accordion-chevron {
+          color: #f8fafc !important;
+        }
+
+        #checkout-section .checkout-accordion-header .header-status.new {
+          color: #1e40af !important;
+        }
+
+        #checkout-section .checkout-accordion-header .header-status.confirmed {
+          color: #166534 !important;
+        }
+
+        #checkout-section #details-table-select,
+        #checkout-section #notes {
+          background: #ffffff !important;
+          color: #0f172a !important;
+          border: 1px solid #cbd5e1 !important;
+        }
+
+        #checkout-section #details-table-select::placeholder,
+        #checkout-section #notes::placeholder {
+          color: #64748b !important;
+        }
+
+        #checkout-section .checkout-submit-btn {
+          background: linear-gradient(135deg, #ff6b35 0%, #f97316 100%) !important;
+          color: #ffffff !important;
+          border: none !important;
+          border-radius: 10px;
+          min-height: 44px;
+          font-weight: 700;
+        }
+
+        #checkout-section .checkout-submit-btn:disabled {
+          background: #cbd5e1 !important;
+          color: #64748b !important;
+        }
       </style>
 
       <div class="checkout-accordion-list" id="checkout-accordions">
         <!-- Mesa Info -->
         <div class="checkout-accordion" id="accordion-mesa">
           <div class="checkout-accordion-header" data-action="toggle-parent-class" data-class="collapsed">
-            <div class="accordion-title">
+            <div class="accordion-title" style="color: #f8fafc">
               <span>Datos de la Mesa</span>
             </div>
             <div style="display: flex; align-items: center">
-              <span class="accordion-chevron">▼</span>
+              <span class="accordion-chevron" style="color: #f8fafc">▼</span>
             </div>
           </div>
           <div class="accordion-content">
@@ -1526,13 +1589,13 @@
         <!-- 3. Current Cart Accordion -->
         <div class="checkout-accordion expanded" id="accordion-current-order">
           <div class="checkout-accordion-header" data-action="toggle-parent-class" data-class="collapsed">
-            <div class="accordion-title">
+            <div class="accordion-title" style="color: #f8fafc">
               <span class="accordion-icon">🛒</span>
               <span>Orden Actual</span>
             </div>
             <div style="display: flex; align-items: center">
               <span class="header-status new">Por Confirmar</span>
-              <span class="accordion-chevron">▼</span>
+              <span class="accordion-chevron" style="color: #f8fafc">▼</span>
             </div>
           </div>
           <div class="accordion-content">
@@ -2489,6 +2552,119 @@
       transform: scale(1.05);
     }
 
+    /* Safety fallback: keep menu card images bounded even if Vue scoped CSS fails to load. */
+    [data-menu-root] .product-card {
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    [data-menu-root] .product-card__image-container {
+      position: relative;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: #f1f5f9;
+    }
+
+    [data-menu-root] .product-card__image {
+      display: block;
+      width: 100%;
+      height: 100%;
+      max-height: 320px;
+      object-fit: cover;
+    }
+
+    /* Checkout preference overlay fallback (avoid unstyled plain text buttons). */
+    .checkout-preference {
+      position: fixed;
+      inset: auto 1rem 1rem 1rem;
+      z-index: 11020;
+    }
+
+    .checkout-preference__card {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      box-shadow: 0 20px 40px rgba(2, 6, 23, 0.42);
+      padding: 0.95rem 1rem;
+    }
+
+    .checkout-preference__buttons {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.55rem;
+    }
+
+    .checkout-preference__btn {
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #f8fafc;
+      border-radius: 10px;
+      padding: 0.65rem 0.75rem;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+    }
+
+    .checkout-preference__btn:hover {
+      background: #273548;
+      border-color: #ff6b35;
+      transform: translateY(-1px);
+    }
+
+    .checkout-preference__btn--digital {
+      border-color: #fdba74;
+      color: #fed7aa;
+    }
+
+    /* Hard fallback: cart drawer must be fixed/off-canvas by default. */
+    #cart-backdrop {
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(15, 23, 42, 0.45) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transition: opacity 0.2s ease !important;
+      z-index: 11990 !important;
+    }
+
+    #cart-backdrop.open {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
+    #cart-panel {
+      position: fixed !important;
+      top: 0 !important;
+      right: 0 !important;
+      width: min(420px, 92vw) !important;
+      height: 100vh !important;
+      background: #ffffff !important;
+      box-shadow: -10px 0 30px rgba(15, 23, 42, 0.2) !important;
+      transform: translateX(100%) !important;
+      transition: transform 0.25s ease !important;
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: hidden !important;
+      z-index: 12000 !important;
+    }
+
+    #cart-panel.open {
+      transform: translateX(0) !important;
+    }
+
+    #cart-items {
+      flex: 1 !important;
+      min-height: 0 !important;
+      overflow-y: auto !important;
+      padding: 0.85rem 1rem 1rem !important;
+      background: #fff !important;
+    }
+
     .menu-item-image-overlay {
       position: absolute;
       bottom: 0;
@@ -2992,7 +3168,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: 2000;
+      z-index: 11050 !important;
       animation: fadeIn 0.2s ease;
     }
 
@@ -3009,6 +3185,12 @@
       backdrop-filter: blur(4px);
     }
 
+    /* Keep header actions (cart/profile) clickable while profile modal is open */
+    #profile-modal.active .profile-modal-overlay {
+      top: 64px !important;
+      height: calc(100% - 64px) !important;
+    }
+
     .profile-modal-content {
       position: relative;
       background: white;
@@ -3019,6 +3201,107 @@
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
       animation: slideUp 0.3s ease;
       overflow: hidden;
+      max-height: min(92vh, 760px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .profile-view {
+      padding: 1.35rem 1.2rem 1.1rem;
+    }
+
+    #profile-not-logged-in.profile-view {
+      overflow-y: auto;
+      max-height: min(92vh, 760px);
+      padding: 1.25rem 1.35rem 1.2rem;
+      scrollbar-gutter: stable both-edges;
+    }
+
+    #profile-not-logged-in .profile-header {
+      margin-bottom: 1.1rem;
+    }
+
+    #profile-not-logged-in .profile-tabs {
+      margin-bottom: 1.1rem;
+    }
+
+    #profile-not-logged-in .profile-form {
+      padding-bottom: 0.65rem;
+    }
+
+    /* Keep auth modal in a light palette even when app variables are dark. */
+    #profile-not-logged-in .profile-header h2 {
+      color: #0f172a;
+    }
+
+    #profile-not-logged-in .profile-header p {
+      color: #64748b;
+    }
+
+    #profile-not-logged-in .profile-tabs {
+      background: #111b2e;
+      border: 1px solid #0f172a;
+      gap: 0.25rem;
+      padding: 0.3rem;
+    }
+
+    #profile-not-logged-in .profile-tab {
+      color: #cbd5e1;
+      border-radius: 10px;
+    }
+
+    #profile-not-logged-in .profile-tab.active {
+      background: #ffffff;
+      color: #f97316;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+    }
+
+    #profile-not-logged-in .form-group label {
+      color: #334155;
+      font-weight: 600;
+    }
+
+    #profile-not-logged-in .form-group input {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
+    #profile-not-logged-in .form-group input::placeholder {
+      color: #94a3b8;
+    }
+
+    #profile-not-logged-in .form-group input:focus-visible {
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+    }
+
+    #profile-not-logged-in .forgot-password-link {
+      color: #f97316;
+      font-weight: 600;
+    }
+
+    #profile-not-logged-in .profile-form .btn.btn-primary.btn--full {
+      margin-top: 0.45rem;
+    }
+
+    .profile-view .profile-header {
+      padding-right: 2rem;
+    }
+
+    .profile-view .profile-form {
+      padding-top: 0.2rem;
+    }
+
+    #profile-not-logged-in .profile-modal-close {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+    }
+
+    #profile-not-logged-in .profile-modal-close:hover {
+      background: #e2e8f0;
+      color: #0f172a;
     }
 
     .profile-modal-close {
@@ -3043,6 +3326,55 @@
     .profile-modal-close:hover {
       background: var(--border);
       color: var(--text);
+    }
+
+    .profile-avatar-picker {
+      margin: 0 0 0.95rem;
+      padding: 0.8rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    .profile-avatar-picker__label {
+      margin: 0 0 0.55rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    .profile-avatar-picker__options {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .profile-avatar-option {
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background: #fff;
+      padding: 2px;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .profile-avatar-option img {
+      width: 100%;
+      height: 100%;
+      border-radius: 999px;
+      object-fit: cover;
+    }
+
+    .profile-avatar-option:hover {
+      transform: translateY(-1px);
+      border-color: #fb923c;
+    }
+
+    .profile-avatar-option.active {
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.2);
     }
 
     /* Logged-in profile: compact dropdown near avatar */
@@ -3070,6 +3402,10 @@
       box-shadow: 0 18px 34px rgba(15, 23, 42, 0.18) !important;
       overflow-y: auto !important;
       position: relative !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-view {
+      padding: 0 !important;
     }
 
     #profile-modal.profile-modal--compact .profile-modal-close {
@@ -3115,6 +3451,11 @@
     #profile-modal.profile-modal--compact .profile-menu {
       margin-top: 0.8rem !important;
       gap: 0.5rem !important;
+    }
+
+    #profile-modal.profile-modal--compact .profile-avatar-picker {
+      margin: 0.25rem 0 0.8rem !important;
+      padding: 0.65rem !important;
     }
 
     #profile-modal.profile-modal--compact .profile-menu-item {
@@ -3163,6 +3504,16 @@
         max-width: 100% !important;
         max-height: min(72vh, 560px) !important;
         border-radius: 14px !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .profile-modal-content {
+        width: min(96vw, 500px);
+      }
+
+      .profile-view {
+        padding: 1.1rem 0.95rem 0.9rem;
       }
     }
   </style>
@@ -3288,52 +3639,13 @@
     Presiona <kbd style="font-family: inherit; font-weight: bold">?</kbd> para atajos
   </div>
 
-  <script>
-    (function () {
-      const modal = document.getElementById('shortcuts-modal');
-      const closeBtn = modal?.querySelector('.shortcuts-close');
 
-      function openModal() {
-        modal?.classList.add('active');
-        closeBtn?.focus();
-      }
-
-      function closeModal() {
-        modal?.classList.remove('active');
-      }
-
-      closeBtn?.addEventListener('click', closeModal);
-
-      // Close on backdrop click
-      modal?.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-      });
-
-      document.addEventListener('keydown', function (e) {
-        // Robust key check for ? (Shift+/)
-        const isQuestionMark = e.key === '?' || (e.key === '/' && e.shiftKey);
-
-        if (isQuestionMark && !e.target.matches('input, textarea, select')) {
-          e.preventDefault();
-          if (modal?.classList.contains('active')) {
-            closeModal();
-          } else {
-            openModal();
-          }
-        }
-
-        if (e.key === 'Escape' && modal?.classList.contains('active')) {
-          closeModal();
-        }
-      });
-    })();
-  </script>
 
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
-  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260223i"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260222d"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260305e"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260305e"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">
@@ -3374,107 +3686,9 @@
 
   <script defer src="{{ assets_js }}/shared/bindings.js"></script>
   <script defer src="{{ assets_js }}/shared/keyboard-shortcuts.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      if (window.Lucide && window.Lucide.createIcons) {
-        window.Lucide.createIcons({ icons: window.Lucide.icons });
-      }
-    });
-  </script>
 
-  <script>
-    (function () {
-      function getCartNodes() {
-        const panel = document.querySelector('#vue-cart-root #cart-panel, #cart-panel');
-        const backdrop = document.querySelector('#vue-cart-root #cart-backdrop, #cart-backdrop');
-        return { panel, backdrop };
-      }
 
-      function setLegacyCartOpen(open) {
-        const nodes = getCartNodes();
-        if (!nodes.panel || !nodes.backdrop) return false;
-        nodes.panel.classList.toggle('open', open);
-        nodes.backdrop.classList.toggle('open', open);
-        document.body.classList.toggle('modal-open', open);
-        return true;
-      }
 
-      function isCartOpen() {
-        const nodes = getCartNodes();
-        return !!nodes.panel && nodes.panel.classList.contains('open');
-      }
-
-      function openCartFallback() {
-        if (typeof window.showCart === 'function' && window.showCart !== openCartFallback) {
-          window.showCart();
-          return;
-        }
-        if (typeof window.toggleCart === 'function' && window.toggleCart !== toggleCartFallback) {
-          if (!isCartOpen()) window.toggleCart();
-          return;
-        }
-        setLegacyCartOpen(true);
-      }
-
-      function closeCartFallback() {
-        if (typeof window.closeCart === 'function' && window.closeCart !== closeCartFallback) {
-          window.closeCart();
-          return;
-        }
-        if (typeof window.toggleCart === 'function' && window.toggleCart !== toggleCartFallback) {
-          if (isCartOpen()) window.toggleCart();
-          return;
-        }
-        setLegacyCartOpen(false);
-      }
-
-      function toggleCartFallback() {
-        if (typeof window.toggleCart === 'function' && window.toggleCart !== toggleCartFallback) {
-          window.toggleCart();
-          return;
-        }
-        setLegacyCartOpen(!isCartOpen());
-      }
-
-      function bindCartButtons() {
-        document.querySelectorAll('[data-toggle-cart]').forEach((btn) => {
-          if (btn.dataset.cartToggleBound === '1') return;
-          btn.addEventListener('click', function (event) {
-            event.preventDefault();
-            toggleCartFallback();
-          });
-          btn.dataset.cartToggleBound = '1';
-        });
-
-        const stickyBtn = document.getElementById('sticky-cart-btn');
-        if (stickyBtn && stickyBtn.dataset.cartOpenBound !== '1') {
-          stickyBtn.addEventListener('click', function (event) {
-            event.preventDefault();
-            openCartFallback();
-          });
-          stickyBtn.dataset.cartOpenBound = '1';
-        }
-
-        const nodes = getCartNodes();
-        if (nodes.backdrop && nodes.backdrop.dataset.cartBound !== '1') {
-          nodes.backdrop.addEventListener('click', function () {
-            closeCartFallback();
-          });
-          nodes.backdrop.dataset.cartBound = '1';
-        }
-      }
-
-      if (typeof window.showCart !== 'function') window.showCart = openCartFallback;
-      if (typeof window.toggleCart !== 'function') window.toggleCart = toggleCartFallback;
-      if (typeof window.closeCart !== 'function') window.closeCart = closeCartFallback;
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', bindCartButtons, { once: true });
-      } else {
-        bindCartButtons();
-      }
-    })();
-  </script>
 
   <!-- Vue Notification Center for SSE notifications -->
   <div id="notification-center-root"></div>

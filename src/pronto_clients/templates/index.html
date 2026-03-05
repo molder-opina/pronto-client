@@ -2,8 +2,8 @@
 '$') %} {% set
 currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css?v={{ system_version }}&rev=20260222d" />
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css?v={{ system_version }}&rev=20260222d" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css?v={{ system_version }}&rev=20260305e" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css?v={{ system_version }}&rev=20260305e" />
 <div class="menu-page" data-menu-root="">
   <!-- Category Tabs -->
   <div class="category-tabs" id="category-tabs"></div>
@@ -166,7 +166,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 </div>
 
 <!-- Checkout Preference Overlay -->
-<div class="checkout-preference" id="checkout-preference-overlay" aria-hidden="true">
+<div class="checkout-preference" id="checkout-preference-overlay" aria-hidden="true" style="display: none;">
   <div class="checkout-preference__card">
     <div class="checkout-preference__status">
       <p class="checkout-preference__title">Avisando al mesero…</p>
@@ -186,7 +186,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     </div>
     <p class="checkout-preference__helper">
       Se cerrará en
-      <span id="checkout-preference-timer">{{ app_settings.checkout_prompt_duration_seconds or 6 }}</span>s · Método
+      <span id="checkout-preference-timer">{{ app_settings.checkout_redirect_seconds or 6 }}</span>s · Método
       por defecto: <span id="checkout-preference-default">Efectivo</span>
     </p>
   </div>
@@ -268,6 +268,25 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     let currentModalProduct = null;
     let modalQuantity = 1;
 
+    function normalizeMenuAssetUrl(url) {
+      const raw = String(url || '').trim();
+      if (!raw) return '';
+      if (!/^https?:\/\//i.test(raw)) {
+        return raw
+          .replace('/assets/cafeter-a-de-prueba/', '/assets/pronto/')
+          .replace('/assets/cafeteria-de-prueba/', '/assets/pronto/');
+      }
+      try {
+        const parsed = new URL(raw);
+        const normalizedPath = parsed.pathname
+          .replace('/assets/cafeter-a-de-prueba/', '/assets/pronto/')
+          .replace('/assets/cafeteria-de-prueba/', '/assets/pronto/');
+        return `${parsed.origin}${normalizedPath}${parsed.search}${parsed.hash}`;
+      } catch (_err) {
+        return raw;
+      }
+    }
+
     async function getMenu() {
       if (menuCache) return menuCache;
       try {
@@ -322,8 +341,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
       if (nameEl) nameEl.textContent = product.name;
       if (descEl) descEl.textContent = product.description || '';
+      const resolvedImage = normalizeMenuAssetUrl(product.image_path) || '{{ restaurant_assets }}/icons/placeholder.png';
       if (imgEl) {
-        imgEl.src = product.image_path || '{{ restaurant_assets }}/branding/placeholder.png';
+        imgEl.src = resolvedImage;
         imgEl.alt = product.name;
       }
 
@@ -333,7 +353,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         id: product.id,
         name: product.name,
         description: product.description || '',
-        image: product.image_path || '{{ restaurant_assets }}/branding/placeholder.png',
+        image: resolvedImage,
         price,
       };
       modalQuantity = 1;
@@ -419,7 +439,15 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
     if (!modal) return;
 
-    // Show modal immediately
+    // Reset drag offset so modal always opens centered
+    const modalContent = modal.querySelector('.modal__content--hours');
+    if (modalContent) {
+      modalContent.style.transform = '';
+      delete modalContent.dataset.dragX;
+      delete modalContent.dataset.dragY;
+    }
+
+    // Show modal — CSS handles centering via flexbox on .active
     modal.classList.add('active');
 
     // Load hours if not already loaded
@@ -676,6 +704,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     const tableErrorMessage = document.getElementById('table-error-message');
     const detailsTableSelect = document.getElementById('details-table-select');
     const checkoutForm = document.getElementById('checkout-form');
+    const checkoutNotes = document.getElementById('notes');
+    const checkoutFeedback = document.getElementById('checkout-feedback');
+    const checkoutSubmitBtn = document.getElementById('checkout-submit-btn');
     const modal = document.getElementById('table-selection-modal');
     const manualSelect = document.getElementById('manual-table-select');
     const confirmBtn = document.getElementById('confirm-table-btn');
@@ -781,6 +812,68 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')?.trim() || '';
     }
 
+    function getCustomerRef() {
+      try {
+        const explicit = localStorage.getItem('pronto-customer-ref');
+        if (explicit && explicit.trim()) return explicit.trim();
+        const userRaw = localStorage.getItem('pronto-user');
+        if (!userRaw) return '';
+        const user = JSON.parse(userRaw);
+        return String(user?.customer_ref || '').trim();
+      } catch (_error) {
+        return '';
+      }
+    }
+
+    function setCsrfToken(token) {
+      const normalized = String(token || '').trim();
+      if (!normalized) return;
+      let meta = document.querySelector('meta[name="csrf-token"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'csrf-token');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', normalized);
+    }
+
+    async function refreshCsrfToken() {
+      try {
+        const response = await fetch('/api/auth/csrf', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) return '';
+        const payload = await response.json().catch(() => ({}));
+        const token = String(payload?.csrf_token || '').trim();
+        if (token) {
+          setCsrfToken(token);
+          return token;
+        }
+      } catch (_error) {
+        // no-op
+      }
+      return '';
+    }
+
+    function handleCheckoutUnauthorized() {
+      try {
+        localStorage.removeItem('pronto-user');
+        localStorage.removeItem('pronto-customer-ref');
+      } catch (_error) {
+        // no-op
+      }
+      window.APP_SESSION = { customer: null };
+      setCheckoutFeedback('Tu sesión expiró. Inicia sesión nuevamente para confirmar el pedido.', 'error');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('Sesión expirada. Inicia sesión de nuevo.', 'warning');
+      }
+      if (typeof window.toggleProfile === 'function') {
+        window.toggleProfile();
+      }
+    }
+
     function hasAuthenticatedCustomerSession() {
       const appSessionCustomer = window.APP_SESSION?.customer;
       return !!(appSessionCustomer && (appSessionCustomer.id || appSessionCustomer.email));
@@ -791,6 +884,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
       try {
         const csrfToken = getCsrfToken();
+        const customerRef = getCustomerRef();
         const response = await fetch('/api/sessions/table-context', {
           method: 'POST',
           credentials: 'include',
@@ -798,6 +892,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             'Content-Type': 'application/json',
             Accept: 'application/json',
             ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+            ...(customerRef ? { 'X-PRONTO-CUSTOMER-REF': customerRef } : {}),
           },
           body: JSON.stringify({
             table_id: tableData.id || tableData.code,
@@ -822,7 +917,10 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         const response = await fetch('/api/sessions/table-context', {
           method: 'GET',
           credentials: 'include',
-          headers: { Accept: 'application/json' },
+          headers: {
+            Accept: 'application/json',
+            ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
+          },
         });
         if (response.status === 401) return null;
         if (!response.ok) return null;
@@ -850,6 +948,47 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         tableErrorMessage.textContent = message;
         tableErrorMessage.style.display = 'block';
       }
+    }
+
+    function setCheckoutFeedback(message, tone = 'error') {
+      if (!checkoutFeedback) return;
+      const palette =
+        tone === 'success'
+          ? { color: '#166534', background: '#dcfce7', border: '#86efac' }
+          : tone === 'info'
+            ? { color: '#1d4ed8', background: '#dbeafe', border: '#93c5fd' }
+            : { color: '#b91c1c', background: '#fee2e2', border: '#fecaca' };
+      checkoutFeedback.textContent = message || '';
+      checkoutFeedback.style.display = message ? 'block' : 'none';
+      checkoutFeedback.style.color = palette.color;
+      checkoutFeedback.style.background = palette.background;
+      checkoutFeedback.style.border = `1px solid ${palette.border}`;
+      checkoutFeedback.style.borderRadius = '8px';
+      checkoutFeedback.style.padding = '0.6rem 0.75rem';
+      checkoutFeedback.style.marginTop = '0.65rem';
+      checkoutFeedback.style.fontSize = '0.92rem';
+    }
+
+    function getCheckoutItemsPayload() {
+      const cartItems =
+        typeof window.getCartItems === 'function' ? window.getCartItems() || [] : [];
+      if (!Array.isArray(cartItems)) return [];
+      return cartItems
+        .map((item) => {
+          const menuItemId = String(item?.id || '').trim();
+          const quantity = Number(item?.quantity || 0);
+          if (!menuItemId || !Number.isFinite(quantity) || quantity <= 0) return null;
+          const modifiers = Array.isArray(item?.modifiers)
+            ? item.modifiers.filter((modifierId) => modifierId !== null && modifierId !== undefined)
+            : [];
+          return {
+            menu_item_id: menuItemId,
+            quantity,
+            modifiers,
+            special_instructions: String(item?.special_instructions || '').trim(),
+          };
+        })
+        .filter(Boolean);
     }
 
     function parseIncomingTable(rawValue, preferSavedLabel = '') {
@@ -982,22 +1121,52 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
     function renderTableOptions() {
       if (!manualSelect && !detailsTableSelect) return;
-      const createGroup = (label, values) => {
+      const createGroup = (label, values, includeIdValue = false) => {
         const group = document.createElement('optgroup');
         group.label = label;
         values.forEach((value) => {
           const option = document.createElement('option');
-          option.value = value.code;
+          option.value = includeIdValue ? value.id || value.code : value.code;
+          option.dataset.code = value.code;
           option.textContent = `${value.fullName} (${value.code})`;
           group.appendChild(option);
         });
         return group;
       };
-
-      const mesas = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('mesa'));
-      const terrazas = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('terraza'));
-      const barras = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('barra'));
-      const vips = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('vip'));
+      const inferAreaCode = (table) => {
+        if (table.areaCode) return String(table.areaCode).trim().toUpperCase();
+        const parsed = window.ProntoTableCode?.parseTableCode?.(table.code || '');
+        if (parsed?.areaCode) return String(parsed.areaCode).trim().toUpperCase();
+        return 'G';
+      };
+      const inferGroupLabel = (areaCode, table) => {
+        const normalizedArea = String(areaCode || '').trim().toUpperCase();
+        if (AREA_LABELS[normalizedArea]) return AREA_LABELS[normalizedArea];
+        const firstWord = String(table.fullName || '').trim().split(/\s+/)[0] || '';
+        return firstWord || `Área ${normalizedArea || 'General'}`;
+      };
+      const areaBuckets = new Map();
+      tableOptions.forEach((table) => {
+        const areaCode = inferAreaCode(table);
+        const bucket = areaBuckets.get(areaCode) || {
+          code: areaCode,
+          label: inferGroupLabel(areaCode, table),
+          items: [],
+        };
+        bucket.items.push(table);
+        areaBuckets.set(areaCode, bucket);
+      });
+      const orderedBuckets = Array.from(areaBuckets.values()).sort((a, b) =>
+        a.label.localeCompare(b.label, 'es')
+      );
+      orderedBuckets.forEach((bucket) => {
+        bucket.items.sort((a, b) => {
+          const aNum = Number(a.tableNumber || 0);
+          const bNum = Number(b.tableNumber || 0);
+          if (aNum !== bNum) return aNum - bNum;
+          return String(a.fullName || '').localeCompare(String(b.fullName || ''), 'es');
+        });
+      });
 
       if (manualSelect) {
         manualSelect.replaceChildren();
@@ -1005,10 +1174,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         placeholder.value = '';
         placeholder.textContent = 'Elige tu mesa';
         manualSelect.appendChild(placeholder);
-        manualSelect.appendChild(createGroup('Mesas', mesas));
-        manualSelect.appendChild(createGroup('Terraza', terrazas));
-        manualSelect.appendChild(createGroup('Barra', barras));
-        manualSelect.appendChild(createGroup('VIP', vips));
+        orderedBuckets.forEach((bucket) => {
+          manualSelect.appendChild(createGroup(bucket.label, bucket.items));
+        });
       }
 
       if (detailsTableSelect) {
@@ -1017,13 +1185,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         placeholder.value = '';
         placeholder.textContent = 'Selecciona una mesa';
         detailsTableSelect.appendChild(placeholder);
-
-        tableOptions.forEach((table) => {
-          const option = document.createElement('option');
-          option.value = table.id || table.code;
-          option.dataset.code = table.code;
-          option.textContent = `${table.fullName} (${table.code})`;
-          detailsTableSelect.appendChild(option);
+        orderedBuckets.forEach((bucket) => {
+          detailsTableSelect.appendChild(createGroup(bucket.label, bucket.items, true));
         });
       }
     }
@@ -1108,17 +1271,163 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     }
 
     if (checkoutForm) {
-      checkoutForm.addEventListener('submit', (event) => {
+      checkoutForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         const selectedTable = String(tableIdInput?.value || detailsTableSelect?.value || '').trim();
         if (!selectedTable) {
-          event.preventDefault();
-          event.stopPropagation();
           showTableRequiredError();
+          setCheckoutFeedback('Selecciona una mesa para confirmar el pedido.', 'error');
           detailsTableSelect?.focus();
           return false;
         }
+
+        const items = getCheckoutItemsPayload();
+        if (!items.length) {
+          setCheckoutFeedback('Agrega productos al carrito antes de confirmar.', 'error');
+          return false;
+        }
+
         clearTableError();
-        return true;
+        setCheckoutFeedback('');
+
+        const payload = {
+          table_id: selectedTable,
+          notes: String(checkoutNotes?.value || '').trim(),
+          items,
+        };
+
+        if (checkoutSubmitBtn) {
+          checkoutSubmitBtn.disabled = true;
+          checkoutSubmitBtn.style.opacity = '0.7';
+          checkoutSubmitBtn.textContent = 'Confirmando...';
+        }
+
+        try {
+          const doCreateOrder = async (url, csrfToken) =>
+            fetch(url, {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+                ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
+              },
+              body: JSON.stringify(payload),
+            });
+          const postOrder = async (csrfToken) => {
+            let res = await doCreateOrder('/api/customer/orders', csrfToken);
+            if (res.status === 404) {
+              res = await doCreateOrder('/api/orders', csrfToken);
+            }
+            const parsed = await res.json().catch(() => ({}));
+            return { response: res, data: parsed };
+          };
+
+          let csrfToken = getCsrfToken();
+          let { response, data } = await postOrder(csrfToken);
+          const isCsrfError =
+            response.status === 400 &&
+            String(data?.error || '').toLowerCase().includes('csrf');
+
+          if (isCsrfError) {
+            const refreshedToken = await refreshCsrfToken();
+            if (refreshedToken) {
+              ({ response, data } = await postOrder(refreshedToken));
+            }
+          }
+          if (!response.ok) {
+            if (response.status === 401) {
+              handleCheckoutUnauthorized();
+              return false;
+            }
+            let details = data?.details || {};
+            let code = String(details?.code || details?.legacy_code || '');
+            let message = String(
+              data?.error || data?.message || 'No se pudo confirmar el pedido. Intenta nuevamente.'
+            );
+            const isTableMismatch =
+              code === 'TABLE_LOCATION_MISMATCH' || code === 'TABLE_SESSION_MISMATCH';
+
+            if (isTableMismatch) {
+              const currentTableId = String(details?.current_table_id || '').trim();
+              const currentTableCode = String(details?.current_table_code || '').trim();
+              const currentTable = currentTableId || currentTableCode;
+              const currentSource = String(details?.current_table_source || 'session')
+                .trim()
+                .toLowerCase();
+
+              if (currentTable) {
+                assignTable(currentTable, currentSource === 'qr' || currentSource === 'kiosk' ? currentSource : 'manual', true);
+                setCheckoutFeedback('Mesa actualizada desde la sesión. Reintentando confirmación...', 'info');
+                ({ response, data } = await postOrder(getCsrfToken()));
+                if (response.ok) {
+                  // Continue with success flow below.
+                } else {
+                  details = data?.details || {};
+                  code = String(details?.code || details?.legacy_code || '');
+                  message = String(
+                    data?.error || data?.message || 'No se pudo confirmar el pedido. Intenta nuevamente.'
+                  );
+                }
+              }
+            }
+
+            if (!response.ok) {
+              if (code === 'TABLE_REQUIRED') {
+                showTableRequiredError(message);
+                detailsTableSelect?.focus();
+              } else if (code === 'TABLE_LOCATION_MISMATCH' || code === 'TABLE_SESSION_MISMATCH') {
+                showTableRequiredError('La mesa de tu sesión cambió. Selecciona la mesa actual.');
+              }
+              setCheckoutFeedback(message, 'error');
+              return false;
+            }
+          }
+
+          const result = data?.data || data || {};
+          const orderId = result?.order_id || result?.id;
+          const sessionId = result?.session_id || '';
+
+          if (typeof window.setSessionId === 'function' && sessionId) {
+            window.setSessionId(sessionId);
+          }
+
+          if (typeof window.clearCart === 'function') {
+            window.clearCart();
+          }
+
+          if (checkoutNotes) {
+            checkoutNotes.value = '';
+          }
+
+          setCheckoutFeedback(
+            `Pedido confirmado${orderId ? ` (#${orderId})` : ''}.`,
+            'success'
+          );
+
+          if (typeof window.showNotification === 'function') {
+            window.showNotification('Pedido confirmado exitosamente', 'success');
+          }
+          if (typeof window.refreshMiniTracker === 'function') {
+            window.refreshMiniTracker();
+          }
+          if (typeof window.switchView === 'function') {
+            window.switchView('orders');
+          }
+        } catch (error) {
+          console.error('[CHECKOUT] Error confirming order', error);
+          setCheckoutFeedback('Error de conexión al confirmar el pedido.', 'error');
+          return false;
+        } finally {
+          if (checkoutSubmitBtn) {
+            checkoutSubmitBtn.disabled = false;
+            checkoutSubmitBtn.style.opacity = '1';
+            checkoutSubmitBtn.textContent = 'Confirmar Pedido';
+          }
+        }
+        return false;
       });
     }
 
@@ -1182,7 +1491,6 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   })();
 </script>
 
-<script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260222d"></script>
 {% if config.get('DEBUG') %} {% if debug_auto_table %}
 <!-- Draggable Debug Table Selector (DEBUG MODE ONLY) -->
 <div id="debug-table-panel" class="draggable-panel" style="
