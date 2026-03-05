@@ -266,6 +266,248 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     let menuCache = null;
     let currentModalProduct = null;
     let modalQuantity = 1;
+    let modalModifierGroups = [];
+    let modalSelectedModifiers = {};
+    let modalModifierLookup = new Map();
+
+    function formatCurrency(value) {
+      const amount = Number(value) || 0;
+      return `{{ currency_symbol }}${amount.toFixed(2)}`;
+    }
+
+    function normalizeModifierGroups(rawGroups) {
+      if (!Array.isArray(rawGroups)) return [];
+      return rawGroups
+        .map((group, index) => {
+          const groupId = Number(group?.id);
+          const modifiers = Array.isArray(group?.modifiers)
+            ? group.modifiers
+                .map((modifier) => ({
+                  id: Number(modifier?.id),
+                  name: String(modifier?.name || '').trim(),
+                  price_adjustment: Number(modifier?.price_adjustment || 0),
+                  is_available: modifier?.is_available !== false,
+                }))
+                .filter((modifier) => Number.isFinite(modifier.id) && modifier.name)
+            : [];
+          if (!modifiers.length) return null;
+          return {
+            id: Number.isFinite(groupId) ? groupId : index + 1,
+            name: String(group?.name || `Grupo ${index + 1}`),
+            min_selection: Number(group?.min_selection || 0),
+            max_selection: Number(group?.max_selection || 0),
+            is_required: Boolean(group?.is_required),
+            modifiers,
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function getGroupMinSelection(group) {
+      const min = Number(group?.min_selection || 0);
+      if (min > 0) return min;
+      return group?.is_required ? 1 : 0;
+    }
+
+    function buildModifierState(groups) {
+      modalModifierGroups = groups;
+      modalSelectedModifiers = {};
+      modalModifierLookup = new Map();
+      groups.forEach((group) => {
+        modalSelectedModifiers[group.id] = [];
+        group.modifiers.forEach((modifier) => {
+          modalModifierLookup.set(String(modifier.id), {
+            id: modifier.id,
+            name: modifier.name,
+            price_adjustment: modifier.price_adjustment,
+            groupId: group.id,
+          });
+        });
+      });
+    }
+
+    function getSelectedModifierSummary() {
+      const modifierIds = [];
+      const extras = [];
+      let extrasTotal = 0;
+      Object.values(modalSelectedModifiers).forEach((selection) => {
+        if (!Array.isArray(selection)) return;
+        selection.forEach((modifierId) => {
+          const selected = modalModifierLookup.get(String(modifierId));
+          if (!selected) return;
+          modifierIds.push(selected.id);
+          extras.push(selected.name);
+          extrasTotal += Number(selected.price_adjustment || 0);
+        });
+      });
+      return { modifierIds, extras, extrasTotal };
+    }
+
+    function updateGroupCounter(groupId) {
+      const counter = document.querySelector(`[data-modifier-counter="${groupId}"]`);
+      if (!counter) return;
+      const group = modalModifierGroups.find((item) => item.id === Number(groupId));
+      if (!group) return;
+      const selectedCount = (modalSelectedModifiers[group.id] || []).length;
+      counter.textContent = `${selectedCount}/${group.max_selection > 0 ? group.max_selection : '∞'}`;
+    }
+
+    function renderModalModifiers(groups) {
+      const extrasSection = document.getElementById('extras-section');
+      const extrasList = document.getElementById('extras-list');
+      if (!extrasSection || !extrasList) return;
+
+      if (!groups.length) {
+        extrasSection.classList.add('extras-section--hidden');
+        extrasList.replaceChildren();
+        return;
+      }
+
+      extrasSection.classList.remove('extras-section--hidden');
+      extrasList.replaceChildren();
+
+      groups.forEach((group) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'modifier-group';
+        wrapper.dataset.groupId = String(group.id);
+
+        const header = document.createElement('div');
+        header.className = 'modifier-group__header';
+
+        const title = document.createElement('h4');
+        title.textContent = group.name;
+        header.appendChild(title);
+
+        const minRequired = getGroupMinSelection(group);
+        if (minRequired > 0) {
+          const required = document.createElement('span');
+          required.className = 'modifier-required-badge';
+          required.textContent = minRequired === 1 ? 'Requerido' : `Mínimo ${minRequired}`;
+          header.appendChild(required);
+        }
+
+        const counter = document.createElement('span');
+        counter.className = 'modifier-selection-counter';
+        counter.dataset.modifierCounter = String(group.id);
+        counter.textContent = `0/${group.max_selection > 0 ? group.max_selection : '∞'}`;
+        header.appendChild(counter);
+
+        wrapper.appendChild(header);
+
+        const list = document.createElement('div');
+        list.className = 'modifiers-list';
+
+        group.modifiers.forEach((modifier) => {
+          const option = document.createElement('div');
+          option.className = 'extra-option';
+
+          const label = document.createElement('label');
+
+          const input = document.createElement('input');
+          input.type = group.max_selection === 1 ? 'radio' : 'checkbox';
+          input.name = `modifier-group-${group.id}`;
+          input.dataset.groupId = String(group.id);
+          input.dataset.modifierId = String(modifier.id);
+          input.dataset.maxSelection = String(group.max_selection || 0);
+          input.disabled = !modifier.is_available;
+          label.appendChild(input);
+
+          const labelText = document.createElement('span');
+          labelText.className = 'extra-label';
+          labelText.textContent = modifier.name;
+          label.appendChild(labelText);
+
+          const price = document.createElement('span');
+          price.className = 'extra-price';
+          const adjustment = Number(modifier.price_adjustment || 0);
+          price.textContent =
+            adjustment > 0
+              ? `+${formatCurrency(adjustment)}`
+              : 'Incluido';
+          label.appendChild(price);
+
+          option.appendChild(label);
+          list.appendChild(option);
+        });
+
+        wrapper.appendChild(list);
+        extrasList.appendChild(wrapper);
+      });
+
+      if (!extrasList.dataset.boundChange) {
+        extrasList.addEventListener('change', function (event) {
+          const target = event.target;
+          if (!(target instanceof HTMLInputElement)) return;
+          if (!target.matches('input[data-modifier-id][data-group-id]')) return;
+
+          const groupId = Number(target.dataset.groupId || 0);
+          const modifierId = Number(target.dataset.modifierId || 0);
+          if (!groupId || !modifierId) return;
+
+          const group = modalModifierGroups.find((item) => item.id === groupId);
+          if (!group) return;
+
+          const maxSelection = Number(target.dataset.maxSelection || 0);
+          const currentSelection = [...(modalSelectedModifiers[groupId] || [])];
+          const selectedIndex = currentSelection.indexOf(modifierId);
+
+          if (target.type === 'radio') {
+            modalSelectedModifiers[groupId] = [modifierId];
+          } else if (target.checked) {
+            if (maxSelection > 0 && selectedIndex === -1 && currentSelection.length >= maxSelection) {
+              target.checked = false;
+              if (typeof window.showNotification === 'function') {
+                window.showNotification(`Solo puedes seleccionar ${maxSelection} opción(es) en ${group.name}`, 'warning');
+              }
+              return;
+            }
+            if (selectedIndex === -1) currentSelection.push(modifierId);
+            modalSelectedModifiers[groupId] = currentSelection;
+          } else {
+            modalSelectedModifiers[groupId] = currentSelection.filter((id) => id !== modifierId);
+          }
+
+          updateGroupCounter(groupId);
+          updateModalTotals();
+          updateAddToCartButtonState();
+        });
+        extrasList.dataset.boundChange = '1';
+      }
+    }
+
+    function validateModifierSelections(showFeedback = false) {
+      let valid = true;
+      modalModifierGroups.forEach((group) => {
+        const wrapper = document.querySelector(`.modifier-group[data-group-id="${group.id}"]`);
+        const count = (modalSelectedModifiers[group.id] || []).length;
+        const minSelection = getGroupMinSelection(group);
+        const maxSelection = Number(group.max_selection || 0);
+        const isValid =
+          count >= minSelection &&
+          (maxSelection <= 0 || count <= maxSelection);
+
+        if (!isValid) {
+          valid = false;
+          if (wrapper) wrapper.style.borderColor = '#f97316';
+        } else if (wrapper) {
+          wrapper.style.borderColor = '#e2e8f0';
+        }
+      });
+
+      if (!valid && showFeedback && typeof window.showNotification === 'function') {
+        window.showNotification('Selecciona los aditamientos requeridos para continuar', 'warning');
+      }
+
+      return valid;
+    }
+
+    function updateAddToCartButtonState() {
+      const addButton = document.getElementById('modal-add-to-cart-btn');
+      if (!addButton) return;
+      const canAdd = validateModifierSelections(false);
+      addButton.disabled = !canAdd;
+      addButton.classList.toggle('is-disabled', !canAdd);
+    }
 
     function normalizeMenuAssetUrl(url) {
       const raw = String(url || '').trim();
@@ -337,6 +579,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       const totalPriceEl = document.getElementById('modal-total-price');
       const breakdownTotalEl = document.getElementById('modal-breakdown-total');
       const qtyEl = document.getElementById('modal-quantity');
+      const extrasPriceEl = document.getElementById('modal-extras-price');
+      const extrasPriceRowEl = document.getElementById('modal-extras-price-row');
 
       if (nameEl) nameEl.textContent = product.name;
       if (descEl) descEl.textContent = product.description || '';
@@ -347,24 +591,28 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       }
 
       const price = parseFloat(product.price) || 0;
-      const formattedPrice = `{{ currency_symbol }}${price.toFixed(2)}`;
+      const formattedPrice = formatCurrency(price);
+      const modifierGroups = normalizeModifierGroups(product.modifier_groups);
       currentModalProduct = {
         id: product.id,
         name: product.name,
         description: product.description || '',
         image: resolvedImage,
         price,
+        modifierGroups,
       };
       modalQuantity = 1;
+      buildModifierState(modifierGroups);
 
       if (basePriceEl) basePriceEl.textContent = formattedPrice;
       if (totalPriceEl) totalPriceEl.textContent = formattedPrice;
       if (breakdownTotalEl) breakdownTotalEl.textContent = formattedPrice;
       if (qtyEl) qtyEl.textContent = '1';
+      if (extrasPriceEl) extrasPriceEl.textContent = formatCurrency(0);
+      if (extrasPriceRowEl) extrasPriceRowEl.style.display = modifierGroups.length ? '' : 'none';
 
-      // Toggle extras section (hide for now as we don't have details in simple fetch)
-      const extrasSection = document.getElementById('extras-section');
-      if (extrasSection) extrasSection.classList.add('extras-section--hidden');
+      renderModalModifiers(modifierGroups);
+      updateAddToCartButtonState();
 
       // Show modal
       modal.classList.add('active');
@@ -383,10 +631,13 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       const qtyEl = document.getElementById('modal-quantity');
       const totalPriceEl = document.getElementById('modal-total-price');
       const breakdownTotalEl = document.getElementById('modal-breakdown-total');
+      const extrasPriceEl = document.getElementById('modal-extras-price');
       if (!currentModalProduct) return;
       if (qtyEl) qtyEl.textContent = String(modalQuantity);
-      const total = (currentModalProduct.price || 0) * modalQuantity;
-      const formattedTotal = `{{ currency_symbol }}${total.toFixed(2)}`;
+      const selected = getSelectedModifierSummary();
+      if (extrasPriceEl) extrasPriceEl.textContent = formatCurrency(selected.extrasTotal);
+      const total = ((currentModalProduct.price || 0) + selected.extrasTotal) * modalQuantity;
+      const formattedTotal = formatCurrency(total);
       if (totalPriceEl) totalPriceEl.textContent = formattedTotal;
       if (breakdownTotalEl) breakdownTotalEl.textContent = formattedTotal;
     }
@@ -400,6 +651,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     // Add To Cart Bridge
     window.addToCartFromModal = function () {
       if (!currentModalProduct) return;
+      if (!validateModifierSelections(true)) return;
       const addToCart = window.addToCart;
       if (typeof addToCart !== 'function') {
         console.error('[BRIDGE] addToCart no está disponible');
@@ -409,15 +661,16 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         return;
       }
 
+      const selected = getSelectedModifierSummary();
       addToCart({
         id: currentModalProduct.id,
         name: currentModalProduct.name,
         price: currentModalProduct.price,
         quantity: modalQuantity,
         image: currentModalProduct.image,
-        extras: [],
-        extrasTotal: 0,
-        modifiers: [],
+        extras: selected.extras,
+        extrasTotal: selected.extrasTotal,
+        modifiers: selected.modifierIds,
       });
 
       window.closeItemModal();
