@@ -4136,6 +4136,19 @@
       max-height: calc(min(86vh, 760px) - 74px) !important;
     }
 
+    /* Item customization modal must always stay above sticky header/tabs. */
+    #item-modal {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 13060 !important;
+    }
+
+    #item-modal .modal--item-customization {
+      position: relative !important;
+      z-index: 1 !important;
+      max-height: min(90dvh, 900px) !important;
+    }
+
     @media (max-width: 700px) {
       #profile-modal.profile-modal--compact.active {
         align-items: flex-end !important;
