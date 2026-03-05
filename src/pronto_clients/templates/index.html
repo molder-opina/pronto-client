@@ -1470,7 +1470,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           if (manualSelect && savedTable) {
             manualSelect.value = savedTable;
           }
-          modal.classList.add('active'); // Use standard .active for modals
+          modal.style.display = '';
+          modal.classList.add('active', 'visible');
           if (manualSelect) manualSelect.focus();
         });
       }
@@ -1478,8 +1479,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
     function hideTableSelectionModal() {
       if (modal) {
-        modal.classList.remove('active');
-        // modal.style.display = 'none'; // Handled by CSS
+        modal.classList.remove('active', 'visible');
+        modal.style.display = '';
       }
     }
 
@@ -1498,7 +1499,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     }
 
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && modal?.classList.contains('visible')) {
+      const isOpen = !!modal && (modal.classList.contains('visible') || modal.classList.contains('active'));
+      if (event.key === 'Escape' && isOpen) {
         hideTableSelectionModal();
       }
     });

@@ -701,7 +701,8 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
           if (manualSelect && savedTable) {
             manualSelect.value = savedTable;
           }
-          modal.classList.add('visible');
+          modal.style.display = '';
+          modal.classList.add('visible', 'active');
           document.body.classList.add('table-selection-open');
           if (manualSelect) manualSelect.focus();
         });
@@ -710,8 +711,8 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
     function hideTableSelectionModal() {
       if (modal) {
-        modal.classList.remove('visible');
-        modal.style.display = 'none';
+        modal.classList.remove('visible', 'active');
+        modal.style.display = '';
         document.body.classList.remove('table-selection-open');
       }
     }
@@ -731,7 +732,8 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     }
 
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && modal?.classList.contains('visible')) {
+      const isOpen = !!modal && (modal.classList.contains('visible') || modal.classList.contains('active'));
+      if (event.key === 'Escape' && isOpen) {
         hideTableSelectionModal();
       }
     });
