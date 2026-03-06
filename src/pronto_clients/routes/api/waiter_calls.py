@@ -189,7 +189,7 @@ def call_waiter():
             recipient_id=waiter_id,
             title="Cliente solicitando atención",
             message=f"Mesa {table_number} requiere asistencia",
-            data=f'{{"table_number": "{table_number}", "session_id": {session_id}, "waiter_call_id": {call_id}}}',
+            data={"table_number": table_number, "session_id": str(session_id) if session_id else None, "waiter_call_id": call_id},
             priority="high",
         )
         db_session.add(notification)
@@ -230,7 +230,7 @@ def call_waiter():
                     recipient_id=None,
                     title="Mesa sin asignar",
                     message=f"La mesa {table_number} lleva más de {alert_minutes} minutos sin mesero asignado",
-                    data=f'{{"table_number": "{table_number}", "waiter_call_id": {call_id}}}',
+                    data={"table_number": table_number, "waiter_call_id": call_id},
                     priority="high",
                 )
                 db_session.add(admin_notification)

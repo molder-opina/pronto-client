@@ -16,19 +16,28 @@ def get_business_info():
     """Get business information and schedule for client-facing display."""
     from pronto_shared.services.business_info_service import BusinessInfoService, BusinessScheduleService
 
-    business_info_response = BusinessInfoService.get_business_info()
-    business_info = (
-        business_info_response.get("data", {})
-        if isinstance(business_info_response, dict)
-        else {}
-    )
+    business_info = {}
+    try:
+        business_info_response = BusinessInfoService.get_business_info()
+        business_info = (
+            business_info_response.get("data", {})
+            if isinstance(business_info_response, dict)
+            else {}
+        )
+    except Exception:
+        # Keep client hours endpoint resilient if business info schema drifts.
+        business_info = {}
 
-    schedule_response = BusinessScheduleService.get_schedule()
-    schedule = (
-        (schedule_response.get("data", {}) or {}).get("schedules", [])
-        if isinstance(schedule_response, dict)
-        else []
-    )
+    schedule = []
+    try:
+        schedule_response = BusinessScheduleService.get_schedule()
+        schedule = (
+            (schedule_response.get("data", {}) or {}).get("schedules", [])
+            if isinstance(schedule_response, dict)
+            else []
+        )
+    except Exception:
+        schedule = []
 
     tz_name = (business_info or {}).get("timezone") or "America/Mexico_City"
     try:
