@@ -3955,12 +3955,17 @@
       padding-right: 2rem;
     }
 
+    #profile-personal-info.profile-view {
+      padding: 1.1rem 1rem 0.95rem;
+      background: #ffffff;
+    }
+
     #profile-personal-info .profile-header--personal-info {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.85rem;
       padding-right: 2.25rem;
       text-align: left;
     }
@@ -4001,6 +4006,57 @@
       padding-top: 0.2rem;
     }
 
+    #profile-personal-info .profile-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      padding-top: 0;
+    }
+
+    #profile-personal-info .form-group {
+      margin-bottom: 0.85rem;
+    }
+
+    #profile-personal-info .form-group label {
+      margin-bottom: 0.45rem;
+      color: #334155;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.01em;
+    }
+
+    #profile-personal-info .form-group input {
+      min-height: 46px;
+      height: 46px;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1.6px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 0.75rem 0.9rem;
+    }
+
+    #profile-personal-info .form-group input::placeholder {
+      color: #94a3b8;
+    }
+
+    #profile-personal-info .form-group input:focus-visible {
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.18);
+      outline: none;
+    }
+
+    #profile-personal-info .profile-form .btn.btn-primary.btn--full {
+      margin-top: 0.35rem;
+      min-height: 48px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    #profile-personal-info #personal-info-feedback {
+      margin-top: 0.45rem;
+    }
+
     #profile-not-logged-in .profile-modal-close {
       background: #f8fafc;
       border: 1px solid #cbd5e1;
@@ -4018,11 +4074,11 @@
       right: 1rem;
       width: 36px;
       height: 36px;
-      background: var(--surface);
-      border: none;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       border-radius: 50%;
       font-size: 1.5rem;
-      color: var(--text-secondary);
+      color: #475569;
       cursor: pointer;
       transition: all 0.2s;
       z-index: 10;
@@ -4032,8 +4088,8 @@
     }
 
     .profile-modal-close:hover {
-      background: var(--border);
-      color: var(--text);
+      background: #e2e8f0;
+      color: #0f172a;
     }
 
     .profile-avatar-picker {
@@ -4546,6 +4602,49 @@
       #profile-personal-info .profile-header--personal-info h3 {
         font-size: 1.35rem;
       }
+
+      #profile-personal-info.profile-view {
+        padding: 0.95rem 0.9rem 0.85rem;
+      }
+
+      #profile-personal-info .form-group {
+        margin-bottom: 0.72rem;
+      }
+
+      #profile-personal-info .form-group input {
+        min-height: 44px;
+        height: 44px;
+      }
+    }
+
+    #profile-modal.profile-modal--compact #profile-personal-info.profile-view {
+      padding: 0.95rem 0.9rem 0.9rem !important;
+      background: #ffffff !important;
+    }
+
+    #profile-modal.profile-modal--compact #profile-personal-info .profile-header--personal-info {
+      margin-bottom: 0.72rem !important;
+      padding-right: 2.1rem !important;
+      gap: 0.5rem !important;
+    }
+
+    #profile-modal.profile-modal--compact #profile-personal-info .profile-header--personal-info h3 {
+      font-size: 1.2rem !important;
+      color: #0f172a !important;
+      font-weight: 800 !important;
+    }
+
+    #profile-modal.profile-modal--compact #profile-personal-info .back-to-profile-btn {
+      padding: 0.4rem 0.58rem !important;
+      font-size: 0.84rem !important;
+      color: #1e293b !important;
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+
+    #profile-modal.profile-modal--compact #profile-personal-info .profile-avatar-picker {
+      margin: 0 0 0.72rem !important;
+      padding: 0.68rem !important;
     }
   </style>
 
