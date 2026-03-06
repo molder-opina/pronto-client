@@ -1,71 +1,10 @@
-{% extends "base.html" %} {% set currency_symbol = config.get('CURRENCY_SYMBOL', '$') %} {% set
+{% extends "base.html" %} {% set currency_symbol = config.get('CURRENCY_SYMBOL',
+'$') %} {% set
 currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
-<style>
-  /* FORCE PROFILE MODAL HIDDEN (DEBUG STRIP FIX) */
-  .profile-modal {
-    display: none !important;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2000;
-    animation: fadeIn 0.2s ease;
-  }
 
-  .profile-modal.active {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .profile-modal-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-  }
-
-  .profile-modal-content {
-    position: relative;
-    background: white;
-    max-width: 480px;
-    width: 90%;
-    border-radius: 16px;
-    padding: 0;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: slideUp 0.3s ease;
-    overflow: hidden;
-  }
-
-  .profile-modal-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    width: 36px;
-    height: 36px;
-    background: var(--surface);
-    border: none;
-    border-radius: 50%;
-    font-size: 1.5rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .profile-modal-close:hover {
-    background: var(--border);
-    color: var(--text);
-  }
-</style>
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css" />
-
-<div class="menu-page" data-menu-root>
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css?v={{ system_version }}&rev=20260305j" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css?v={{ system_version }}&rev=20260305j" />
+<div class="menu-page" data-menu-root="">
   <!-- Category Tabs -->
   <div class="category-tabs" id="category-tabs"></div>
 
@@ -166,104 +105,105 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     ↑ Volver
   </button>
 
-  <!-- Item Customization Modal -->
-  <div class="modal-overlay" id="item-modal">
-    <div class="modal modal--item-customization">
-      <div class="modal-header">
-        <h3 id="modal-item-name"></h3>
-        <button class="modal-close" data-action="call" data-fn="closeItemModal">×</button>
+</div> <!-- end .menu-page -->
+
+<!-- Item Customization Modal -->
+<div class="modal-overlay" id="item-modal">
+  <div class="modal modal--item-customization">
+    <div class="modal-header">
+      <h3 id="modal-item-name"></h3>
+      <button class="modal-close" data-action="call" data-fn="closeItemModal">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-image-wrapper">
+        <img id="modal-item-image" class="modal-item-image" src="" alt="Imagen del producto" />
       </div>
-      <div class="modal-body">
-        <div class="modal-image-wrapper">
-          <img id="modal-item-image" class="modal-item-image" src="" alt="" />
-        </div>
-        <p id="modal-item-description" class="modal-item-description"></p>
+      <p id="modal-item-description" class="modal-item-description"></p>
 
-        <div class="extras-section extras-section--hidden" id="extras-section">
-          <h4>Extras disponibles</h4>
-          <div id="extras-list"></div>
+      <div class="extras-section extras-section--hidden" id="extras-section">
+        <h4>Extras disponibles</h4>
+        <div id="extras-list"></div>
+      </div>
+    </div>
+    <!-- Fixed Footer containing Prices, Quantity, and Action -->
+    <div class="modal-footer">
+      <!-- Price Breakdown -->
+      <div class="modal-price-breakdown" id="modal-price-breakdown">
+        <div class="modal-price-row">
+          <span>Precio base:</span>
+          <span id="modal-base-price">{{ currency_symbol }}0.00</span>
+        </div>
+        <div class="modal-price-row" id="modal-extras-price-row">
+          <span>Extras:</span>
+          <span id="modal-extras-price">{{ currency_symbol }}0.00</span>
+        </div>
+        <div class="modal-price-row modal-price-row--total">
+          <span>Total:</span>
+          <span id="modal-breakdown-total">{{ currency_symbol }}0.00</span>
         </div>
       </div>
-      <!-- Fixed Footer containing Prices, Quantity, and Action -->
-      <div class="modal-footer">
-        <!-- Price Breakdown -->
-        <div class="modal-price-breakdown" id="modal-price-breakdown">
-          <div class="modal-price-row">
-            <span>Precio base:</span>
-            <span id="modal-base-price">{{ currency_symbol }}0.00</span>
-          </div>
-          <div class="modal-price-row" id="modal-extras-price-row">
-            <span>Extras:</span>
-            <span id="modal-extras-price">{{ currency_symbol }}0.00</span>
-          </div>
-          <div class="modal-price-row modal-price-row--total">
-            <span>Total:</span>
-            <span id="modal-breakdown-total">{{ currency_symbol }}0.00</span>
+
+      <div class="modal-actions-row">
+        <div class="quantity-selector">
+          <span>Cantidad:</span>
+          <div class="quantity-selector-controls">
+            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity" data-arg="-1">
+              -
+            </button>
+            <span class="cart-item-quantity" id="modal-quantity">1</span>
+            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity"
+              data-arg="1">+</button>
           </div>
         </div>
 
-        <div class="modal-actions-row">
-          <div class="quantity-selector">
-            <span>Cantidad:</span>
-            <div class="quantity-selector-controls">
-              <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity" data-arg="-1">
-                -
-              </button>
-              <span class="cart-item-quantity" id="modal-quantity">1</span>
-              <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity"
-                data-arg="1">+</button>
-            </div>
-          </div>
-
-          <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn"
-            onclick="window.addToCartFromModal()">
-            Agregar al carrito: <span id="modal-total-price">{{ currency_symbol }}0.00</span>
-          </button>
-        </div>
+        <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn"
+          onclick="window.addToCartFromModal()">
+          Agregar al carrito: <span id="modal-total-price">{{ currency_symbol }}0.00</span>
+        </button>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Checkout Preference Overlay -->
-  <div class="checkout-preference" id="checkout-preference-overlay" aria-hidden="true">
-    <div class="checkout-preference__card">
-      <div class="checkout-preference__status">
-        <p class="checkout-preference__title">Avisando al mesero…</p>
-        <p class="checkout-preference__subtitle">Elige cómo deseas pagar tu cuenta.</p>
-      </div>
-      <div class="checkout-preference__buttons">
-        <button type="button" class="checkout-preference__btn" data-checkout-method="cash">
-          💵 Pago en efectivo
-        </button>
-        <button type="button" class="checkout-preference__btn" data-checkout-method="terminal">
-          🧾 Terminal
-        </button>
-        <button type="button" class="checkout-preference__btn checkout-preference__btn--digital"
-          data-checkout-method="digital">
-          💳 Pago digital (Stripe)
-        </button>
-      </div>
-      <p class="checkout-preference__helper">
-        Se cerrará en
-        <span id="checkout-preference-timer">{{ app_settings.checkout_prompt_duration_seconds or 6 }}</span>s · Método
-        por defecto: <span id="checkout-preference-default">Efectivo</span>
-      </p>
+<!-- Checkout Preference Overlay -->
+<div class="checkout-preference" id="checkout-preference-overlay" aria-hidden="true" style="display: none;">
+  <div class="checkout-preference__card">
+    <div class="checkout-preference__status">
+      <p class="checkout-preference__title">Avisando al mesero…</p>
+      <p class="checkout-preference__subtitle">Elige cómo deseas pagar tu cuenta.</p>
     </div>
+    <div class="checkout-preference__buttons">
+      <button type="button" class="checkout-preference__btn" data-checkout-method="cash">
+        💵 Pago en efectivo
+      </button>
+      <button type="button" class="checkout-preference__btn" data-checkout-method="terminal">
+        🧾 Terminal
+      </button>
+      <button type="button" class="checkout-preference__btn checkout-preference__btn--digital"
+        data-checkout-method="digital">
+        💳 Pago digital (Stripe)
+      </button>
+    </div>
+    <p class="checkout-preference__helper">
+      Se cerrará en
+      <span id="checkout-preference-timer">{{ app_settings.checkout_redirect_seconds or 6 }}</span>s · Método
+      por defecto: <span id="checkout-preference-default">Efectivo</span>
+    </p>
   </div>
+</div>
 
-  <!-- Business Hours Modal -->
-  <div class="modal" id="business-hours-modal">
-    <div class="modal__overlay" data-action="call" data-fn="closeBusinessHoursModal"></div>
-    <div class="modal__content modal__content--hours">
-      <header class="modal__header">
-        <h2>🕒 Horarios de Atención</h2>
-        <button type="button" class="modal__close" data-action="call" data-fn="closeBusinessHoursModal">✕</button>
-      </header>
-      <div class="modal__body" id="business-hours-content">
-        <div class="hours-loading">
-          <div class="spinner"></div>
-          <p>Cargando horarios...</p>
-        </div>
+<!-- Business Hours Modal -->
+<div class="modal" id="business-hours-modal">
+  <div class="modal__overlay" data-action="call" data-fn="closeBusinessHoursModal"></div>
+  <div class="modal__content modal__content--hours">
+    <header class="modal__header">
+      <h2>🕒 Horarios de Atención</h2>
+      <button type="button" class="modal__close" data-action="call" data-fn="closeBusinessHoursModal">✕</button>
+    </header>
+    <div class="modal__body" id="business-hours-content">
+      <div class="hours-loading">
+        <div class="spinner"></div>
+        <p>Cargando horarios...</p>
       </div>
     </div>
   </div>
@@ -307,586 +247,1526 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       </button>
     </div>
   </div>
-  {% endblock %} {% block scripts %}
+</div>
+{% endblock %}
+{% block scripts %}
 
-  <script>
-    // Configuration for menu.js
-    window.APP_CONFIG = {
-      assets_css_clients: '{{ assets_css_clients }}',
-      assets_js_clients: '{{ assets_js_clients }}',
-      restaurant_assets: '{{ restaurant_assets }}',
-      currency_code: '{{ currency_code }}',
-      currency_symbol: '{{ currency_symbol }}',
-      debug_mode: {{ 'true' if config.get('DEBUG') else 'false' }},
-    };
-  </script>
-
-  <script>
-    // Business Hours Modal
-    let businessHoursData = null;
-
-    async function openBusinessHoursModal() {
-      const modal = document.getElementById('business-hours-modal');
-      const content = document.getElementById('business-hours-content');
-
-      if (!modal) return;
-
-      // Show modal immediately
-      modal.classList.add('active');
-
-      // Load hours if not already loaded
-      if (!businessHoursData) {
-        try {
-          const response = await fetch(`${window.API_BASE}/api/business-info`);
-          const data = await response.json();
-
-          if (data.schedule) {
-            businessHoursData = data.schedule;
-            renderBusinessHours(data.schedule, data.current_day_schedule);
-          }
-        } catch (error) {
-          content.replaceChildren();
-          const errorWrap = document.createElement('div');
-          errorWrap.className = 'hours-error';
-          const errorTitle = document.createElement('p');
-          errorTitle.className = 'hours-error__title';
-          errorTitle.textContent = '❌ Error al cargar horarios';
-          const errorMessage = document.createElement('p');
-          errorMessage.className = 'hours-error__message';
-          errorMessage.textContent = 'Intenta nuevamente más tarde';
-          errorWrap.appendChild(errorTitle);
-          errorWrap.appendChild(errorMessage);
-          content.appendChild(errorWrap);
-        }
-      } else {
-        // Use cached data
-        renderBusinessHours(businessHoursData);
-      }
-    }
-
-    function renderBusinessHours(schedule, currentDaySchedule) {
-      const content = document.getElementById('business-hours-content');
-      if (!content || !schedule) return;
-
-      const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-      const dayIcons = ['📅', '📅', '📅', '📅', '📅', '📅', '🌟'];
-
-      const today = new Date().getDay();
-      const todayIndex = today === 0 ? 6 : today - 1; // Convert Sunday=0 to our 0-6 format
-
-      content.replaceChildren();
-      const list = document.createElement('div');
-      list.className = 'hours-list';
-
-      schedule.forEach((day, index) => {
-        const isToday = index === todayIndex;
-        const isOpen = day.is_open;
-        const openTime = day.open_time || '--:--';
-        const closeTime = day.close_time || '--:--';
-
-        const dayEl = document.createElement('div');
-        dayEl.className = `hours-day${isToday ? ' hours-day--today' : ''}${!isOpen ? ' hours-day--closed' : ''}`;
-
-        const iconEl = document.createElement('div');
-        iconEl.className = 'hours-day__icon';
-        iconEl.textContent = dayIcons[index];
-        dayEl.appendChild(iconEl);
-
-        const infoEl = document.createElement('div');
-        infoEl.className = 'hours-day__info';
-
-        const nameEl = document.createElement('div');
-        nameEl.className = 'hours-day__name';
-        nameEl.textContent = day.day_name;
-        if (isToday) {
-          const badge = document.createElement('span');
-          badge.className = 'hours-badge hours-badge--today';
-          badge.textContent = 'Hoy';
-          nameEl.appendChild(badge);
-        }
-        infoEl.appendChild(nameEl);
-
-        const timeEl = document.createElement('div');
-        timeEl.className = 'hours-day__time';
-        timeEl.textContent = isOpen ? `${openTime} - ${closeTime}` : 'Cerrado';
-        infoEl.appendChild(timeEl);
-
-        if (day.notes) {
-          const notesEl = document.createElement('div');
-          notesEl.className = 'hours-day__notes';
-          notesEl.textContent = day.notes;
-          infoEl.appendChild(notesEl);
-        }
-
-        dayEl.appendChild(infoEl);
-
-        const statusEl = document.createElement('div');
-        statusEl.className = 'hours-day__status';
-        const statusBadge = document.createElement('span');
-        statusBadge.className = isOpen
-          ? 'hours-status hours-status--open'
-          : 'hours-status hours-status--closed';
-        statusBadge.textContent = isOpen ? 'Abierto' : 'Cerrado';
-        statusEl.appendChild(statusBadge);
-        dayEl.appendChild(statusEl);
-
-        list.appendChild(dayEl);
+<script>
+  window.APP_SETTINGS = Object.assign({}, window.APP_SETTINGS || {}, {
+    assets_css_clients: '{{ assets_css_clients }}',
+    assets_js_clients: '{{ assets_js_clients }}',
+    restaurant_assets: '{{ restaurant_assets }}',
+    currency_code: '{{ currency_code }}',
+    currency_symbol: '{{ currency_symbol }}',
+    debug_mode: {{ 'true' if config.get('DEBUG') else 'false' }},
       });
 
-      content.appendChild(list);
+  // Bridge for Vue app and legacy DOM modals
+  (function () {
+    let menuCache = null;
+    let currentModalProduct = null;
+    let modalQuantity = 1;
+    let modalModifierGroups = [];
+    let modalSelectedModifiers = {};
+    let modalModifierLookup = new Map();
 
-      if (currentDaySchedule) {
-        const currentInfo = document.createElement('div');
-        currentInfo.className = currentDaySchedule.is_open
-          ? 'hours-current-info'
-          : 'hours-current-info hours-current-info--closed';
+    function formatCurrency(value) {
+      const amount = Number(value) || 0;
+      return `{{ currency_symbol }}${amount.toFixed(2)}`;
+    }
 
-        const currentIcon = document.createElement('div');
-        currentIcon.className = 'hours-current-info__icon';
-        currentIcon.textContent = currentDaySchedule.is_open ? '✨' : '🌙';
-        currentInfo.appendChild(currentIcon);
+    function normalizeModifierGroups(rawGroups) {
+      if (!Array.isArray(rawGroups)) return [];
+      return rawGroups
+        .map((group, index) => {
+          const groupId = Number(group?.id);
+          const modifiers = Array.isArray(group?.modifiers)
+            ? group.modifiers
+                .map((modifier) => ({
+                  id: Number(modifier?.id),
+                  name: String(modifier?.name || '').trim(),
+                  price_adjustment: Number(modifier?.price_adjustment || 0),
+                  is_available: modifier?.is_available !== false,
+                }))
+                .filter((modifier) => Number.isFinite(modifier.id) && modifier.name)
+            : [];
+          if (!modifiers.length) return null;
+          return {
+            id: Number.isFinite(groupId) ? groupId : index + 1,
+            name: String(group?.name || `Grupo ${index + 1}`),
+            min_selection: Number(group?.min_selection || 0),
+            max_selection: Number(group?.max_selection || 0),
+            is_required: Boolean(group?.is_required),
+            modifiers,
+          };
+        })
+        .filter(Boolean);
+    }
 
-        const currentText = document.createElement('div');
-        currentText.className = 'hours-current-info__text';
-        const currentTitle = document.createElement('strong');
-        currentTitle.textContent = currentDaySchedule.is_open ? 'Estamos abiertos ahora' : 'Actualmente cerrado';
-        const currentMessage = document.createElement('p');
-        currentMessage.textContent = currentDaySchedule.is_open
-          ? `Hoy cerramos a las ${currentDaySchedule.close_time}`
-          : 'Vuelve a visitarnos durante nuestro horario de atención';
-        currentText.appendChild(currentTitle);
-        currentText.appendChild(currentMessage);
-        currentInfo.appendChild(currentText);
+    function getGroupMinSelection(group) {
+      const min = Number(group?.min_selection || 0);
+      if (min > 0) return min;
+      return group?.is_required ? 1 : 0;
+    }
 
-        content.appendChild(currentInfo);
+    function buildModifierState(groups) {
+      modalModifierGroups = groups;
+      modalSelectedModifiers = {};
+      modalModifierLookup = new Map();
+      groups.forEach((group) => {
+        modalSelectedModifiers[group.id] = [];
+        group.modifiers.forEach((modifier) => {
+          modalModifierLookup.set(String(modifier.id), {
+            id: modifier.id,
+            name: modifier.name,
+            price_adjustment: modifier.price_adjustment,
+            groupId: group.id,
+          });
+        });
+      });
+    }
+
+    function getSelectedModifierSummary() {
+      const modifierIds = [];
+      const extras = [];
+      let extrasTotal = 0;
+      Object.values(modalSelectedModifiers).forEach((selection) => {
+        if (!Array.isArray(selection)) return;
+        selection.forEach((modifierId) => {
+          const selected = modalModifierLookup.get(String(modifierId));
+          if (!selected) return;
+          modifierIds.push(selected.id);
+          extras.push(selected.name);
+          extrasTotal += Number(selected.price_adjustment || 0);
+        });
+      });
+      return { modifierIds, extras, extrasTotal };
+    }
+
+    function updateGroupCounter(groupId) {
+      const counter = document.querySelector(`[data-modifier-counter="${groupId}"]`);
+      if (!counter) return;
+      const group = modalModifierGroups.find((item) => item.id === Number(groupId));
+      if (!group) return;
+      const selectedCount = (modalSelectedModifiers[group.id] || []).length;
+      counter.textContent = `${selectedCount}/${group.max_selection > 0 ? group.max_selection : '∞'}`;
+    }
+
+    function renderModalModifiers(groups) {
+      const extrasSection = document.getElementById('extras-section');
+      const extrasList = document.getElementById('extras-list');
+      if (!extrasSection || !extrasList) return;
+
+      if (!groups.length) {
+        extrasSection.classList.add('extras-section--hidden');
+        extrasList.replaceChildren();
+        return;
+      }
+
+      extrasSection.classList.remove('extras-section--hidden');
+      extrasList.replaceChildren();
+
+      groups.forEach((group) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'modifier-group';
+        wrapper.dataset.groupId = String(group.id);
+
+        const header = document.createElement('div');
+        header.className = 'modifier-group__header';
+
+        const title = document.createElement('h4');
+        title.textContent = group.name;
+        header.appendChild(title);
+
+        const minRequired = getGroupMinSelection(group);
+        if (minRequired > 0) {
+          const required = document.createElement('span');
+          required.className = 'modifier-required-badge';
+          required.textContent = minRequired === 1 ? 'Requerido' : `Mínimo ${minRequired}`;
+          header.appendChild(required);
+        }
+
+        const counter = document.createElement('span');
+        counter.className = 'modifier-selection-counter';
+        counter.dataset.modifierCounter = String(group.id);
+        counter.textContent = `0/${group.max_selection > 0 ? group.max_selection : '∞'}`;
+        header.appendChild(counter);
+
+        wrapper.appendChild(header);
+
+        const list = document.createElement('div');
+        list.className = 'modifiers-list';
+
+        group.modifiers.forEach((modifier) => {
+          const option = document.createElement('div');
+          option.className = 'extra-option';
+
+          const label = document.createElement('label');
+
+          const input = document.createElement('input');
+          input.type = group.max_selection === 1 ? 'radio' : 'checkbox';
+          input.name = `modifier-group-${group.id}`;
+          input.dataset.groupId = String(group.id);
+          input.dataset.modifierId = String(modifier.id);
+          input.dataset.maxSelection = String(group.max_selection || 0);
+          input.disabled = !modifier.is_available;
+          label.appendChild(input);
+
+          const labelText = document.createElement('span');
+          labelText.className = 'extra-label';
+          labelText.textContent = modifier.name;
+          label.appendChild(labelText);
+
+          const price = document.createElement('span');
+          price.className = 'extra-price';
+          const adjustment = Number(modifier.price_adjustment || 0);
+          price.textContent =
+            adjustment > 0
+              ? `+${formatCurrency(adjustment)}`
+              : 'Incluido';
+          label.appendChild(price);
+
+          option.appendChild(label);
+          list.appendChild(option);
+        });
+
+        wrapper.appendChild(list);
+        extrasList.appendChild(wrapper);
+      });
+
+      if (!extrasList.dataset.boundChange) {
+        extrasList.addEventListener('change', function (event) {
+          const target = event.target;
+          if (!(target instanceof HTMLInputElement)) return;
+          if (!target.matches('input[data-modifier-id][data-group-id]')) return;
+
+          const groupId = Number(target.dataset.groupId || 0);
+          const modifierId = Number(target.dataset.modifierId || 0);
+          if (!groupId || !modifierId) return;
+
+          const group = modalModifierGroups.find((item) => item.id === groupId);
+          if (!group) return;
+
+          const maxSelection = Number(target.dataset.maxSelection || 0);
+          const currentSelection = [...(modalSelectedModifiers[groupId] || [])];
+          const selectedIndex = currentSelection.indexOf(modifierId);
+
+          if (target.type === 'radio') {
+            modalSelectedModifiers[groupId] = [modifierId];
+          } else if (target.checked) {
+            if (maxSelection > 0 && selectedIndex === -1 && currentSelection.length >= maxSelection) {
+              target.checked = false;
+              if (typeof window.showNotification === 'function') {
+                window.showNotification(`Solo puedes seleccionar ${maxSelection} opción(es) en ${group.name}`, 'warning');
+              }
+              return;
+            }
+            if (selectedIndex === -1) currentSelection.push(modifierId);
+            modalSelectedModifiers[groupId] = currentSelection;
+          } else {
+            modalSelectedModifiers[groupId] = currentSelection.filter((id) => id !== modifierId);
+          }
+
+          updateGroupCounter(groupId);
+          updateModalTotals();
+          updateAddToCartButtonState();
+        });
+        extrasList.dataset.boundChange = '1';
       }
     }
 
-    function closeBusinessHoursModal() {
-      const modal = document.getElementById('business-hours-modal');
+    function validateModifierSelections(showFeedback = false) {
+      let valid = true;
+      modalModifierGroups.forEach((group) => {
+        const wrapper = document.querySelector(`.modifier-group[data-group-id="${group.id}"]`);
+        const count = (modalSelectedModifiers[group.id] || []).length;
+        const minSelection = getGroupMinSelection(group);
+        const maxSelection = Number(group.max_selection || 0);
+        const isValid =
+          count >= minSelection &&
+          (maxSelection <= 0 || count <= maxSelection);
+
+        if (!isValid) {
+          valid = false;
+          if (wrapper) wrapper.style.borderColor = '#f97316';
+        } else if (wrapper) {
+          wrapper.style.borderColor = '#e2e8f0';
+        }
+      });
+
+      if (!valid && showFeedback && typeof window.showNotification === 'function') {
+        window.showNotification('Selecciona los aditamientos requeridos para continuar', 'warning');
+      }
+
+      return valid;
+    }
+
+    function updateAddToCartButtonState() {
+      const addButton = document.getElementById('modal-add-to-cart-btn');
+      if (!addButton) return;
+      const canAdd = validateModifierSelections(false);
+      addButton.disabled = !canAdd;
+      addButton.classList.toggle('is-disabled', !canAdd);
+    }
+
+    function normalizeMenuAssetUrl(url) {
+      const raw = String(url || '').trim();
+      if (!raw) return '';
+      if (!/^https?:\/\//i.test(raw)) {
+        return raw
+          .replace('/assets/cafeter-a-de-prueba/', '/assets/pronto/')
+          .replace('/assets/cafeteria-de-prueba/', '/assets/pronto/');
+      }
+      try {
+        const parsed = new URL(raw);
+        const normalizedPath = parsed.pathname
+          .replace('/assets/cafeter-a-de-prueba/', '/assets/pronto/')
+          .replace('/assets/cafeteria-de-prueba/', '/assets/pronto/');
+        return `${parsed.origin}${normalizedPath}${parsed.search}${parsed.hash}`;
+      } catch (_err) {
+        return raw;
+      }
+    }
+
+    async function getMenu() {
+      if (menuCache) return menuCache;
+      try {
+        const response = await fetch('/api/menu');
+        const result = await response.json();
+        // The API response is wrapped in .data
+        menuCache = result.data.categories || [];
+        console.log('[BRIDGE] Menu cache loaded:', menuCache.length, 'categories');
+        return menuCache;
+      } catch (e) {
+        console.error('[BRIDGE] Failed to load menu for modal', e);
+        return [];
+      }
+    }
+
+    window.openProductModal = async function (productId) {
+      console.log('[BRIDGE] openProductModal called for ID:', productId);
+      const categories = await getMenu();
+      let product = null;
+      for (const cat of categories) {
+        if (cat.items) {
+          product = cat.items.find((item) => item.id == productId);
+          if (product) break;
+        }
+      }
+
+      if (!product) {
+        console.error('[BRIDGE] Product not found in cache:', productId);
+        return;
+      }
+
+      const modal = document.getElementById('item-modal');
+      if (!modal) return;
+
+      if (!modal.dataset.backdropCloseBound) {
+        modal.addEventListener('click', function (event) {
+          if (event.target === modal) {
+            window.closeItemModal();
+          }
+        });
+        modal.dataset.backdropCloseBound = '1';
+      }
+
+      // Populate modal
+      const nameEl = document.getElementById('modal-item-name');
+      const descEl = document.getElementById('modal-item-description');
+      const imgEl = document.getElementById('modal-item-image');
+      const basePriceEl = document.getElementById('modal-base-price');
+      const totalPriceEl = document.getElementById('modal-total-price');
+      const breakdownTotalEl = document.getElementById('modal-breakdown-total');
+      const qtyEl = document.getElementById('modal-quantity');
+      const extrasPriceEl = document.getElementById('modal-extras-price');
+      const extrasPriceRowEl = document.getElementById('modal-extras-price-row');
+
+      if (nameEl) nameEl.textContent = product.name;
+      if (descEl) descEl.textContent = product.description || '';
+      const resolvedImage = normalizeMenuAssetUrl(product.image_path) || '{{ restaurant_assets }}/icons/placeholder.png';
+      if (imgEl) {
+        imgEl.src = resolvedImage;
+        imgEl.alt = product.name;
+      }
+
+      const price = parseFloat(product.price) || 0;
+      const formattedPrice = formatCurrency(price);
+      const modifierGroups = normalizeModifierGroups(product.modifier_groups);
+      currentModalProduct = {
+        id: product.id,
+        name: product.name,
+        description: product.description || '',
+        image: resolvedImage,
+        price,
+        modifierGroups,
+      };
+      modalQuantity = 1;
+      buildModifierState(modifierGroups);
+
+      if (basePriceEl) basePriceEl.textContent = formattedPrice;
+      if (totalPriceEl) totalPriceEl.textContent = formattedPrice;
+      if (breakdownTotalEl) breakdownTotalEl.textContent = formattedPrice;
+      if (qtyEl) qtyEl.textContent = '1';
+      if (extrasPriceEl) extrasPriceEl.textContent = formatCurrency(0);
+      if (extrasPriceRowEl) extrasPriceRowEl.style.display = modifierGroups.length ? '' : 'none';
+
+      renderModalModifiers(modifierGroups);
+      updateAddToCartButtonState();
+
+      // Show modal
+      modal.classList.add('active');
+      document.body.classList.add('modal-open');
+    };
+
+    window.closeItemModal = function () {
+      const modal = document.getElementById('item-modal');
       if (modal) {
         modal.classList.remove('active');
+        document.body.classList.remove('modal-open');
       }
+    };
+
+    function updateModalTotals() {
+      const qtyEl = document.getElementById('modal-quantity');
+      const totalPriceEl = document.getElementById('modal-total-price');
+      const breakdownTotalEl = document.getElementById('modal-breakdown-total');
+      const extrasPriceEl = document.getElementById('modal-extras-price');
+      if (!currentModalProduct) return;
+      if (qtyEl) qtyEl.textContent = String(modalQuantity);
+      const selected = getSelectedModifierSummary();
+      if (extrasPriceEl) extrasPriceEl.textContent = formatCurrency(selected.extrasTotal);
+      const total = ((currentModalProduct.price || 0) + selected.extrasTotal) * modalQuantity;
+      const formattedTotal = formatCurrency(total);
+      if (totalPriceEl) totalPriceEl.textContent = formattedTotal;
+      if (breakdownTotalEl) breakdownTotalEl.textContent = formattedTotal;
     }
 
-    // Make functions global
-    window.openBusinessHoursModal = openBusinessHoursModal;
-    window.closeBusinessHoursModal = closeBusinessHoursModal;
+    window.adjustModalQuantity = function (delta) {
+      const parsedDelta = Number(delta) || 0;
+      modalQuantity = Math.max(1, modalQuantity + parsedDelta);
+      updateModalTotals();
+    };
 
-    // Remove updateBusinessStatus call from page initialization
-  </script>
+    // Add To Cart Bridge
+    window.addToCartFromModal = function () {
+      if (!currentModalProduct) return;
+      if (!validateModifierSelections(true)) return;
+      const addToCart = window.addToCart;
+      if (typeof addToCart !== 'function') {
+        console.error('[BRIDGE] addToCart no está disponible');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification('No se pudo agregar al carrito', 'error');
+        }
+        return;
+      }
 
-  <!-- Checkout Waiting Overlay -->
-  <div class="checkout-waiting-overlay checkout-waiting-overlay--hidden" id="checkout-waiting-overlay">
-    <div class="checkout-waiting-content">
-      <div class="checkout-waiting-icon">
-        <div class="waiter-animation">🧑‍🍳</div>
+      const selected = getSelectedModifierSummary();
+      addToCart({
+        id: currentModalProduct.id,
+        name: currentModalProduct.name,
+        price: currentModalProduct.price,
+        quantity: modalQuantity,
+        image: currentModalProduct.image,
+        extras: selected.extras,
+        extrasTotal: selected.extrasTotal,
+        modifiers: selected.modifierIds,
+      });
+
+      window.closeItemModal();
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('¡Producto agregado!', 'success');
+      }
+    };
+  })();
+</script>
+
+<script>
+  // Business Hours Modal
+  let businessHoursData = null;
+
+  async function openBusinessHoursModal() {
+    const modal = document.getElementById('business-hours-modal');
+    const content = document.getElementById('business-hours-content');
+
+    if (!modal) return;
+
+    // Reset drag offset so modal always opens centered
+    const modalContent = modal.querySelector('.modal__content--hours');
+    if (modalContent) {
+      modalContent.style.transform = '';
+      delete modalContent.dataset.dragX;
+      delete modalContent.dataset.dragY;
+    }
+
+    // Show modal — CSS handles centering via flexbox on .active
+    modal.classList.add('active');
+
+    // Load hours if not already loaded
+    if (!businessHoursData) {
+      try {
+        const response = await fetch(`/api/business-info`);
+        const data = await response.json();
+
+        if (data.schedule) {
+          businessHoursData = data.schedule;
+          renderBusinessHours(data.schedule, data.current_day_schedule);
+        }
+      } catch (error) {
+        content.replaceChildren();
+        const errorWrap = document.createElement('div');
+        errorWrap.className = 'hours-error';
+        const errorTitle = document.createElement('p');
+        errorTitle.className = 'hours-error__title';
+        errorTitle.textContent = '❌ Error al cargar horarios';
+        const errorMessage = document.createElement('p');
+        errorMessage.className = 'hours-error__message';
+        errorMessage.textContent = 'Intenta nuevamente más tarde';
+        errorWrap.appendChild(errorTitle);
+        errorWrap.appendChild(errorMessage);
+        content.appendChild(errorWrap);
+      }
+    } else {
+      // Use cached data
+      renderBusinessHours(businessHoursData);
+    }
+  }
+
+  function renderBusinessHours(schedule, currentDaySchedule) {
+    const content = document.getElementById('business-hours-content');
+    if (!content || !schedule) return;
+
+    const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    const dayIcons = ['📅', '📅', '📅', '📅', '📅', '📅', '🌟'];
+
+    const today = new Date().getDay();
+    const todayIndex = today === 0 ? 6 : today - 1; // Convert Sunday=0 to our 0-6 format
+
+    content.replaceChildren();
+    const list = document.createElement('div');
+    list.className = 'hours-list';
+
+    schedule.forEach((day, index) => {
+      const isToday = index === todayIndex;
+      const isOpen = day.is_open;
+      const openTime = day.open_time || '--:--';
+      const closeTime = day.close_time || '--:--';
+
+      const dayEl = document.createElement('div');
+      dayEl.className = `hours-day${isToday ? ' hours-day--today' : ''}${!isOpen ? ' hours-day--closed' : ''}`;
+
+      const iconEl = document.createElement('div');
+      iconEl.className = 'hours-day__icon';
+      iconEl.textContent = dayIcons[index];
+      dayEl.appendChild(iconEl);
+
+      const infoEl = document.createElement('div');
+      infoEl.className = 'hours-day__info';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'hours-day__name';
+      nameEl.textContent = day.day_name;
+      if (isToday) {
+        const badge = document.createElement('span');
+        badge.className = 'hours-badge hours-badge--today';
+        badge.textContent = 'Hoy';
+        nameEl.appendChild(badge);
+      }
+      infoEl.appendChild(nameEl);
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'hours-day__time';
+      timeEl.textContent = isOpen ? `${openTime} - ${closeTime}` : 'Cerrado';
+      infoEl.appendChild(timeEl);
+
+      if (day.notes) {
+        const notesEl = document.createElement('div');
+        notesEl.className = 'hours-day__notes';
+        notesEl.textContent = day.notes;
+        infoEl.appendChild(notesEl);
+      }
+
+      dayEl.appendChild(infoEl);
+
+      const statusEl = document.createElement('div');
+      statusEl.className = 'hours-day__status';
+      const statusBadge = document.createElement('span');
+      statusBadge.className = isOpen
+        ? 'hours-status hours-status--open'
+        : 'hours-status hours-status--closed';
+      statusBadge.textContent = isOpen ? 'Abierto' : 'Cerrado';
+      statusEl.appendChild(statusBadge);
+      dayEl.appendChild(statusEl);
+
+      list.appendChild(dayEl);
+    });
+
+    content.appendChild(list);
+
+    if (currentDaySchedule) {
+      const currentInfo = document.createElement('div');
+      currentInfo.className = currentDaySchedule.is_open
+        ? 'hours-current-info'
+        : 'hours-current-info hours-current-info--closed';
+
+      const currentIcon = document.createElement('div');
+      currentIcon.className = 'hours-current-info__icon';
+      currentIcon.textContent = currentDaySchedule.is_open ? '✨' : '🌙';
+      currentInfo.appendChild(currentIcon);
+
+      const currentText = document.createElement('div');
+      currentText.className = 'hours-current-info__text';
+      const currentTitle = document.createElement('strong');
+      currentTitle.textContent = currentDaySchedule.is_open ? 'Estamos abiertos ahora' : 'Actualmente cerrado';
+      const currentMessage = document.createElement('p');
+      currentMessage.textContent = currentDaySchedule.is_open
+        ? `Hoy cerramos a las ${currentDaySchedule.close_time}`
+        : 'Vuelve a visitarnos durante nuestro horario de atención';
+      currentText.appendChild(currentTitle);
+      currentText.appendChild(currentMessage);
+      currentInfo.appendChild(currentText);
+
+      content.appendChild(currentInfo);
+    }
+  }
+
+  function closeBusinessHoursModal() {
+    const modal = document.getElementById('business-hours-modal');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  }
+
+  function initBusinessHoursBindings() {
+    const footerButton = document.getElementById('footer-hours-btn');
+    if (footerButton && footerButton.dataset.boundBusinessHours !== '1') {
+      footerButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        void openBusinessHoursModal();
+      });
+      footerButton.dataset.boundBusinessHours = '1';
+    }
+  }
+
+  // Make functions global
+  window.openBusinessHoursModal = openBusinessHoursModal;
+  window.closeBusinessHoursModal = closeBusinessHoursModal;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBusinessHoursBindings, { once: true });
+  } else {
+    initBusinessHoursBindings();
+  }
+
+  // Remove updateBusinessStatus call from page initialization
+</script>
+
+<!-- Checkout Offers Overlay -->
+<div class="checkout-offers" id="checkout-offers-overlay" aria-hidden="true" style="display: none">
+  <div class="checkout-offers__card">
+    <button class="checkout-offers__close" id="checkout-offers-close" type="button">✕</button>
+    <h3 class="checkout-offers__title">🍴 Ofertas Especiales</h3>
+    <div class="checkout-offers__list" id="checkout-offers-list">
+      <div class="checkout-offers__loading">
+        <div class="spinner"></div>
+        <p>Cargando ofertas...</p>
       </div>
-      <h2 class="checkout-waiting-title">¡Tu cuenta está en camino!</h2>
-      <p class="checkout-waiting-message">El mesero te atenderá en un momento</p>
-      <div class="checkout-waiting-loader">
-        <div class="loader-dot"></div>
-        <div class="loader-dot"></div>
-        <div class="loader-dot"></div>
-      </div>
-      <button class="checkout-waiting-continue" id="checkout-waiting-continue">Continuar</button>
-      <p class="checkout-waiting-hint">Presiona ESC para cerrar</p>
     </div>
+    <p class="checkout-offers__helper">Tu mesero viene en breve</p>
   </div>
+</div>
 
-  <!-- Payment Confirmed Notification -->
-  <div class="payment-confirmed-notification payment-confirmed-overlay" id="payment-confirmed-notification">
-    <div class="payment-confirmed-content">
-      <div class="payment-confirmed-icon">✅</div>
-      <h3 class="payment-confirmed-title">¡Pago confirmado!</h3>
-      <p class="payment-confirmed-message">Gracias por tu visita</p>
+<!-- Checkout Waiting Overlay -->
+<div class="checkout-waiting-overlay checkout-waiting-overlay--hidden" id="checkout-waiting-overlay">
+  <div class="checkout-waiting-content">
+    <div class="checkout-waiting-icon">
+      <div class="waiter-animation">🧑‍🍳</div>
     </div>
+    <h2 class="checkout-waiting-title">¡Tu cuenta está en camino!</h2>
+    <p class="checkout-waiting-message">El mesero te atenderá en un momento</p>
+    <div class="checkout-waiting-loader">
+      <div class="loader-dot"></div>
+      <div class="loader-dot"></div>
+      <div class="loader-dot"></div>
+    </div>
+    <button class="checkout-waiting-continue" id="checkout-waiting-continue">Continuar</button>
+    <p class="checkout-waiting-hint">Presiona ESC para cerrar</p>
   </div>
+</div>
 
-  <!-- Table Selection Modal -->
-  <div class="modal" id="table-selection-modal">
-    <div class="modal__overlay"></div>
-    <div class="modal__content table-selection-modal__content">
-      <header class="modal__header">
-        <h2 class="table-selection-modal__title">Selecciona tu mesa</h2>
-        <button type="button" class="modal__close table-selection-modal__close">✕</button>
-      </header>
-      <div class="modal__body">
-        <p class="table-selection-modal__description">
-          Por favor indica el número de tu mesa para continuar
-        </p>
-        <select id="manual-table-select" class="table-selection-modal__select" style="
+<!-- Payment Confirmed Notification -->
+<div class="payment-confirmed-notification payment-confirmed-overlay" id="payment-confirmed-notification">
+  <div class="payment-confirmed-content">
+    <div class="payment-confirmed-icon">✅</div>
+    <h3 class="payment-confirmed-title">¡Pago confirmado!</h3>
+    <p class="payment-confirmed-message">Gracias por tu visita</p>
+  </div>
+</div>
+
+<!-- Table Selection Modal -->
+<div class="modal" id="table-selection-modal">
+  <div class="modal__overlay"></div>
+  <div class="modal__content table-selection-modal__content">
+    <header class="modal__header">
+      <h2 class="table-selection-modal__title">Selecciona tu mesa</h2>
+      <button type="button" class="modal__close table-selection-modal__close">✕</button>
+    </header>
+    <div class="modal__body">
+      <p class="table-selection-modal__description">
+        Por favor indica el número de tu mesa para continuar
+      </p>
+      <select id="manual-table-select" class="table-selection-modal__select" style="
             width: 100%;
             margin-bottom: 1.5rem;
             padding: 0.75rem;
             border: 2px solid #e5e7eb;
             border-radius: 8px;
           ">
-          <option value="">Elige tu mesa</option>
-        </select>
-        <button id="confirm-table-btn" class="btn btn--primary table-selection-modal__button" style="width: 100%">
-          Confirmar Mesa
-        </button>
-        <button type="button" class="btn btn--ghost table-selection-modal__button"
-          style="width: 100%; margin-top: 0.5rem" data-action="call" data-fn="hideTableSelectionModal">
-          Continuar sin mesa
-        </button>
-      </div>
+        <option value="">Elige tu mesa</option>
+      </select>
+      <button id="confirm-table-btn" class="btn btn--primary table-selection-modal__button" style="width: 100%">
+        Confirmar Mesa
+      </button>
+      <button type="button" class="btn btn--ghost table-selection-modal__button" style="width: 100%; margin-top: 0.5rem"
+        data-action="call" data-fn="hideTableSelectionModal">
+        Continuar sin mesa
+      </button>
     </div>
   </div>
+</div>
 
-  <script>
-    window.DEBUG_AUTO_TABLE = {{ 'true' if debug_auto_table else 'false' }};
-  </script>
-  <script>
-    window.__PRONTO_TS_MENU__ = true;
-    window.__PRONTO_TS_MENU_SHORTCUTS__ = true;
+<style>
+  /* Keep table selection above sticky header/cart layers in legacy menu page */
+  #table-selection-modal {
+    z-index: 13070 !important;
+  }
 
-    // Auto-assign table number based on QR code or debug mode
-    (function () {
-      const tableLabel = document.getElementById('table-label');
-      const tableSubtitle = document.getElementById('table-subtitle');
-      const urlParams = new URLSearchParams(window.location.search);
-      // Support multiple parameter names for QR codes: mesa, table, m, t
-      const tableFromQR =
-        urlParams.get('mesa') || urlParams.get('table') || urlParams.get('m') || urlParams.get('t');
-      const tableInput = document.getElementById('table-number');
-      const modal = document.getElementById('table-selection-modal');
-      const manualSelect = document.getElementById('manual-table-select');
-      const confirmBtn = document.getElementById('confirm-table-btn');
-      const closeBtn = document.querySelector('.table-selection-modal__close');
+  #table-selection-modal .modal__overlay {
+    z-index: 1 !important;
+  }
 
-      const fallbackBuild = (areaCode, tableNumber) => {
-        const normalizedArea =
-          (areaCode || '')
-            .trim()
-            .replace(/[^A-Za-z0-9]/g, '')
-            .toUpperCase()
-            .slice(0, 3) || 'G';
-        const num = Number(tableNumber);
-        if (!Number.isInteger(num) || num < 1 || num > 99) return '';
-        return `${normalizedArea}-M${String(num).padStart(2, '0')}`;
-      };
+  #table-selection-modal .table-selection-modal__content {
+    position: relative !important;
+    z-index: 2 !important;
+    width: min(92vw, 520px) !important;
+    max-height: min(88dvh, 680px) !important;
+    overflow: auto !important;
+  }
+</style>
 
-      const buildCode = (areaCode, tableNumber) => {
-        try {
-          if (window.ProntoTableCode?.buildTableCode) {
-            return window.ProntoTableCode.buildTableCode(areaCode, tableNumber);
-          }
-        } catch (error) {
-          console.warn('[TABLE] No se pudo construir el código de mesa', error);
+<script>
+  window.DEBUG_AUTO_TABLE = {{ 'true' if debug_auto_table else 'false' }};
+</script>
+<script>
+  window.__PRONTO_TS_MENU__ = true;
+  window.__PRONTO_TS_MENU_SHORTCUTS__ = true;
+
+  // Auto-assign table context for checkout details
+  (function () {
+    const tableLabel = document.getElementById('table-label');
+    const tableSubtitle = document.getElementById('table-subtitle');
+    const urlParams = new URLSearchParams(window.location.search);
+    // Support multiple parameter names for QR codes: mesa, table, m, t
+    const tableFromQR =
+      urlParams.get('mesa') || urlParams.get('table') || urlParams.get('m') || urlParams.get('t');
+    const tableInput = document.getElementById('table-number');
+    const tableIdInput = document.getElementById('table-id');
+    const tableSourceInput = document.getElementById('table-source');
+    const tableErrorMessage = document.getElementById('table-error-message');
+    const detailsTableSelect = document.getElementById('details-table-select');
+    const checkoutForm = document.getElementById('checkout-form');
+    const checkoutNotes = document.getElementById('notes');
+    const checkoutFeedback = document.getElementById('checkout-feedback');
+    const checkoutSubmitBtn = document.getElementById('checkout-submit-btn');
+    const modal = document.getElementById('table-selection-modal');
+    const manualSelect = document.getElementById('manual-table-select');
+    const confirmBtn = document.getElementById('confirm-table-btn');
+    const closeBtn = document.querySelector('.table-selection-modal__close');
+
+    const fallbackBuild = (areaCode, tableNumber) => {
+      const normalizedArea =
+        (areaCode || '')
+          .trim()
+          .replace(/[^A-Za-z0-9]/g, '')
+          .toUpperCase()
+          .slice(0, 3) || 'G';
+      const num = Number(tableNumber);
+      if (!Number.isInteger(num) || num < 1 || num > 99) return '';
+      return `${normalizedArea}-M${String(num).padStart(2, '0')}`;
+    };
+
+    const buildCode = (areaCode, tableNumber) => {
+      try {
+        if (window.ProntoTableCode?.buildTableCode) {
+          return window.ProntoTableCode.buildTableCode(areaCode, tableNumber);
         }
-        return fallbackBuild(areaCode, tableNumber);
+      } catch (error) {
+        console.warn('[TABLE] No se pudo construir el código de mesa', error);
+      }
+      return fallbackBuild(areaCode, tableNumber);
+    };
+
+    const DUMMY_TABLES = (() => {
+      const make = (label, areaCode, number) => {
+        const code = buildCode(areaCode, number);
+        return { id: code, fullName: label, areaCode, tableNumber: number, code };
       };
+      const mesas = Array.from({ length: 10 }, (_, i) => make(`Mesa ${i + 1}`, 'M', i + 1));
+      const terrazas = Array.from({ length: 8 }, (_, i) =>
+        make(`Terraza ${i + 11}`, 'T', i + 11)
+      );
+      const barras = Array.from({ length: 4 }, (_, i) => make(`Barra ${i + 1}`, 'B', i + 1));
+      const vips = Array.from({ length: 3 }, (_, i) => make(`VIP ${i + 1}`, 'V', i + 1));
+      return [...mesas, ...terrazas, ...barras, ...vips];
+    })();
 
-      const DUMMY_TABLES = (() => {
-        const make = (label, areaCode, number) => {
-          const code = buildCode(areaCode, number);
-          return { fullName: label, areaCode, tableNumber: number, code };
-        };
-        const mesas = Array.from({ length: 10 }, (_, i) => make(`Mesa ${i + 1}`, 'M', i + 1));
-        const terrazas = Array.from({ length: 8 }, (_, i) =>
-          make(`Terraza ${i + 11}`, 'T', i + 11)
-        );
-        const barras = Array.from({ length: 4 }, (_, i) => make(`Barra ${i + 1}`, 'B', i + 1));
-        const vips = Array.from({ length: 3 }, (_, i) => make(`VIP ${i + 1}`, 'V', i + 1));
-        return [...mesas, ...terrazas, ...barras, ...vips];
-      })();
+    const AREA_LABELS = {
+      M: 'Mesa',
+      T: 'Terraza',
+      B: 'Barra',
+      V: 'VIP',
+    };
+    let tableOptions = [...DUMMY_TABLES];
+    let tableOptionsPromise = null;
 
-      const AREA_LABELS = {
-        M: 'Mesa',
-        T: 'Terraza',
-        B: 'Barra',
-        V: 'VIP',
-      };
-      let tableOptions = [...DUMMY_TABLES];
-      let tableOptionsPromise = null;
-
-      const buildTableEntry = (tableNumberValue, zoneLabel) => {
-        const value = String(tableNumberValue || '').trim();
-        if (!value) return null;
-        const utils = window.ProntoTableCode;
-        const parsedCode = utils?.parseTableCode?.(value);
-        if (parsedCode) {
-          const label = AREA_LABELS[parsedCode.areaCode] || zoneLabel || 'Mesa';
-          return {
-            areaCode: parsedCode.areaCode,
-            tableNumber: parsedCode.tableNumber,
-            code: value,
-            fullName: `${label} ${parsedCode.tableNumber}`,
-          };
-        }
-
-        const digitsMatch = value.match(/(\d{1,2})/);
-        const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
-        const areaCode = (zoneLabel || 'G').trim().slice(0, 1).toUpperCase() || 'G';
+    const buildTableEntry = (tableData) => {
+      const value = String(tableData?.table_number || tableData?.code || tableData || '').trim();
+      if (!value) return null;
+      const tableId = String(tableData?.id || '').trim();
+      const zoneLabel = tableData?.zone || tableData?.area_name || '';
+      const utils = window.ProntoTableCode;
+      const parsedCode = utils?.parseTableCode?.(value);
+      if (parsedCode) {
+        const label = AREA_LABELS[parsedCode.areaCode] || zoneLabel || 'Mesa';
         return {
-          areaCode,
-          tableNumber: tableNumber || 0,
+          id: tableId || null,
+          areaCode: parsedCode.areaCode,
+          tableNumber: parsedCode.tableNumber,
           code: value,
-          fullName: tableNumber ? `Mesa ${tableNumber}` : value,
+          fullName: `${label} ${parsedCode.tableNumber}`,
         };
+      }
+
+      const digitsMatch = value.match(/(\d{1,2})/);
+      const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
+      const areaCode = (zoneLabel || 'G').trim().slice(0, 1).toUpperCase() || 'G';
+      return {
+        id: tableId || null,
+        areaCode,
+        tableNumber: tableNumber || 0,
+        code: value,
+        fullName: tableNumber ? `Mesa ${tableNumber}` : value,
       };
+    };
 
-      const loadTableOptions = () => {
-        if (tableOptionsPromise) return tableOptionsPromise;
-        tableOptionsPromise = fetch(`${window.API_BASE}/api/tables`, {
-          method: 'GET',
-          credentials: 'same-origin',
-          headers: { Accept: 'application/json' },
-        })
-          .then((response) => (response.ok ? response.json() : null))
-          .then((payload) => {
-            const tables = payload?.tables || [];
-            if (!Array.isArray(tables) || tables.length === 0) return;
-            const normalized = tables
-              .map((table) => buildTableEntry(table.table_number, table.zone))
-              .filter(Boolean);
-            if (normalized.length > 0) {
-              tableOptions = normalized;
-            }
-          })
-          .catch(() => undefined);
-        return tableOptionsPromise;
-      };
-
-      function parseIncomingTable(rawValue, preferSavedLabel = '') {
-        console.log('[TABLE] parseIncomingTable called with:', rawValue);
-        if (!rawValue) return null;
-        const value = String(rawValue).trim();
-        if (!value) return null;
-
-        console.log('[TABLE] Trying window.ProntoTableCode.parseTableCode...');
-        const utils = window.ProntoTableCode;
-        const parsedCode = utils?.parseTableCode?.(value);
-        if (parsedCode) {
-          console.log('[TABLE] Parsed using ProntoTableCode:', parsedCode);
-          const friendlyName = preferSavedLabel || `Mesa ${parsedCode.tableNumber}`;
-          return { ...parsedCode, fullName: friendlyName, code: value };
-        }
-
-        console.log('[TABLE] Trying to find in tables list...');
-        const candidate = tableOptions.find(
-          (table) =>
-            table.code.toUpperCase() === value.toUpperCase() ||
-            table.fullName.toUpperCase() === value.toUpperCase()
-        );
-        if (candidate) {
-          console.log('[TABLE] Found in tables list:', candidate);
-          return {
-            areaCode: candidate.areaCode,
-            tableNumber: candidate.tableNumber,
-            code: candidate.code,
-            fullName: candidate.fullName,
-          };
-        }
-
-        console.log('[TABLE] Trying fallback parsing...');
-        const dashMMatch = value.match(/^([A-Za-z0-9]+)-M(\d{1,2})$/);
-        if (dashMMatch) {
-          const areaCode = dashMMatch[1].toUpperCase();
-          const tableNumber = Number(dashMMatch[2]);
-          const code = buildCode(areaCode, tableNumber);
-          if (code) {
-            console.log('[TABLE] Fallback (M- format) result:', {
-              areaCode,
-              tableNumber,
-              code,
-              fullName: value,
-            });
-            return { areaCode, tableNumber, code, fullName: value };
+    const loadTableOptions = () => {
+      if (tableOptionsPromise) return tableOptionsPromise;
+      tableOptionsPromise = fetch(`/api/tables`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          const tables = payload?.tables || payload?.data?.tables || [];
+          if (!Array.isArray(tables) || tables.length === 0) return;
+          const normalized = tables.map((table) => buildTableEntry(table)).filter(Boolean);
+          if (normalized.length > 0) {
+            tableOptions = normalized;
           }
+        })
+        .catch(() => undefined);
+      return tableOptionsPromise;
+    };
+
+    function getCsrfToken() {
+      return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')?.trim() || '';
+    }
+
+    function getCustomerRef() {
+      try {
+        const explicit = localStorage.getItem('pronto-customer-ref');
+        if (explicit && explicit.trim()) return explicit.trim();
+        const userRaw = localStorage.getItem('pronto-user');
+        if (!userRaw) return '';
+        const user = JSON.parse(userRaw);
+        return String(user?.customer_ref || '').trim();
+      } catch (_error) {
+        return '';
+      }
+    }
+
+    function setCsrfToken(token) {
+      const normalized = String(token || '').trim();
+      if (!normalized) return;
+      let meta = document.querySelector('meta[name="csrf-token"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'csrf-token');
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', normalized);
+    }
+
+    async function refreshCsrfToken() {
+      try {
+        const response = await fetch('/api/auth/csrf', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) return '';
+        const payload = await response.json().catch(() => ({}));
+        const token = String(payload?.csrf_token || '').trim();
+        if (token) {
+          setCsrfToken(token);
+          return token;
         }
-        const digitsMatch = value.match(/(\d{1,2})/);
-        const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
-        const areaCode = utils?.deriveAreaCodeFromLabel?.(value, 'G') || 'G';
-        const code = tableNumber ? buildCode(areaCode, tableNumber) : '';
-        const fullName = preferSavedLabel || value || (tableNumber ? `Mesa ${tableNumber}` : '');
-        console.log('[TABLE] Fallback result:', { areaCode, tableNumber, code, fullName });
-        if (!code) return null;
-        return { areaCode, tableNumber, code, fullName };
+      } catch (_error) {
+        // no-op
+      }
+      return '';
+    }
+
+    function handleCheckoutUnauthorized() {
+      try {
+        localStorage.removeItem('pronto-user');
+        localStorage.removeItem('pronto-customer-ref');
+      } catch (_error) {
+        // no-op
+      }
+      window.APP_SESSION = { customer: null };
+      setCheckoutFeedback('Tu sesión expiró. Inicia sesión nuevamente para confirmar el pedido.', 'error');
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('Sesión expirada. Inicia sesión de nuevo.', 'warning');
+      }
+      if (typeof window.toggleProfile === 'function') {
+        window.toggleProfile();
+      }
+    }
+
+    function hasAuthenticatedCustomerSession() {
+      const appSessionCustomer = window.APP_SESSION?.customer;
+      return !!(appSessionCustomer && (appSessionCustomer.id || appSessionCustomer.email));
+    }
+
+    async function persistTableContext(tableData, source) {
+      if (!hasAuthenticatedCustomerSession()) return;
+
+      try {
+        const csrfToken = getCsrfToken();
+        const customerRef = getCustomerRef();
+        const response = await fetch('/api/sessions/table-context', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+            ...(customerRef ? { 'X-PRONTO-CUSTOMER-REF': customerRef } : {}),
+          },
+          body: JSON.stringify({
+            table_id: tableData.id || tableData.code,
+            table_number: tableData.code,
+            table_source: source,
+          }),
+        });
+        if (response.status === 401) return;
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          console.warn('[TABLE] persist table context failed', data);
+        }
+      } catch (error) {
+        console.warn('[TABLE] persist table context failed', error);
+      }
+    }
+
+    async function loadPersistedTableContext() {
+      if (!hasAuthenticatedCustomerSession()) return null;
+
+      try {
+        const response = await fetch('/api/sessions/table-context', {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            Accept: 'application/json',
+            ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
+          },
+        });
+        if (response.status === 401) return null;
+        if (!response.ok) return null;
+        const payload = await response.json();
+        return payload?.data?.table_context || payload?.table_context || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function clearTableError() {
+      if (detailsTableSelect) {
+        detailsTableSelect.style.borderColor = '#d1d5db';
+      }
+      if (tableErrorMessage) {
+        tableErrorMessage.style.display = 'none';
+      }
+    }
+
+    function showTableRequiredError(message = 'Selecciona una mesa para generar la orden') {
+      if (detailsTableSelect) {
+        detailsTableSelect.style.borderColor = '#b91c1c';
+      }
+      if (tableErrorMessage) {
+        tableErrorMessage.textContent = message;
+        tableErrorMessage.style.display = 'block';
+      }
+    }
+
+    function setCheckoutFeedback(message, tone = 'error') {
+      if (!checkoutFeedback) return;
+      const palette =
+        tone === 'success'
+          ? { color: '#166534', background: '#dcfce7', border: '#86efac' }
+          : tone === 'info'
+            ? { color: '#1d4ed8', background: '#dbeafe', border: '#93c5fd' }
+            : { color: '#b91c1c', background: '#fee2e2', border: '#fecaca' };
+      checkoutFeedback.textContent = message || '';
+      checkoutFeedback.style.display = message ? 'block' : 'none';
+      checkoutFeedback.style.color = palette.color;
+      checkoutFeedback.style.background = palette.background;
+      checkoutFeedback.style.border = `1px solid ${palette.border}`;
+      checkoutFeedback.style.borderRadius = '8px';
+      checkoutFeedback.style.padding = '0.6rem 0.75rem';
+      checkoutFeedback.style.marginTop = '0.65rem';
+      checkoutFeedback.style.fontSize = '0.92rem';
+    }
+
+    function getCheckoutItemsPayload() {
+      const cartItems =
+        typeof window.getCartItems === 'function' ? window.getCartItems() || [] : [];
+      if (!Array.isArray(cartItems)) return [];
+      return cartItems
+        .map((item) => {
+          const menuItemId = String(item?.id || '').trim();
+          const quantity = Number(item?.quantity || 0);
+          if (!menuItemId || !Number.isFinite(quantity) || quantity <= 0) return null;
+          const modifiers = Array.isArray(item?.modifiers)
+            ? item.modifiers.filter((modifierId) => modifierId !== null && modifierId !== undefined)
+            : [];
+          return {
+            menu_item_id: menuItemId,
+            quantity,
+            modifiers,
+            special_instructions: String(item?.special_instructions || '').trim(),
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function parseIncomingTable(rawValue, preferSavedLabel = '') {
+      console.log('[TABLE] parseIncomingTable called with:', rawValue);
+      if (!rawValue) return null;
+      const value = String(rawValue).trim();
+      if (!value) return null;
+
+      console.log('[TABLE] Trying window.ProntoTableCode.parseTableCode...');
+      const utils = window.ProntoTableCode;
+      const parsedCode = utils?.parseTableCode?.(value);
+      if (parsedCode) {
+        console.log('[TABLE] Parsed using ProntoTableCode:', parsedCode);
+        const friendlyName = preferSavedLabel || `Mesa ${parsedCode.tableNumber}`;
+        const byCode = tableOptions.find((table) => table.code.toUpperCase() === value.toUpperCase());
+        return { ...parsedCode, id: byCode?.id || null, fullName: friendlyName, code: value };
       }
 
-      function formatTableLabel(table) {
-        if (!table) return 'Mesa —';
-        const baseName = table.fullName || (table.tableNumber ? `Mesa ${table.tableNumber}` : '');
-        return table.code ? `${baseName} (${table.code})` : baseName || 'Mesa —';
-      }
-
-      function assignTable(rawTable, source = 'qr') {
-        if (!tableInput) return false;
-        const savedLabel = sessionStorage.getItem('pronto-table-label') || undefined;
-        const tableData = parseIncomingTable(rawTable, savedLabel);
-        if (!tableData) return false;
-
-        tableInput.value = tableData.code;
-        sessionStorage.setItem('pronto-table-number', tableData.code);
-        sessionStorage.setItem('pronto-table-label', tableData.fullName);
-
-        if (tableLabel) {
-          tableLabel.textContent = formatTableLabel(tableData);
-        }
-        if (tableSubtitle) {
-          tableSubtitle.textContent =
-            source === 'qr' ? 'Asignada automáticamente por código QR' : 'Seleccionada manualmente';
-        }
-
-        const menuTableLabel = document.getElementById('menu-table-label');
-        if (menuTableLabel) {
-          menuTableLabel.textContent = formatTableLabel(tableData);
-        }
-
-        const menuPage = document.querySelector('[data-menu-root]');
-        if (menuPage) {
-          menuPage.classList.add('menu-visible');
-        }
-
-        return true;
-      }
-
-      function renderTableOptions() {
-        if (!manualSelect) return;
-        const createGroup = (label, values) => {
-          const group = document.createElement('optgroup');
-          group.label = label;
-          values.forEach((value) => {
-            const option = document.createElement('option');
-            option.value = value.code;
-            option.textContent = `${value.fullName} (${value.code})`;
-            group.appendChild(option);
-          });
-          return group;
+      console.log('[TABLE] Trying to find in tables list...');
+      const candidate = tableOptions.find(
+        (table) =>
+          String(table.id || '').toUpperCase() === value.toUpperCase() ||
+          table.code.toUpperCase() === value.toUpperCase() ||
+          table.fullName.toUpperCase() === value.toUpperCase()
+      );
+      if (candidate) {
+        console.log('[TABLE] Found in tables list:', candidate);
+        return {
+          id: candidate.id || null,
+          areaCode: candidate.areaCode,
+          tableNumber: candidate.tableNumber,
+          code: candidate.code,
+          fullName: candidate.fullName,
         };
+      }
 
-        const mesas = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('mesa'));
-        const terrazas = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('terraza'));
-        const barras = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('barra'));
-        const vips = tableOptions.filter((t) => t.fullName.toLowerCase().startsWith('vip'));
+      console.log('[TABLE] Trying fallback parsing...');
+      const dashMMatch = value.match(/^([A-Za-z0-9]+)-M(\d{1,2})$/);
+      if (dashMMatch) {
+        const areaCode = dashMMatch[1].toUpperCase();
+        const tableNumber = Number(dashMMatch[2]);
+        const code = buildCode(areaCode, tableNumber);
+        if (code) {
+          console.log('[TABLE] Fallback (M- format) result:', {
+            areaCode,
+            tableNumber,
+            code,
+            fullName: value,
+          });
+          const byCode = tableOptions.find((table) => table.code.toUpperCase() === code.toUpperCase());
+          return { id: byCode?.id || null, areaCode, tableNumber, code, fullName: value };
+        }
+      }
+      const digitsMatch = value.match(/(\d{1,2})/);
+      const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
+      const areaCode = utils?.deriveAreaCodeFromLabel?.(value, 'G') || 'G';
+      const code = tableNumber ? buildCode(areaCode, tableNumber) : '';
+      const fullName = preferSavedLabel || value || (tableNumber ? `Mesa ${tableNumber}` : '');
+      console.log('[TABLE] Fallback result:', { areaCode, tableNumber, code, fullName });
+      if (!code) return null;
+      const byCode = tableOptions.find((table) => table.code.toUpperCase() === code.toUpperCase());
+      return { id: byCode?.id || null, areaCode, tableNumber, code, fullName };
+    }
 
+    function formatTableLabel(table) {
+      if (!table) return 'Mesa —';
+      const baseName = table.fullName || (table.tableNumber ? `Mesa ${table.tableNumber}` : '');
+      return table.code ? `${baseName} (${table.code})` : baseName || 'Mesa —';
+    }
+
+    function applyTableLock(source) {
+      const isLocked = source === 'qr' || source === 'kiosk';
+      if (detailsTableSelect) {
+        detailsTableSelect.disabled = isLocked;
+      }
+      if (tableSourceInput) {
+        tableSourceInput.value = source || '';
+      }
+      if (tableSubtitle) {
+        if (source === 'qr') {
+          tableSubtitle.textContent = 'Asignada automáticamente por código QR (bloqueada)';
+        } else if (source === 'kiosk') {
+          tableSubtitle.textContent = 'Mesa fija de kiosko (bloqueada)';
+        } else if (source === 'manual') {
+          tableSubtitle.textContent = 'Seleccionada manualmente';
+        } else {
+          tableSubtitle.textContent = 'Selecciona una mesa para confirmar tu pedido';
+        }
+      }
+    }
+
+    function assignTable(rawTable, source = 'qr', persist = true) {
+      if (!tableInput) return false;
+      const savedLabel = sessionStorage.getItem('pronto-table-label') || undefined;
+      const tableData = parseIncomingTable(rawTable, savedLabel);
+      if (!tableData) return false;
+
+      tableInput.value = tableData.code;
+      if (tableIdInput) {
+        tableIdInput.value = tableData.id || tableData.code;
+      }
+      if (detailsTableSelect) {
+        detailsTableSelect.value = tableData.id || tableData.code;
+      }
+      sessionStorage.setItem('pronto-table-number', tableData.code);
+      sessionStorage.setItem('pronto-table-label', tableData.fullName);
+
+      if (tableLabel) {
+        tableLabel.textContent = formatTableLabel(tableData);
+      }
+      applyTableLock(source);
+
+      const menuTableLabel = document.getElementById('menu-table-label');
+      if (menuTableLabel) {
+        menuTableLabel.textContent = formatTableLabel(tableData);
+      }
+
+      const menuPage = document.querySelector('[data-menu-root]');
+      if (menuPage) {
+        menuPage.classList.add('menu-visible');
+      }
+
+      clearTableError();
+      if (persist) {
+        void persistTableContext(tableData, source);
+      }
+
+      return true;
+    }
+
+    function renderTableOptions() {
+      if (!manualSelect && !detailsTableSelect) return;
+      const createGroup = (label, values, includeIdValue = false) => {
+        const group = document.createElement('optgroup');
+        group.label = label;
+        values.forEach((value) => {
+          const option = document.createElement('option');
+          option.value = includeIdValue ? value.id || value.code : value.code;
+          option.dataset.code = value.code;
+          option.textContent = `${value.fullName} (${value.code})`;
+          group.appendChild(option);
+        });
+        return group;
+      };
+      const inferAreaCode = (table) => {
+        if (table.areaCode) return String(table.areaCode).trim().toUpperCase();
+        const parsed = window.ProntoTableCode?.parseTableCode?.(table.code || '');
+        if (parsed?.areaCode) return String(parsed.areaCode).trim().toUpperCase();
+        return 'G';
+      };
+      const inferGroupLabel = (areaCode, table) => {
+        const normalizedArea = String(areaCode || '').trim().toUpperCase();
+        if (AREA_LABELS[normalizedArea]) return AREA_LABELS[normalizedArea];
+        const firstWord = String(table.fullName || '').trim().split(/\s+/)[0] || '';
+        return firstWord || `Área ${normalizedArea || 'General'}`;
+      };
+      const areaBuckets = new Map();
+      tableOptions.forEach((table) => {
+        const areaCode = inferAreaCode(table);
+        const bucket = areaBuckets.get(areaCode) || {
+          code: areaCode,
+          label: inferGroupLabel(areaCode, table),
+          items: [],
+        };
+        bucket.items.push(table);
+        areaBuckets.set(areaCode, bucket);
+      });
+      const orderedBuckets = Array.from(areaBuckets.values()).sort((a, b) =>
+        a.label.localeCompare(b.label, 'es')
+      );
+      orderedBuckets.forEach((bucket) => {
+        bucket.items.sort((a, b) => {
+          const aNum = Number(a.tableNumber || 0);
+          const bNum = Number(b.tableNumber || 0);
+          if (aNum !== bNum) return aNum - bNum;
+          return String(a.fullName || '').localeCompare(String(b.fullName || ''), 'es');
+        });
+      });
+
+      if (manualSelect) {
         manualSelect.replaceChildren();
         const placeholder = document.createElement('option');
         placeholder.value = '';
         placeholder.textContent = 'Elige tu mesa';
         manualSelect.appendChild(placeholder);
-        manualSelect.appendChild(createGroup('Mesas', mesas));
-        manualSelect.appendChild(createGroup('Terraza', terrazas));
-        manualSelect.appendChild(createGroup('Barra', barras));
-        manualSelect.appendChild(createGroup('VIP', vips));
-      }
-
-      function showTableSelectionModal() {
-        if (modal) {
-          loadTableOptions().finally(() => {
-            renderTableOptions();
-            const savedTable = sessionStorage.getItem('pronto-table-number');
-            if (manualSelect && savedTable) {
-              manualSelect.value = savedTable;
-            }
-            modal.classList.add('active'); // Use standard .active for modals
-            // modal.style.display = 'flex'; // Handled by CSS
-            document.body.classList.add('table-selection-open');
-            if (manualSelect) manualSelect.focus();
-          });
-        }
-      }
-
-      function hideTableSelectionModal() {
-        if (modal) {
-          modal.classList.remove('active');
-          // modal.style.display = 'none'; // Handled by CSS
-          document.body.classList.remove('table-selection-open');
-        }
-      }
-
-      if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-          hideTableSelectionModal();
+        orderedBuckets.forEach((bucket) => {
+          manualSelect.appendChild(createGroup(bucket.label, bucket.items));
         });
       }
 
+      if (detailsTableSelect) {
+        detailsTableSelect.replaceChildren();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Selecciona una mesa';
+        detailsTableSelect.appendChild(placeholder);
+        orderedBuckets.forEach((bucket) => {
+          detailsTableSelect.appendChild(createGroup(bucket.label, bucket.items, true));
+        });
+      }
+    }
+
+    function showTableSelectionModal() {
       if (modal) {
-        modal.addEventListener('click', (event) => {
-          if (event.target === modal) {
-            hideTableSelectionModal();
+        loadTableOptions().finally(() => {
+          renderTableOptions();
+          const savedTable = sessionStorage.getItem('pronto-table-number');
+          if (manualSelect && savedTable) {
+            manualSelect.value = savedTable;
           }
+          modal.style.display = '';
+          modal.classList.add('active', 'visible');
+          if (manualSelect) manualSelect.focus();
         });
       }
+    }
 
-      document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && modal?.classList.contains('visible')) {
+    function hideTableSelectionModal() {
+      if (modal) {
+        modal.classList.remove('active', 'visible');
+        modal.style.display = '';
+      }
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        hideTableSelectionModal();
+      });
+    }
+
+    if (modal) {
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
           hideTableSelectionModal();
         }
       });
+    }
 
-      // Handle manual table confirmation
-      if (confirmBtn) {
-        confirmBtn.addEventListener('click', () => {
-          const tableNumber = manualSelect?.value?.trim();
-          console.log('[TABLE] Confirm button clicked, selected value:', tableNumber);
-          if (!tableNumber) {
-            alert('Selecciona una mesa válida.');
-            return;
-          }
-          console.log('[TABLE] Attempting to assign table:', tableNumber);
-          const result = assignTable(tableNumber, 'manual');
-          console.log('[TABLE] Assignment result:', result);
-          if (result) {
-            hideTableSelectionModal();
-          } else {
-            console.error('[TABLE] Failed to assign table:', tableNumber);
-            alert('Error al asignar mesa. Por favor intenta nuevamente.');
-          }
-        });
+    document.addEventListener('keydown', (event) => {
+      const isOpen = !!modal && (modal.classList.contains('visible') || modal.classList.contains('active'));
+      if (event.key === 'Escape' && isOpen) {
+        hideTableSelectionModal();
       }
+    });
 
-      // Main logic
+    // Handle manual table confirmation
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        const tableNumber = manualSelect?.value?.trim();
+        console.log('[TABLE] Confirm button clicked, selected value:', tableNumber);
+        if (!tableNumber) {
+          alert('Selecciona una mesa válida.');
+          return;
+        }
+        console.log('[TABLE] Attempting to assign table:', tableNumber);
+        const result = assignTable(tableNumber, 'manual', true);
+        console.log('[TABLE] Assignment result:', result);
+        if (result) {
+          hideTableSelectionModal();
+        } else {
+          console.error('[TABLE] Failed to assign table:', tableNumber);
+          alert('Error al asignar mesa. Por favor intenta nuevamente.');
+        }
+      });
+    }
+
+    if (detailsTableSelect) {
+      detailsTableSelect.addEventListener('change', () => {
+        const selectedValue = detailsTableSelect.value || '';
+        if (!selectedValue) {
+          if (tableIdInput) tableIdInput.value = '';
+          if (tableInput) tableInput.value = '';
+          applyTableLock('manual');
+          showTableRequiredError();
+          return;
+        }
+
+        const selectedOption = detailsTableSelect.options[detailsTableSelect.selectedIndex];
+        const selectedCode = selectedOption?.dataset?.code || selectedValue;
+        assignTable(selectedCode, 'manual', true);
+      });
+    }
+
+    if (checkoutForm) {
+      checkoutForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const selectedTable = String(tableIdInput?.value || detailsTableSelect?.value || '').trim();
+        if (!selectedTable) {
+          showTableRequiredError();
+          setCheckoutFeedback('Selecciona una mesa para confirmar el pedido.', 'error');
+          detailsTableSelect?.focus();
+          return false;
+        }
+
+        const items = getCheckoutItemsPayload();
+        if (!items.length) {
+          setCheckoutFeedback('Agrega productos al carrito antes de confirmar.', 'error');
+          return false;
+        }
+
+        clearTableError();
+        setCheckoutFeedback('');
+
+        const payload = {
+          table_id: selectedTable,
+          notes: String(checkoutNotes?.value || '').trim(),
+          items,
+        };
+
+        if (checkoutSubmitBtn) {
+          checkoutSubmitBtn.disabled = true;
+          checkoutSubmitBtn.style.opacity = '0.7';
+          checkoutSubmitBtn.textContent = 'Confirmando...';
+        }
+
+        try {
+          const doCreateOrder = async (url, csrfToken) =>
+            fetch(url, {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+                ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
+              },
+              body: JSON.stringify(payload),
+            });
+          const postOrder = async (csrfToken) => {
+            let res = await doCreateOrder('/api/customer/orders', csrfToken);
+            if (res.status === 404) {
+              res = await doCreateOrder('/api/orders', csrfToken);
+            }
+            const parsed = await res.json().catch(() => ({}));
+            return { response: res, data: parsed };
+          };
+
+          let csrfToken = getCsrfToken();
+          let { response, data } = await postOrder(csrfToken);
+          const isCsrfError =
+            response.status === 400 &&
+            String(data?.error || '').toLowerCase().includes('csrf');
+
+          if (isCsrfError) {
+            const refreshedToken = await refreshCsrfToken();
+            if (refreshedToken) {
+              ({ response, data } = await postOrder(refreshedToken));
+            }
+          }
+          if (!response.ok) {
+            if (response.status === 401) {
+              handleCheckoutUnauthorized();
+              return false;
+            }
+            let details = data?.details || {};
+            let code = String(details?.code || details?.legacy_code || '');
+            let message = String(
+              data?.error || data?.message || 'No se pudo confirmar el pedido. Intenta nuevamente.'
+            );
+            const isTableMismatch =
+              code === 'TABLE_LOCATION_MISMATCH' || code === 'TABLE_SESSION_MISMATCH';
+
+            if (isTableMismatch) {
+              const currentTableId = String(details?.current_table_id || '').trim();
+              const currentTableCode = String(details?.current_table_code || '').trim();
+              const currentTable = currentTableId || currentTableCode;
+              const currentSource = String(details?.current_table_source || 'session')
+                .trim()
+                .toLowerCase();
+
+              if (currentTable) {
+                assignTable(currentTable, currentSource === 'qr' || currentSource === 'kiosk' ? currentSource : 'manual', true);
+                setCheckoutFeedback('Mesa actualizada desde la sesión. Reintentando confirmación...', 'info');
+                ({ response, data } = await postOrder(getCsrfToken()));
+                if (response.ok) {
+                  // Continue with success flow below.
+                } else {
+                  details = data?.details || {};
+                  code = String(details?.code || details?.legacy_code || '');
+                  message = String(
+                    data?.error || data?.message || 'No se pudo confirmar el pedido. Intenta nuevamente.'
+                  );
+                }
+              }
+            }
+
+            if (!response.ok) {
+              if (code === 'TABLE_REQUIRED') {
+                showTableRequiredError(message);
+                detailsTableSelect?.focus();
+              } else if (code === 'TABLE_LOCATION_MISMATCH' || code === 'TABLE_SESSION_MISMATCH') {
+                showTableRequiredError('La mesa de tu sesión cambió. Selecciona la mesa actual.');
+              }
+              setCheckoutFeedback(message, 'error');
+              return false;
+            }
+          }
+
+          const result = data?.data || data || {};
+          const orderId = result?.order_id || result?.id;
+          const sessionId = result?.session_id || '';
+
+          if (typeof window.setSessionId === 'function' && sessionId) {
+            window.setSessionId(sessionId);
+          }
+
+          if (typeof window.clearCart === 'function') {
+            window.clearCart();
+          }
+
+          if (checkoutNotes) {
+            checkoutNotes.value = '';
+          }
+
+          setCheckoutFeedback(
+            `Pedido confirmado${orderId ? ` (#${orderId})` : ''}.`,
+            'success'
+          );
+
+          if (typeof window.showNotification === 'function') {
+            window.showNotification('Pedido confirmado exitosamente', 'success');
+          }
+          if (typeof window.refreshMiniTracker === 'function') {
+            window.refreshMiniTracker();
+          }
+          if (typeof window.switchView === 'function') {
+            window.switchView('orders');
+          }
+        } catch (error) {
+          console.error('[CHECKOUT] Error confirming order', error);
+          setCheckoutFeedback('Error de conexión al confirmar el pedido.', 'error');
+          return false;
+        } finally {
+          if (checkoutSubmitBtn) {
+            checkoutSubmitBtn.disabled = false;
+            checkoutSubmitBtn.style.opacity = '1';
+            checkoutSubmitBtn.textContent = 'Confirmar Pedido';
+          }
+        }
+        return false;
+      });
+    }
+
+    // Main logic
+    async function initializeTableState() {
+      await loadTableOptions();
+      renderTableOptions();
+
       let assigned = false;
+      const persistedContext = await loadPersistedTableContext();
+
       if (tableFromQR) {
         // Priority 1: QR code always wins
-        assigned = assignTable(tableFromQR, 'qr');
+        assigned = assignTable(tableFromQR, 'qr', true);
         if (!assigned) {
           alert('Mesa del QR no es válida. Selecciona una mesa existente.');
         }
+      } else if (persistedContext?.table_code || persistedContext?.table_id) {
+        assigned = assignTable(
+          persistedContext.table_code || persistedContext.table_id,
+          persistedContext.table_source || 'manual',
+          false
+        );
       } else {
-        // Check if table was already assigned
+        // Check if table was already assigned in browser session
         const savedTable = sessionStorage.getItem('pronto-table-number');
 
         if (savedTable) {
-          // Table already assigned, use it
-          assigned = assignTable(savedTable, 'session');
+          assigned = assignTable(savedTable, 'manual', false);
         } else if (window.DEBUG_AUTO_TABLE) {
           // Debug mode: auto-assign Mesa 1 (primer dummy)
           console.log('[DEBUG] Auto-assigning Mesa 1 for testing');
-          assigned = assignTable('Mesa 1', 'manual');
+          assigned = assignTable('Mesa 1', 'manual', true);
         }
       }
 
       if (!assigned) {
         sessionStorage.removeItem('pronto-table-number');
-        // Production mode: show manual selection modal
+        if (tableLabel) tableLabel.textContent = 'Mesa —';
+        if (tableIdInput) tableIdInput.value = '';
+        if (tableInput) tableInput.value = '';
+        applyTableLock('manual');
+        clearTableError();
+      }
+    }
+    void initializeTableState();
+
+    // Make showTableSelectionModal globally accessible
+    window.showTableSelectionModal = showTableSelectionModal;
+    window.hideTableSelectionModal = hideTableSelectionModal;
+
+    // Table indicator click handler - open modal to change table
+    const tableDisplay = document.getElementById('menu-table-display');
+    if (tableDisplay) {
+      tableDisplay.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('[TABLE] Opening table selection modal');
         showTableSelectionModal();
-      }
+      });
+    }
+  })();
+</script>
 
-      // Make showTableSelectionModal globally accessible
-      window.showTableSelectionModal = showTableSelectionModal;
-      window.hideTableSelectionModal = hideTableSelectionModal;
-
-      // Table indicator click handler - open modal to change table
-      const tableDisplay = document.getElementById('menu-table-display');
-      if (tableDisplay) {
-        tableDisplay.addEventListener('click', (e) => {
-          e.preventDefault();
-          console.log('[TABLE] Opening table selection modal');
-          showTableSelectionModal();
-        });
-      }
-    })();
-  </script>
-
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v=cachebust2"></script>
-  {% if config.get('DEBUG') %} {% if debug_auto_table %}
-  <!-- Draggable Debug Table Selector (DEBUG MODE ONLY) -->
-  <div id="debug-table-panel" class="draggable-panel" style="
+{% if config.get('DEBUG') %} {% if debug_auto_table %}
+<!-- Draggable Debug Table Selector (DEBUG MODE ONLY) -->
+<div id="debug-table-panel" class="draggable-panel" style="
       display: none;
       position: fixed;
       top: 50%;
@@ -899,7 +1779,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       z-index: 999999 !important;
       border: 1px solid #e2e8f0;
     ">
-    <div class="draggable-header" style="
+  <div class="draggable-header" style="
         background: #1e293b;
         color: white;
         padding: 12px 16px;
@@ -909,17 +1789,17 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         justify-content: space-between;
         align-items: center;
       ">
-      <span style="font-weight: 600; font-size: 0.9rem">🛠️ Configuración DEBUG</span>
-      <button id="close-debug-panel-btn"
-        style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem">
-        ×
-      </button>
-    </div>
-    <div class="draggable-content" style="padding: 16px">
-      <div style="margin-bottom: 12px">
-        <label for="debug-table-select"
-          style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Seleccionar Mesa:</label>
-        <select id="debug-table-select" style="
+    <span style="font-weight: 600; font-size: 0.9rem">🛠️ Configuración DEBUG</span>
+    <button id="close-debug-panel-btn"
+      style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem">
+      ×
+    </button>
+  </div>
+  <div class="draggable-content" style="padding: 16px">
+    <div style="margin-bottom: 12px">
+      <label for="debug-table-select"
+        style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Seleccionar Mesa:</label>
+      <select id="debug-table-select" style="
             width: 100%;
             padding: 8px;
             border: 1px solid #cbd5e1;
@@ -927,27 +1807,27 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             background: #fff;
             font-size: 1rem;
           ">
-          {% if available_tables %}
-          <option value="">-- Seleccionar --</option>
-          {% for table in available_tables %}
-          <option value="{{ table.table_number }}">
-            Mesa {{ table.table_number }} ({{ table.zone or 'General' }})
-          </option>
-          {% endfor %} {% else %}
-          <option value="">-- Debug Fallback --</option>
-          <option value="1">Mesa 1</option>
-          <option value="2">Mesa 2</option>
-          <option value="3">Mesa 3</option>
-          <option value="4">Mesa 4</option>
-          <option value="5">Mesa 5</option>
-          {% endif %}
-        </select>
-      </div>
-      <div style="margin-bottom: 12px">
-        <label style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Estado Sesión:</label>
-        <div style="font-size: 0.9rem; font-weight: 600" id="debug-session-status">Inactiva</div>
-      </div>
-      <button data-action="call" data-fn="updateTableFromDebug" style="
+        {% if available_tables %}
+        <option value="">-- Seleccionar --</option>
+        {% for table in available_tables %}
+        <option value="{{ table.table_number }}">
+          Mesa {{ table.table_number }} ({{ table.zone or 'General' }})
+        </option>
+        {% endfor %} {% else %}
+        <option value="">-- Debug Fallback --</option>
+        <option value="1">Mesa 1</option>
+        <option value="2">Mesa 2</option>
+        <option value="3">Mesa 3</option>
+        <option value="4">Mesa 4</option>
+        <option value="5">Mesa 5</option>
+        {% endif %}
+      </select>
+    </div>
+    <div style="margin-bottom: 12px">
+      <label style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Estado Sesión:</label>
+      <div style="font-size: 0.9rem; font-weight: 600" id="debug-session-status">Inactiva</div>
+    </div>
+    <button data-action="call" data-fn="updateTableFromDebug" style="
           width: 100%;
           padding: 10px;
           background: #ff6b35;
@@ -957,154 +1837,154 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           font-weight: 600;
           cursor: pointer;
         ">
-        Actualizar Mesa
-      </button>
-    </div>
+      Actualizar Mesa
+    </button>
   </div>
+</div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const panel = document.getElementById('debug-table-panel');
+    const header = panel.querySelector('.draggable-header');
+    const closeBtn = document.getElementById('close-debug-panel-btn');
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    function closePanel() {
       const panel = document.getElementById('debug-table-panel');
-      const header = panel.querySelector('.draggable-header');
-      const closeBtn = document.getElementById('close-debug-panel-btn');
-      let isDragging = false;
-      let startX, startY, initialLeft, initialTop;
+      panel.style.display = 'none';
+      document.body.classList.remove('modal-open'); // Remove blur if applied
+      // Remove overlay if any
+      const overlays = document.querySelectorAll('.modal-overlay');
+      overlays.forEach((o) => (o.style.display = 'none'));
+      const app = document.getElementById('app');
+      if (app) app.style.filter = 'none';
+    }
 
-      function closePanel() {
+    // Close on ESC
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
         const panel = document.getElementById('debug-table-panel');
-        panel.style.display = 'none';
-        document.body.classList.remove('modal-open'); // Remove blur if applied
-        // Remove overlay if any
-        const overlays = document.querySelectorAll('.modal-overlay');
-        overlays.forEach((o) => (o.style.display = 'none'));
-        const app = document.getElementById('app');
-        if (app) app.style.filter = 'none';
-      }
-
-      // Close on ESC
-      document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-          const panel = document.getElementById('debug-table-panel');
-          if (panel && panel.style.display !== 'none') {
-            closePanel();
-          }
-        }
-      });
-
-      if (closeBtn) {
-        closeBtn.addEventListener('click', closePanel);
-      }
-
-      // Override existing click handler for table display
-      const tableDisplay = document.getElementById('menu-table-display');
-      if (tableDisplay) {
-        const newTableDisplay = tableDisplay.cloneNode(true);
-        tableDisplay.parentNode.replaceChild(newTableDisplay, tableDisplay);
-
-        newTableDisplay.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          panel.style.display = 'block';
-
-          // Centering Logic
-          if (!panel.dataset.moved) {
-            panel.style.top = '50%';
-            panel.style.left = '50%';
-            panel.style.transform = 'translate(-50%, -50%)';
-          }
-
-          // Set Current Selection
-          const currentTable = document
-            .getElementById('menu-table-label')
-            ?.textContent?.replace('Mesa ', '')
-            .replace('—', '')
-            .trim();
-          if (currentTable) {
-            const select = document.getElementById('debug-table-select');
-            // Find option with this value
-            const options = Array.from(select.options);
-            const matchingOption = options.find((opt) => opt.value == currentTable);
-            if (matchingOption) {
-              select.value = matchingOption.value;
-            } else if (currentTable) {
-              // If not found in list (e.g. dynamic/new), add it temporarily
-              const opt = document.createElement('option');
-              opt.value = currentTable;
-              opt.textContent = `Mesa ${currentTable} (Actual)`;
-              select.add(opt, 0);
-              select.value = currentTable;
-            }
-          }
-        });
-      }
-
-      // Dragging Logic
-      header.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-
-        const rect = panel.getBoundingClientRect();
-        initialLeft = rect.left;
-        initialTop = rect.top;
-
-        panel.style.transform = 'none';
-        panel.style.left = `${initialLeft}px`;
-        panel.style.top = `${initialTop}px`;
-
-        header.style.cursor = 'grabbing';
-        document.body.style.userSelect = 'none';
-        panel.dataset.moved = 'true';
-      });
-
-      document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        panel.style.left = `${initialLeft + dx}px`;
-        panel.style.top = `${initialTop + dy}px`;
-      });
-
-      document.addEventListener('mouseup', () => {
-        if (isDragging) {
-          isDragging = false;
-          header.style.cursor = 'move';
-          document.body.style.userSelect = '';
-        }
-      });
-
-      window.updateTableFromDebug = function () {
-        const select = document.getElementById('debug-table-select');
-        const newVal = select.value;
-
-        if (newVal) {
-          const hiddenInput = document.getElementById('table-number');
-          const label = document.getElementById('menu-table-label'); // Needs re-query after DOM updates? No, ID is unique usually.
-          // Re-query label carefully
-          const display = document.getElementById('menu-table-display');
-          const labelSpan = display ? display.querySelector('span:last-child') : null;
-          const menuTableLabel = document.getElementById('menu-table-label');
-
-          if (hiddenInput) hiddenInput.value = newVal;
-
-          if (menuTableLabel) {
-            menuTableLabel.textContent = `Mesa ${newVal}`;
-          } else if (labelSpan) {
-            labelSpan.textContent = `Mesa ${newVal}`;
-          }
-
-          localStorage.setItem('pronto_table_number', newVal);
-
-          if (window.APP_SESSION) {
-            window.location.reload();
-            return;
-          }
-
+        if (panel && panel.style.display !== 'none') {
           closePanel();
-          // Optional: Show toast
         }
-      };
+      }
     });
-  </script>
-  {% endif %} {% endif %} {% endblock %}
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closePanel);
+    }
+
+    // Override existing click handler for table display
+    const tableDisplay = document.getElementById('menu-table-display');
+    if (tableDisplay) {
+      const newTableDisplay = tableDisplay.cloneNode(true);
+      tableDisplay.parentNode.replaceChild(newTableDisplay, tableDisplay);
+
+      newTableDisplay.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        panel.style.display = 'block';
+
+        // Centering Logic
+        if (!panel.dataset.moved) {
+          panel.style.top = '50%';
+          panel.style.left = '50%';
+          panel.style.transform = 'translate(-50%, -50%)';
+        }
+
+        // Set Current Selection
+        const currentTable = document
+          .getElementById('menu-table-label')
+          ?.textContent?.replace('Mesa ', '')
+          .replace('—', '')
+          .trim();
+        if (currentTable) {
+          const select = document.getElementById('debug-table-select');
+          // Find option with this value
+          const options = Array.from(select.options);
+          const matchingOption = options.find((opt) => opt.value == currentTable);
+          if (matchingOption) {
+            select.value = matchingOption.value;
+          } else if (currentTable) {
+            // If not found in list (e.g. dynamic/new), add it temporarily
+            const opt = document.createElement('option');
+            opt.value = currentTable;
+            opt.textContent = `Mesa ${currentTable} (Actual)`;
+            select.add(opt, 0);
+            select.value = currentTable;
+          }
+        }
+      });
+    }
+
+    // Dragging Logic
+    header.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      const rect = panel.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+
+      panel.style.transform = 'none';
+      panel.style.left = `${initialLeft}px`;
+      panel.style.top = `${initialTop}px`;
+
+      header.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+      panel.dataset.moved = 'true';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      panel.style.left = `${initialLeft + dx}px`;
+      panel.style.top = `${initialTop + dy}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        header.style.cursor = 'move';
+        document.body.style.userSelect = '';
+      }
+    });
+
+    window.updateTableFromDebug = function () {
+      const select = document.getElementById('debug-table-select');
+      const newVal = select.value;
+
+      if (newVal) {
+        const hiddenInput = document.getElementById('table-number');
+        const label = document.getElementById('menu-table-label'); // Needs re-query after DOM updates? No, ID is unique usually.
+        // Re-query label carefully
+        const display = document.getElementById('menu-table-display');
+        const labelSpan = display ? display.querySelector('span:last-child') : null;
+        const menuTableLabel = document.getElementById('menu-table-label');
+
+        if (hiddenInput) hiddenInput.value = newVal;
+
+        if (menuTableLabel) {
+          menuTableLabel.textContent = `Mesa ${newVal}`;
+        } else if (labelSpan) {
+          labelSpan.textContent = `Mesa ${newVal}`;
+        }
+
+        localStorage.setItem('pronto_table_number', newVal);
+
+        if (window.APP_SESSION) {
+          window.location.reload();
+          return;
+        }
+
+        closePanel();
+        // Optional: Show toast
+      }
+    };
+  });
+</script>
+{% endif %} {% endif %} {% endblock %}
 </div>

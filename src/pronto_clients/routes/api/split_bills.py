@@ -5,13 +5,25 @@ Split bill endpoints for clients API.
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request, session
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 split_bills_bp = Blueprint("client_split_bills", __name__)
 
 
-def _calculate_equal_split(session, split_bill_id: int, dining_session):
+def _require_customer_ref():
+    """Check customer_ref in flask.session. Returns error tuple or None."""
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+    return None
+
+
+def _calculate_equal_split(session, split_bill_id: UUID, dining_session):
     """Helper function to calculate equal split for all people."""
     from pronto_shared.models import SplitBill
 
@@ -59,9 +71,13 @@ def _calculate_equal_split(session, split_bill_id: int, dining_session):
         last_person.total_amount = float(session_total - total_assigned_total)
 
 
-@split_bills_bp.post("/sessions/<int:session_id>/split-bill")
-def create_split_bill(session_id: int):
+@split_bills_bp.post("/sessions/<uuid:session_id>/split-bill")
+def create_split_bill(session_id: UUID):
     """Create a split bill for a dining session."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import DiningSession, SplitBill, SplitBillPerson
 
@@ -132,8 +148,8 @@ def create_split_bill(session_id: int):
 
             return jsonify(
                 {
-                    "split_bill_id": split_bill.id,
-                    "session_id": session_id,
+                    "split_bill_id": str(split_bill.id),
+                    "session_id": str(session_id),
                     "number_of_people": number_of_people,
                     "split_type": split_type,
                     "status": "active",
@@ -141,15 +157,19 @@ def create_split_bill(session_id: int):
             ), HTTPStatus.CREATED
 
     except Exception as e:
-        current_app.logger.error(f"Error creating split bill: {e}")
+        logger.error("Error creating split bill", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al crear división de cuenta"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.get("/split-bills/<int:split_id>")
-def get_split_bill(split_id: int):
+@split_bills_bp.get("/split-bills/<uuid:split_id>")
+def get_split_bill(split_id: UUID):
     """Get split bill details including all people and their assignments."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill
 
@@ -183,7 +203,7 @@ def get_split_bill(split_id: int):
 
                 people_data.append(
                     {
-                        "id": person.id,
+                        "id": str(person.id),
                         "person_name": person.person_name,
                         "person_number": person.person_number,
                         "subtotal": float(person.subtotal),
@@ -198,8 +218,8 @@ def get_split_bill(split_id: int):
             return jsonify(
                 {
                     "split_bill": {
-                        "id": split_bill.id,
-                        "session_id": split_bill.session_id,
+                        "id": str(split_bill.id),
+                        "session_id": str(split_bill.session_id),
                         "split_type": split_bill.split_type,
                         "number_of_people": split_bill.number_of_people,
                         "status": split_bill.status,
@@ -212,15 +232,19 @@ def get_split_bill(split_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error fetching split bill: {e}")
+        logger.error("Error fetching split bill", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al obtener división"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.post("/split-bills/<int:split_id>/assign")
-def assign_item_to_person(split_id: int):
+@split_bills_bp.post("/split-bills/<uuid:split_id>/assign")
+def assign_item_to_person(split_id: UUID):
     """Assign an order item to a person in the split."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import (
         OrderItem,
@@ -327,15 +351,19 @@ def assign_item_to_person(split_id: int):
             ), HTTPStatus.CREATED
 
     except Exception as e:
-        current_app.logger.error(f"Error assigning item: {e}")
+        logger.error("Error assigning item", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al asignar item"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.post("/split-bills/<int:split_id>/calculate")
-def calculate_split_totals(split_id: int):
+@split_bills_bp.post("/split-bills/<uuid:split_id>/calculate")
+def calculate_split_totals(split_id: UUID):
     """Recalculate totals for all people in the split based on their assignments."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill
 
@@ -395,15 +423,19 @@ def calculate_split_totals(split_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error calculating split totals: {e}")
+        logger.error("Error calculating split totals", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al calcular totales"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.get("/split-bills/<int:split_id>/summary")
-def get_split_summary(split_id: int):
+@split_bills_bp.get("/split-bills/<uuid:split_id>/summary")
+def get_split_summary(split_id: UUID):
     """Get a summary of the split including session info and all people with their totals."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill
 
@@ -456,17 +488,23 @@ def get_split_summary(split_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error fetching split summary: {e}")
+        logger.error("Error fetching split summary", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al obtener resumen"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@split_bills_bp.post("/split-bills/<int:split_id>/people/<int:person_id>/pay")
-def pay_split_person(split_id: int, person_id: int):
+@split_bills_bp.post("/split-bills/<uuid:split_id>/people/<uuid:person_id>/pay")
+def pay_split_person(split_id: UUID, person_id: UUID):
     """Process payment for an individual person in a split bill."""
+    auth_error = _require_customer_ref()
+    if auth_error:
+        return auth_error
+
+    from http import HTTPStatus
     from pronto_shared.db import get_session
     from pronto_shared.models import SplitBill, SplitBillPerson
+    from pronto_shared.services.order_service import finalize_payment
 
     try:
         payload = request.get_json(silent=True) or {}
@@ -530,21 +568,22 @@ def pay_split_person(split_id: int, person_id: int):
                 split_bill.completed_at = datetime.now(timezone.utc)
 
                 dining_session = split_bill.session
-                dining_session.status = "closed"
-                dining_session.closed_at = datetime.now(timezone.utc)
-                dining_session.payment_method = "split_bill"
-                dining_session.payment_reference = f"split-{split_id}"
+                payment_reference_final = f"split-{split_id}"
 
-                total_paid = sum(
-                    Decimal(str(p.total_amount)) for p in split_bill.people
+                finalize_result, finalize_status = finalize_payment(
+                    session_id=str(dining_session.id),
+                    payment_method="split_bill",
+                    payment_reference=payment_reference_final,
                 )
-                dining_session.total_paid = float(total_paid)
-
-                for order in dining_session.orders:
-                    order.payment_status = "paid"
-                    order.payment_method = "split_bill"
-                    order.payment_reference = f"split-{split_id}"
-                    order.paid_at = datetime.now(timezone.utc)
+                if finalize_status != HTTPStatus.OK:
+                    db_session.rollback()
+                    return jsonify(
+                        {
+                            "error": finalize_result.get(
+                                "error", "Error al finalizar pago"
+                            )
+                        }
+                    ), int(finalize_status)
 
             db_session.commit()
 
@@ -562,7 +601,7 @@ def pay_split_person(split_id: int, person_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error processing split payment: {e}")
+        logger.error("Error processing split payment", error={"exception": str(e)})
         return jsonify(
             {"error": "Error al procesar pago"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR

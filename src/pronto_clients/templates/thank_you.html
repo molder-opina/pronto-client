@@ -4,35 +4,44 @@
 {% set currency_code = config.get('CURRENCY_CODE', 'MXN') %}
 
 {% set STATUS_CLASS_MAP = {
-'requested': 'requested',
-'waiter_accepted': 'waiter_accepted',
-'accepted': 'waiter_accepted',
-'kitchen_in_progress': 'kitchen_in_progress',
+'new': 'requested',
+'queued': 'waiter_accepted',
 'preparing': 'kitchen_in_progress',
-'ready_for_delivery': 'ready_for_delivery',
 'ready': 'ready_for_delivery',
-'delivered': 'delivered'
+'delivered': 'delivered',
+'awaiting_payment': 'waiter_accepted',
+'paid': 'delivered',
+'cancelled': 'cancelled'
 } %}
 {% set ORDER_STATUS_LABELS = {
-'requested': 'Pedido recibido',
-'waiter_accepted': 'Mesero asignado',
-'kitchen_in_progress': 'En cocina',
-'ready_for_delivery': 'Por entregar',
-'delivered': 'Entregado'
+'new': 'Solicitada',
+'queued': 'Mesero asignado',
+'preparing': 'En preparación',
+'ready': 'Lista para entrega',
+'delivered': 'Entregada',
+'awaiting_payment': 'Cuenta solicitada',
+'paid': 'Pagada',
+'cancelled': 'Cancelada'
 } %}
 {% set ORDER_STATUS_ICONS = {
-'requested': '🆕',
-'waiter_accepted': '🤝',
-'kitchen_in_progress': '🔥',
-'ready_for_delivery': '✅',
-'delivered': '🎉'
+'new': '🆕',
+'queued': '🍽️',
+'preparing': '🔥',
+'ready': '✅',
+'delivered': '🎉',
+'awaiting_payment': '🧾',
+'paid': '💰',
+'cancelled': '❌'
 } %}
 {% set ORDER_STATUS_PROGRESS = {
-'requested': 12,
-'waiter_accepted': 35,
-'kitchen_in_progress': 60,
-'ready_for_delivery': 85,
-'delivered': 100
+'new': 10,
+'queued': 30,
+'preparing': 60,
+'ready': 85,
+'delivered': 100,
+'awaiting_payment': 90,
+'paid': 100,
+'cancelled': 0
 } %}
 
 {% block content %}

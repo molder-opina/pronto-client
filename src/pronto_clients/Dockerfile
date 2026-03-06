@@ -15,11 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pronto-libs /opt/pronto/pronto-libs
 RUN pip install --no-cache-dir /opt/pronto/pronto-libs
 
-# Copy canonical init/migrations tooling (required by pronto_shared.db.validate_schema()).
-COPY pronto-scripts/init /opt/pronto/pronto-scripts/init
-COPY pronto-scripts/bin/pronto-init /opt/pronto/pronto-scripts/bin/pronto-init
-COPY pronto-scripts/bin/pronto-migrate /opt/pronto/pronto-scripts/bin/pronto-migrate
-COPY pronto-scripts/bin/pronto-sql-safety /opt/pronto/pronto-scripts/bin/pronto-sql-safety
+# Copy canonical init/migrations tooling
+COPY pronto-scripts /opt/pronto/pronto-scripts
 
 # Install Client requirements
 COPY pronto-client/requirements.txt /tmp/requirements.txt
@@ -27,6 +24,15 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy Client Code
 COPY pronto-client/src/pronto_clients /opt/pronto/pronto_clients
+
+# Create non-root user for security (principle of least privilege)
+RUN groupadd -g 1000 appgroup && \
+    useradd -r -u 1000 -g appgroup -s /bin/bash -d /opt/app appuser && \
+    mkdir -p /opt/app && \
+    chown -R appuser:appgroup /opt/pronto
+
+# Switch to non-root user
+USER appuser
 
 ENV PYTHONPATH=/opt/pronto
 WORKDIR /opt/pronto/pronto_clients

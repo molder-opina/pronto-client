@@ -14,12 +14,11 @@ Remover trailing / (salvo root /)
 
 ## API Canonica (/api) en pronto-client
 
-1. Este servicio atiende `"/api/*"` solo para el host `clients.<dominio>`.
-2. Prohibido implementar o documentar rutas `"/{scope}/api/*"` (scope aplica solo a web SSR en pronto-employees).
-3. Aliases de compatibilidad:
-   - Solo se agregan si `pronto-api-parity-check clients` reporta missing.
-   - Deben delegar al handler canonico (no duplicar logica).
-   - Si aplica, documentar alias como `deprecated: true` en OpenAPI.
+1. `pronto-client` NO es dueño de `"/api/*"` de negocio.
+2. Autoridad única de API: `pronto-api` en `:6082` bajo `"/api/*"`.
+3. En `pronto-client` solo se permite SSR/UI; endpoints de negocio/API aquí ⇒ **REJECTED**.
+4. Prohibido implementar o documentar rutas `"/{scope}/api/*"`.
+5. Si existe compatibilidad temporal en este servicio, debe marcarse `deprecated: true` y tener fecha de retiro.
 
 ## PRONTO_ROUTES_ONLY=1
 

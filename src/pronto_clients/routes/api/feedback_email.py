@@ -6,15 +6,19 @@ from __future__ import annotations
 
 from datetime import datetime
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 from sqlalchemy import select
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 feedback_email_bp = Blueprint("feedback_email", __name__)
 
 
-@feedback_email_bp.post("/orders/<int:order_id>/feedback/email-trigger")
-def trigger_feedback_email(order_id: int):
+@feedback_email_bp.post("/orders/<uuid:order_id>/feedback/email-trigger")
+def trigger_feedback_email(order_id: UUID):
     """
     Trigger feedback email after timer expires.
     Called from frontend when feedback prompt times out.
@@ -105,7 +109,7 @@ def trigger_feedback_email(order_id: int):
             return jsonify(result), status_code
 
     except Exception as e:
-        current_app.logger.error(f"Error triggering feedback email: {e}", exc_info=True)
+        logger.error("Error triggering feedback email", error={"exception": str(e), "traceback": True})
         return jsonify(
             {"error": "Error interno del servidor"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
@@ -167,8 +171,8 @@ def get_feedback_email_form(token: str):
         return jsonify(response_data), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(
-            f"Error getting feedback email form: {e}", exc_info=True
+        logger.error(
+            "Error getting feedback email form", error={"exception": str(e), "traceback": True}
         )
         return jsonify(
             {"error": "Error interno del servidor"}
@@ -271,9 +275,9 @@ def submit_feedback_email(token: str):
 
             db_session.commit()
 
-        current_app.logger.info(
-            f"Feedback submitted via email for order {token_data['order_id']}: "
-            f"{feedback_count} items"
+        logger.info(
+            f"Feedback submitted via email for order {token_data['order_id']}",
+            feedback_count=feedback_count
         )
 
         return jsonify(
@@ -281,8 +285,8 @@ def submit_feedback_email(token: str):
         ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(
-            f"Error submitting feedback via email: {e}", exc_info=True
+        logger.error(
+            "Error submitting feedback via email", error={"exception": str(e), "traceback": True}
         )
         return jsonify(
             {"error": "Error interno del servidor"}

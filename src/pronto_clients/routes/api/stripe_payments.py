@@ -4,22 +4,57 @@ Stripe and Clip payment endpoints for clients API.
 
 from decimal import Decimal
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request, session
 
+from pronto_shared.services.customer_session_store import (
+    customer_session_store,
+    RedisUnavailableError,
+)
 from pronto_shared.supabase.realtime import emit_waiter_call
+from pronto_shared.trazabilidad import get_logger
+
+logger = get_logger(__name__)
 
 stripe_payments_bp = Blueprint("client_stripe_payments", __name__)
 
 
-@stripe_payments_bp.post("/sessions/<int:session_id>/pay/stripe")
-def pay_with_stripe(session_id: int):
+def _get_authenticated_customer() -> dict | None:
+    """Get authenticated customer from flask.session + Redis."""
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return None
+    try:
+        if customer_session_store.is_revoked(customer_ref):
+            session.pop("customer_ref", None)
+            return None
+        return customer_session_store.get_customer(customer_ref)
+    except RedisUnavailableError:
+        return None
+
+
+def _require_customer_auth():
+    """Require customer authentication. Returns error tuple or None."""
+    customer = _get_authenticated_customer()
+    if not customer:
+        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
+    return None
+
+
+@stripe_payments_bp.post("/sessions/<uuid:session_id>/pay/stripe")
+def pay_with_stripe(session_id: UUID):
     """Process payment with Stripe for a dining session."""
+    # Require authentication
+    auth_error = _require_customer_auth()
+    if auth_error:
+        return auth_error
+
     from sqlalchemy import select
 
     from pronto_shared.db import get_session
     from pronto_shared.models import DiningSession
-    from pronto_shared.services.payment_providers.stripe_provider import PaymentError, StripeProvider
+    from pronto_shared.services.payment_providers import process_payment, PaymentError
 
     payload = request.get_json(silent=True) or {}
     tip_amount = payload.get("tip_amount")
@@ -49,8 +84,7 @@ def pay_with_stripe(session_id: int):
             db_session.commit()
             db_session.refresh(dining_session)
 
-            stripe_provider = StripeProvider()
-            result = stripe_provider.process_payment(dining_session)
+            result = process_payment(provider_name="stripe", session=dining_session)
 
             return jsonify(
                 {
@@ -64,18 +98,23 @@ def pay_with_stripe(session_id: int):
             ), HTTPStatus.OK
 
     except PaymentError as e:
-        current_app.logger.error(f"Stripe payment error: {e}")
+        logger.error("Stripe payment error", error={"exception": str(e)})
         return jsonify({"error": str(e)}), HTTPStatus.BAD_REQUEST
     except Exception as e:
-        current_app.logger.error(f"Error processing Stripe payment: {e}", exc_info=True)
+        logger.error("Error processing Stripe payment", error={"exception": str(e), "traceback": True})
         return jsonify(
             {"error": "Error al procesar pago con Stripe"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR
 
 
-@stripe_payments_bp.post("/sessions/<int:session_id>/pay/clip")
-def pay_with_clip(session_id: int):
+@stripe_payments_bp.post("/sessions/<uuid:session_id>/pay/clip")
+def pay_with_clip(session_id: UUID):
     """Register a Clip/Terminal payment request for a dining session."""
+    # Require authentication
+    auth_error = _require_customer_auth()
+    if auth_error:
+        return auth_error
+
     from sqlalchemy import select
 
     from pronto_shared.db import get_session
@@ -126,7 +165,13 @@ def pay_with_clip(session_id: int):
                 recipient_id=None,
                 title=f"Pago con Terminal - Mesa {table_number}",
                 message=f"Cliente solicita pagar ${dining_session.total_amount:.2f} con terminal Clip",
-                data=f'{{"table_number": "{table_number}", "session_id": {session_id}, "waiter_call_id": {waiter_call.id}, "payment_method": "clip", "amount": {float(dining_session.total_amount)}}}',
+                data={
+                    "table_number": table_number,
+                    "session_id": str(session_id),
+                    "waiter_call_id": waiter_call.id,
+                    "payment_method": "clip",
+                    "amount": float(dining_session.total_amount),
+                },
                 priority="high",
             )
             db_session.add(notification)
@@ -146,8 +191,9 @@ def pay_with_clip(session_id: int):
                 created_at=waiter_call.created_at,
             )
 
-            current_app.logger.info(
-                f"Clip payment requested for session {session_id}, total={dining_session.total_amount}"
+            logger.info(
+                f"Clip payment requested for session {session_id}",
+                total=float(dining_session.total_amount)
             )
 
             return jsonify(
@@ -163,7 +209,7 @@ def pay_with_clip(session_id: int):
             ), HTTPStatus.OK
 
     except Exception as e:
-        current_app.logger.error(f"Error processing Clip payment request: {e}", exc_info=True)
+        logger.error("Error processing Clip payment request", error={"exception": str(e), "traceback": True})
         return jsonify(
             {"error": "Error al procesar solicitud de pago"}
         ), HTTPStatus.INTERNAL_SERVER_ERROR

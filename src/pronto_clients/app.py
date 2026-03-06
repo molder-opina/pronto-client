@@ -1,7 +1,8 @@
 """
 Factory for the customer-facing Flask application.
 
-Uses JWT for authentication instead of server-side sessions.
+Uses Redis-backed customer_ref for authentication (not JWT).
+Session Flask only stores: customer_ref, dining_session_id (allowlist AGENTS.md section 6).
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ from __future__ import annotations
 import os
 from datetime import datetime, timezone
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, session
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 from pronto_shared.extensions import csrf as csrf_protection
@@ -19,7 +20,6 @@ from pronto_clients.routes.web import web_bp
 from pronto_shared.config import load_config
 from pronto_shared.db import init_engine, validate_schema
 from pronto_shared.error_handlers import register_error_handlers
-from pronto_shared.jwt_middleware import init_jwt_middleware
 from pronto_shared.logging_config import configure_logging
 from pronto_shared.security_middleware import configure_security_headers
 from pronto_shared.services.business_config_service import (
@@ -41,8 +41,8 @@ def _is_routes_only() -> bool:
 
 
 def register_blueprints(app: Flask) -> None:
-    app.register_blueprint(api_bp, url_prefix="/api")
     app.register_blueprint(web_bp)
+    app.register_blueprint(api_bp, url_prefix="/api")
 
 
 def init_runtime(app: Flask, config) -> None:
@@ -64,7 +64,10 @@ def init_runtime(app: Flask, config) -> None:
     app.config["WTF_CSRF_ENABLED"] = True
     app.config["WTF_CSRF_TIME_LIMIT"] = 3600
 
-    init_jwt_middleware(app)
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = not config.debug_mode
+
     configure_security_headers(app)
     register_error_handlers(app)
 
@@ -78,15 +81,7 @@ def init_runtime(app: Flask, config) -> None:
             x_port=num_proxies,
         )
 
-    # Explicitly exempt nested blueprints from CSRF (JWT auth, no CSRF needed)
-    from pronto_clients.routes.api.feedback_email import feedback_email_bp
-    from pronto_clients.routes.api.payments import payments_bp
-    from pronto_clients.routes.api.stripe_payments import stripe_payments_bp
-
-    csrf_protection.exempt(api_bp)
-    csrf_protection.exempt(feedback_email_bp)
-    csrf_protection.exempt(stripe_payments_bp)
-    csrf_protection.exempt(payments_bp)
+    # API Blueprints protected by CSRF (handled by frontend requestJSON wrapper)
 
     # Configure CORS with secure defaults
     raw_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
@@ -95,29 +90,29 @@ def init_runtime(app: Flask, config) -> None:
         if raw_origins
         else []
     )
-    if config.debug_mode or not allowed_origins:
-        allowed_origins = [
-            "http://localhost:6080",
-            "http://127.0.0.1:6080",
-        ]
+    if config.debug_mode and not allowed_origins:
+        local_origin = os.getenv("PRONTO_CLIENT_PUBLIC_ORIGIN", "").strip()
+        if local_origin:
+            allowed_origins = [local_origin]
+    if allowed_origins:
         CORS(
             app,
             resources={
                 r"/api/*": {"origins": allowed_origins, "supports_credentials": True},
                 r"/web/*": {"origins": allowed_origins, "supports_credentials": True},
             },
-        )
-    else:
-        CORS(
-            app,
-            resources={
-                r"/api/*": {"origins": allowed_origins, "supports_credentials": True},
-                r"/web/*": {"origins": allowed_origins, "supports_credentials": True},
-            },
-            supports_credentials=True,
         )
 
     csrf_protection.init_app(app)
+
+    @app.before_request
+    def set_app_locale():
+        """Set the global i18n locale from system settings."""
+        from pronto_shared.i18n.service import i18n
+        from pronto_shared.services.settings_service import get_setting
+
+        locale = get_setting("system.locale.default", "es")
+        i18n.set_locale(locale)
 
     @app.context_processor
     def inject_employees_base_url():
@@ -140,46 +135,49 @@ def init_runtime(app: Flask, config) -> None:
     def inject_globals():
         from pronto_shared.services.settings_service import get_setting
 
-        config_keys = [
-            "currency_code",
-            "currency_locale",
-            "currency_symbol",
-            "default_country_code",
-            "phone_country_options",
-            "checkout_default_method",
-            "checkout_prompt_duration_seconds",
-            "waiter_call_sound",
-            "waiter_call_cooldown_seconds",
-        ]
-        business_settings = get_config_map(config_keys)
         app_settings = {
-            "currency_code": business_settings.get("currency_code", "MXN"),
-            "currency_locale": business_settings.get("currency_locale", "es-MX"),
-            "currency_symbol": business_settings.get("currency_symbol", "$"),
-            "default_country_code": business_settings.get(
-                "default_country_code", "+52"
-            ),
-            "phone_country_options": business_settings.get("phone_country_options")
+            "static_host_url": config.pronto_static_public_host,
+            "currency_code": get_setting("currency_code", "MXN"),
+            "currency_locale": get_setting("currency_locale", "es-MX"),
+            "currency_symbol": get_setting("currency_symbol", "$"),
+            "default_country_code": get_setting("default_country_code", "+52"),
+            "phone_country_options": get_setting("phone_country_options")
             or [
                 {"iso": "MX", "label": "Mexico", "dial_code": "+52", "flag": ""},
             ],
-            "checkout_default_method": business_settings.get(
-                "checkout_default_method", "cash"
+            "checkout_default_method": get_setting("checkout_default_method", "cash"),
+            "checkout_redirect_seconds": int(
+                get_setting("client.checkout.redirect_seconds", 6)
             ),
-            "checkout_prompt_duration_seconds": int(
-                business_settings.get("checkout_prompt_duration_seconds", 6) or 6
-            ),
-            "waiter_call_sound": business_settings.get(
-                "waiter_call_sound", "bell1.mp3"
-            ),
+            "waiter_call_sound": get_setting("waiter_call_sound", "bell1.mp3"),
             "waiter_call_cooldown_seconds": int(
-                business_settings.get("waiter_call_cooldown_seconds", 10) or 10
+                get_setting("waiter.call_cooldown_seconds", 60)
             ),
         }
 
-        from pronto_shared.jwt_middleware import get_current_user
+        from pronto_shared.services.customer_session_store import (
+            customer_session_store,
+            RedisUnavailableError,
+        )
+        from flask import current_app
+        from pronto_shared.trazabilidad import get_logger
 
-        current_user = get_current_user()
+        customer_ref = session.get("customer_ref")
+        current_user = None
+        if customer_ref:
+            try:
+                current_user = customer_session_store.get_customer(customer_ref)
+            except RedisUnavailableError:
+                logger = get_logger("clients")
+                logger.warning("Customer session store (Redis) is unavailable.")
+                current_user = None
+            except Exception as e:
+                logger = get_logger("clients")
+                logger.error(
+                    f"An unexpected error occurred fetching customer session: {e}",
+                    error={"type": type(e).__name__, "message": str(e)},
+                )
+                current_user = None
 
         base_url = config.pronto_static_public_host
         assets_path = config.static_assets_path
@@ -187,23 +185,22 @@ def init_runtime(app: Flask, config) -> None:
 
         return {
             "app_name": config.app_name,
+            "system_version": config.system_version,
             "static_host_url": base_url,
-            "restaurant_name": config.restaurant_name,
+            "restaurant_name": get_setting("restaurant_name", config.restaurant_name),
             "restaurant_assets": f"{base_url}{assets_path}/{restaurant_slug}",
             "current_year": datetime.now(timezone.utc).year,
             "debug_mode": config.debug_mode,
-            "show_estimated_time": get_setting("show_estimated_time", True),
-            "estimated_time_min": get_setting("estimated_time_min", 25),
-            "estimated_time_max": get_setting("estimated_time_max", 30),
+            "show_estimated_time": get_setting("orders.show_estimated_time", True),
+            "estimated_time_min": get_setting("orders.estimated_time_min", 25),
+            "estimated_time_max": get_setting("orders.estimated_time_max", 30),
             "app_settings": app_settings,
             "employee_api_base_url": app.config.get("EMPLOYEE_API_BASE_URL"),
             "current_user": current_user,
             "customer_id": current_user.get("customer_id") if current_user else None,
-            "customer_name": current_user.get("customer_name")
-            if current_user
-            else None,
-            "session_id": current_user.get("session_id") if current_user else None,
-            "table_id": current_user.get("table_id") if current_user else None,
+            "customer_name": current_user.get("name") if current_user else None,
+            "session_id": session.get("dining_session_id"),
+            "table_id": None,
             "assets_css": f"{base_url}{assets_path}/css",
             "assets_css_shared": f"{base_url}{assets_path}/css/shared",
             "assets_css_clients": f"{base_url}{assets_path}/css/clients",
@@ -238,7 +235,14 @@ def create_app() -> Flask:
 
     @app.route("/health")
     def health():
-        return jsonify({"status": "ok", "service": "pronto-client"}), 200
+        return jsonify(
+            {
+                "status": "ok",
+                "service": "pronto-client",
+                "version": app.config.get("SYSTEM_VERSION")
+                or os.getenv("PRONTO_SYSTEM_VERSION", "1.0000"),
+            }
+        ), 200
 
     if routes_only:
         app.config["SECRET_KEY"] = "routes-only"
@@ -247,18 +251,19 @@ def create_app() -> Flask:
     config = load_config("pronto-clients")
     configure_logging(config.app_name, config.log_level)
 
+    app.config["SYSTEM_VERSION"] = config.system_version
     app.config["DEBUG_MODE"] = config.debug_mode
     app.config["DEBUG"] = config.flask_debug
     app.config["DEBUG_AUTO_TABLE"] = config.debug_auto_table
     app.config["AUTO_READY_QUICK_SERVE"] = config.auto_ready_quick_serve
-    app.config["EMPLOYEE_API_BASE_URL"] = os.getenv(
-        "PRONTO_EMPLOYEES_BASE_URL", ""
+    app.config["EMPLOYEE_API_BASE_URL"] = (
+        os.getenv("EMPLOYEE_API_BASE_URL")
+        or os.getenv("PRONTO_EMPLOYEES_BASE_URL")
+        or ""
     ).strip()
 
     # API base URL for browser direct access to pronto-api (6082)
-    app.config["API_BASE_URL"] = os.getenv(
-        "PRONTO_API_BASE_URL", "http://localhost:6082"
-    ).strip()
+    app.config["API_BASE_URL"] = os.getenv("PRONTO_API_BASE_URL", "").strip()
 
     init_runtime(app, config)
 

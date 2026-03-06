@@ -1,6 +1,9 @@
 {% extends "base.html" %} {% set currency_symbol = app_settings.currency_symbol or '$' %} {% set
 currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 <link rel="stylesheet" href="{{ assets_css_clients }}/menu.css" />
+<style>
+  /* Checkout offers styles moved to menu.css / menu-modals.css */
+</style>
 
 <div class="menu-page" data-menu-root>
   <!-- Category Tabs -->
@@ -10,19 +13,11 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
   <div class="smart-search">
     <div class="smart-search__input">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="m21 21-4.35-4.35m0-6.3a6.3 6.3 0 1 1-12.6 0 6.3 6.3 0 0 1 12.6 0z"
-        />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="m21 21-4.35-4.35m0-6.3a6.3 6.3 0 1 1-12.6 0 6.3 6.3 0 0 1 12.6 0z" />
       </svg>
-      <input
-        type="search"
-        id="menu-search"
-        placeholder="Busca platillos, ingredientes o categorías..."
-        autocomplete="off"
-      />
+      <input type="search" id="menu-search" placeholder="Busca platillos, ingredientes o categorías..."
+        autocomplete="off" />
     </div>
     <div class="smart-search__suggestions" id="menu-search-suggestions"></div>
   </div>
@@ -78,19 +73,9 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
       <div class="filter-control filter-control--range">
         <label class="filter-control__label">Precio</label>
         <div class="filter-control__range">
-          <input
-            type="number"
-            id="filters-price-min"
-            class="filter-control__input"
-            placeholder="Mínimo"
-          />
+          <input type="number" id="filters-price-min" class="filter-control__input" placeholder="Mínimo" />
           <span class="filter-control__separator">–</span>
-          <input
-            type="number"
-            id="filters-price-max"
-            class="filter-control__input"
-            placeholder="Máximo"
-          />
+          <input type="number" id="filters-price-max" class="filter-control__input" placeholder="Máximo" />
         </div>
       </div>
       <button type="button" class="filter-clear" id="filters-clear-btn">Limpiar filtros</button>
@@ -122,63 +107,35 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
           <form id="checkout-form">
             <div class="form-group">
-              <label for="customer-name"
-                >Nombre <span style="color: #9ca3af">(opcional)</span></label
-              >
+              <label for="customer-name">Nombre <span style="color: #9ca3af">(opcional)</span></label>
               <div class="input-with-icon">
                 <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <input
-                  type="text"
-                  id="customer-name"
-                  name="name"
-                  placeholder="Tu nombre"
-                  class="input-with-icon__field"
-                />
+                <input type="text" id="customer-name" name="name" placeholder="Tu nombre"
+                  class="input-with-icon__field" />
               </div>
             </div>
 
             <div class="form-group">
-              <label for="customer-email"
-                >Email <span style="color: #9ca3af">(requerido para pago digital)</span></label
-              >
+              <label for="customer-email">Email <span style="color: #9ca3af">(requerido para pago
+                  digital)</span></label>
               <div class="input-with-icon">
                 <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <input
-                  type="email"
-                  id="customer-email"
-                  name="email"
-                  placeholder="tu@email.com"
-                  class="input-with-icon__field"
-                />
+                <input type="email" id="customer-email" name="email" placeholder="tu@email.com"
+                  class="input-with-icon__field" />
               </div>
             </div>
 
             <div class="form-group">
-              <label for="customer-phone"
-                >Teléfono <span style="color: #9ca3af">(opcional)</span></label
-              >
+              <label for="customer-phone">Teléfono <span style="color: #9ca3af">(opcional)</span></label>
               <div class="phone-input-group">
                 <select id="phone-country-code" class="phone-country-select"></select>
-                <input
-                  type="tel"
-                  id="customer-phone"
-                  name="phone"
-                  placeholder="Número de contacto"
-                />
+                <input type="tel" id="customer-phone" name="phone" placeholder="Número de contacto" />
               </div>
             </div>
 
@@ -186,18 +143,10 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
             <div class="mesa-info-card">
               <div class="mesa-info-card__icon">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <div class="mesa-info-card__content">
@@ -208,15 +157,8 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
             </div>
 
             <div class="form-group">
-              <label for="notes"
-                >Notas especiales <span style="color: #9ca3af">(opcional)</span></label
-              >
-              <textarea
-                id="notes"
-                name="notes"
-                rows="3"
-                placeholder="Alergias, preferencias, etc."
-              ></textarea>
+              <label for="notes">Notas especiales <span style="color: #9ca3af">(opcional)</span></label>
+              <textarea id="notes" name="notes" rows="3" placeholder="Alergias, preferencias, etc."></textarea>
             </div>
 
             <div class="feedback-message" id="checkout-feedback"></div>
@@ -231,9 +173,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
           <div class="checkout-summary__total">
             <span class="checkout-summary__total-label">Total</span>
-            <span class="checkout-summary__total-amount" id="checkout-total"
-              >{{ currency_symbol }}0.00</span
-            >
+            <span class="checkout-summary__total-amount" id="checkout-total">{{ currency_symbol }}0.00</span>
           </div>
 
           <button type="submit" form="checkout-form" class="checkout-submit-btn">
@@ -272,9 +212,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
   <!-- Item Customization Modal -->
   <div class="modal-overlay" id="item-modal">
-    <div
-      class="modal"
-      style="
+    <div class="modal" style="
         position: relative !important;
         z-index: 99999 !important;
         background: white !important;
@@ -282,8 +220,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
         visibility: visible !important;
         opacity: 1 !important;
         box-shadow: 0 20px 100px rgba(0, 0, 0, 0.8) !important;
-      "
-    >
+      ">
       <div class="modal-header">
         <h3 id="modal-item-name"></h3>
         <button class="modal-close" data-action="call" data-fn="closeItemModal">×</button>
@@ -300,9 +237,11 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
         <div class="quantity-selector">
           <span>Cantidad:</span>
           <div class="quantity-selector-controls">
-            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity" data-arg="-1">-</button>
+            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity"
+              data-arg="-1">-</button>
             <span class="cart-item-quantity" id="modal-quantity">1</span>
-            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity" data-arg="1">+</button>
+            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity"
+              data-arg="1">+</button>
           </div>
         </div>
 
@@ -327,20 +266,31 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
         <button type="button" class="checkout-preference__btn" data-checkout-method="terminal">
           🧾 Terminal
         </button>
-        <button
-          type="button"
-          class="checkout-preference__btn checkout-preference__btn--digital"
-          data-checkout-method="digital"
-        >
+        <button type="button" class="checkout-preference__btn checkout-preference__btn--digital"
+          data-checkout-method="digital">
           💳 Pago digital (Stripe)
         </button>
       </div>
       <p class="checkout-preference__helper">
         Se cerrará en
-        <span id="checkout-preference-timer"
-          >{{ app_settings.checkout_prompt_duration_seconds or 6 }}</span
-        >s · Método por defecto: <span id="checkout-preference-default">Efectivo</span>
+        <span id="checkout-preference-timer">{{ app_settings.checkout_redirect_seconds or 6 }}</span>s · Método
+        por defecto: <span id="checkout-preference-default">Efectivo</span>
       </p>
+    </div>
+  </div>
+
+  <!-- Checkout Offers Overlay -->
+  <div class="checkout-offers" id="checkout-offers-overlay" aria-hidden="true" style="display: none">
+    <div class="checkout-offers__card">
+      <button class="checkout-offers__close" id="checkout-offers-close" type="button">✕</button>
+      <h3 class="checkout-offers__title">🍴 Ofertas Especiales</h3>
+      <div class="checkout-offers__list" id="checkout-offers-list">
+        <div class="checkout-offers__loading">
+          <div class="spinner"></div>
+          <p>Cargando ofertas...</p>
+        </div>
+      </div>
+      <p class="checkout-offers__helper">Tu mesero viene en breve</p>
     </div>
   </div>
 
@@ -360,19 +310,18 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
       </div>
     </div>
   </div>
-</div>
 
 {% endblock %} {% block scripts %}
 
 <script>
   // Configuration for menu.js
-  window.APP_CONFIG = {
+  window.APP_SETTINGS = Object.assign({}, window.APP_SETTINGS || {}, {
     assets_css_clients: '{{ assets_css_clients }}',
     assets_js_clients: '{{ assets_js_clients }}',
     restaurant_assets: '{{ restaurant_assets }}',
     currency_code: '{{ currency_code }}',
     currency_symbol: '{{ currency_symbol }}',
-  };
+  });
 </script>
 
 <script>
@@ -387,11 +336,17 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
     // Show modal immediately
     modal.classList.add('active');
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('visibility', 'visible', 'important');
+    modal.style.setProperty('opacity', '1', 'important');
+    modal.style.setProperty('pointer-events', 'auto', 'important');
+    modal.style.setProperty('height', '100vh', 'important');
+    modal.style.setProperty('overflow', 'visible', 'important');
 
     // Load hours if not already loaded
     if (!businessHoursData) {
       try {
-        const response = await fetch(`${window.API_BASE}/api/business-info`);
+        const response = await fetch(`/api/business-info`);
         const data = await response.json();
 
         if (data.schedule) {
@@ -524,6 +479,12 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     const modal = document.getElementById('business-hours-modal');
     if (modal) {
       modal.classList.remove('active');
+      modal.style.setProperty('display', 'none', 'important');
+      modal.style.setProperty('visibility', 'hidden', 'important');
+      modal.style.setProperty('opacity', '0', 'important');
+      modal.style.setProperty('pointer-events', 'none', 'important');
+      modal.style.setProperty('height', '0px', 'important');
+      modal.style.setProperty('overflow', 'hidden', 'important');
     }
   }
 
@@ -551,11 +512,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 </div>
 
 <!-- Payment Confirmed Notification -->
-<div
-  class="payment-confirmed-notification"
-  id="payment-confirmed-notification"
-  style="display: none"
->
+<div class="payment-confirmed-notification" id="payment-confirmed-notification" style="display: none">
   <div class="payment-confirmed-content">
     <div class="payment-confirmed-icon">✅</div>
     <h3 class="payment-confirmed-title">¡Pago confirmado!</h3>
@@ -580,6 +537,21 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
   </div>
 </div>
 
+<style>
+  /* Keep table selection above sticky header/cart layers in legacy alt menu page */
+  #table-selection-modal {
+    z-index: 13070 !important;
+  }
+
+  #table-selection-modal .table-selection-modal__content {
+    position: relative !important;
+    z-index: 2 !important;
+    width: min(92vw, 520px) !important;
+    max-height: min(88dvh, 680px) !important;
+    overflow: auto !important;
+  }
+</style>
+
 <script>
   window.DEBUG_AUTO_TABLE = {{ 'true' if debug_auto_table else 'false' }};
 </script>
@@ -600,9 +572,9 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
     const loadTableOptions = () => {
       if (tableOptionsPromise) return tableOptionsPromise;
-      tableOptionsPromise = fetch(`${window.API_BASE}/api/tables`, {
+      tableOptionsPromise = fetch(`/api/tables`, {
         method: 'GET',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: { Accept: 'application/json' },
       })
         .then((response) => (response.ok ? response.json() : null))
@@ -729,7 +701,8 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
           if (manualSelect && savedTable) {
             manualSelect.value = savedTable;
           }
-          modal.classList.add('visible');
+          modal.style.display = '';
+          modal.classList.add('visible', 'active');
           document.body.classList.add('table-selection-open');
           if (manualSelect) manualSelect.focus();
         });
@@ -738,8 +711,8 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
 
     function hideTableSelectionModal() {
       if (modal) {
-        modal.classList.remove('visible');
-        modal.style.display = 'none';
+        modal.classList.remove('visible', 'active');
+        modal.style.display = '';
         document.body.classList.remove('table-selection-open');
       }
     }
@@ -759,7 +732,8 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     }
 
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && modal?.classList.contains('visible')) {
+      const isOpen = !!modal && (modal.classList.contains('visible') || modal.classList.contains('active'));
+      if (event.key === 'Escape' && isOpen) {
         hideTableSelectionModal();
       }
     });

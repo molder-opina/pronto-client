@@ -16,8 +16,19 @@ def get_business_info():
     """Get business information and schedule for client-facing display."""
     from pronto_shared.services.business_info_service import BusinessInfoService, BusinessScheduleService
 
-    business_info = BusinessInfoService.get_business_info()
-    schedule = BusinessScheduleService.get_schedule()
+    business_info_response = BusinessInfoService.get_business_info()
+    business_info = (
+        business_info_response.get("data", {})
+        if isinstance(business_info_response, dict)
+        else {}
+    )
+
+    schedule_response = BusinessScheduleService.get_schedule()
+    schedule = (
+        (schedule_response.get("data", {}) or {}).get("schedules", [])
+        if isinstance(schedule_response, dict)
+        else []
+    )
 
     tz_name = (business_info or {}).get("timezone") or "America/Mexico_City"
     try:
@@ -48,7 +59,7 @@ def get_business_info():
 
     return jsonify(
         {
-            "business_name": business_info.get("business_name") if business_info else "Restaurant",
+            "business_name": business_info.get("business_name", "Restaurant"),
             "schedule": schedule,
             "is_currently_open": is_currently_open,
             "current_day_schedule": current_day_schedule,
