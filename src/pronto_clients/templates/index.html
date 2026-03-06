@@ -684,6 +684,60 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 <script>
   // Business Hours Modal
   let businessHoursData = null;
+  let businessHoursRequest = null;
+
+  async function fetchBusinessHoursWithTimeout(timeoutMs = 7000) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch('/api/business-info', {
+        method: 'GET',
+        credentials: 'same-origin',
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP_${response.status}`);
+      }
+
+      const data = await response.json();
+      const schedule = Array.isArray(data?.schedule) ? data.schedule : null;
+      if (!schedule) {
+        throw new Error('INVALID_SCHEDULE_PAYLOAD');
+      }
+
+      return data;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }
+
+  function renderBusinessHoursError(content) {
+    if (!content) return;
+    content.replaceChildren();
+    const errorWrap = document.createElement('div');
+    errorWrap.className = 'hours-error';
+    const errorTitle = document.createElement('p');
+    errorTitle.className = 'hours-error__title';
+    errorTitle.textContent = '❌ Error al cargar horarios';
+    const errorMessage = document.createElement('p');
+    errorMessage.className = 'hours-error__message';
+    errorMessage.textContent = 'Intenta nuevamente';
+    const retryBtn = document.createElement('button');
+    retryBtn.type = 'button';
+    retryBtn.className = 'btn btn-primary';
+    retryBtn.style.marginTop = '0.8rem';
+    retryBtn.textContent = 'Reintentar';
+    retryBtn.addEventListener('click', () => {
+      businessHoursData = null;
+      void openBusinessHoursModal();
+    });
+    errorWrap.appendChild(errorTitle);
+    errorWrap.appendChild(errorMessage);
+    errorWrap.appendChild(retryBtn);
+    content.appendChild(errorWrap);
+  }
 
   async function openBusinessHoursModal() {
     const modal = document.getElementById('business-hours-modal');
@@ -705,26 +759,21 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     // Load hours if not already loaded
     if (!businessHoursData) {
       try {
-        const response = await fetch(`/api/business-info`);
-        const data = await response.json();
+        if (!businessHoursRequest) {
+          businessHoursRequest = fetchBusinessHoursWithTimeout();
+        }
+        const data = await businessHoursRequest;
+        businessHoursRequest = null;
 
-        if (data.schedule) {
+        if (Array.isArray(data.schedule)) {
           businessHoursData = data.schedule;
-          renderBusinessHours(data.schedule, data.current_day_schedule);
+          renderBusinessHours(data.schedule, data.current_day_schedule || null);
+        } else {
+          renderBusinessHoursError(content);
         }
       } catch (error) {
-        content.replaceChildren();
-        const errorWrap = document.createElement('div');
-        errorWrap.className = 'hours-error';
-        const errorTitle = document.createElement('p');
-        errorTitle.className = 'hours-error__title';
-        errorTitle.textContent = '❌ Error al cargar horarios';
-        const errorMessage = document.createElement('p');
-        errorMessage.className = 'hours-error__message';
-        errorMessage.textContent = 'Intenta nuevamente más tarde';
-        errorWrap.appendChild(errorTitle);
-        errorWrap.appendChild(errorMessage);
-        content.appendChild(errorWrap);
+        businessHoursRequest = null;
+        renderBusinessHoursError(content);
       }
     } else {
       // Use cached data
