@@ -3583,6 +3583,7 @@
     .phone-input-container {
       display: flex;
       gap: 0.5rem;
+      align-items: stretch;
     }
 
     .country-code-selector {
@@ -3597,6 +3598,8 @@
       color: var(--text);
       min-width: 90px;
       justify-content: center;
+      box-sizing: border-box;
+      flex-shrink: 0;
     }
 
     .flag-icon {
@@ -4365,6 +4368,12 @@
       font-size: 0.96rem !important;
     }
 
+    #profile-modal.profile-modal--register .country-code-selector {
+      height: 46px !important;
+      min-height: 46px !important;
+      padding: 0 0.72rem !important;
+    }
+
     #profile-modal.profile-modal--register .password-strength {
       margin-top: 0.25rem !important;
       margin-bottom: 0 !important;
@@ -4463,6 +4472,11 @@
       #profile-modal.profile-modal--register .form-group input,
       #profile-modal.profile-modal--register .form-group select,
       #profile-modal.profile-modal--register .phone-input-wrapper {
+        height: 44px !important;
+        min-height: 44px !important;
+      }
+
+      #profile-modal.profile-modal--register .country-code-selector {
         height: 44px !important;
         min-height: 44px !important;
       }
