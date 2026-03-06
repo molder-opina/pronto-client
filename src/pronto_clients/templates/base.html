@@ -1829,11 +1829,6 @@
           <p id="profile-email" class="profile-subheading"></p>
         </div>
 
-        <div class="profile-avatar-picker" id="profile-avatar-picker">
-          <p class="profile-avatar-picker__label">Icono de perfil</p>
-          <div class="profile-avatar-picker__options" id="profile-avatar-options"></div>
-        </div>
-
         <div class="profile-menu">
 
           <button class="profile-menu-item" data-profile-action="order-history">
@@ -1853,11 +1848,16 @@
 
       <!-- Personal Info View -->
       <div id="profile-personal-info" class="profile-view" style="display: none">
-        <div class="profile-header">
-          <button class="btn-link back-to-profile-btn" id="profile-personal-info-back-btn">←
-            Volver</button>
-          <h3>Perfil</h3>
+        <div class="profile-header profile-header--personal-info">
+          <button class="btn-link back-to-profile-btn" id="profile-personal-info-back-btn" type="button">← Volver</button>
+          <h3>Editar perfil</h3>
         </div>
+
+        <div class="profile-avatar-picker" id="profile-avatar-picker">
+          <p class="profile-avatar-picker__label">Icono de perfil</p>
+          <div class="profile-avatar-picker__options" id="profile-avatar-options"></div>
+        </div>
+
         <form id="profile-personal-info-form" class="profile-form">
           <div class="form-group">
             <label for="personal-info-tax-id">RFC</label>
@@ -3955,6 +3955,48 @@
       padding-right: 2rem;
     }
 
+    #profile-personal-info .profile-header--personal-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding-right: 2.25rem;
+      text-align: left;
+    }
+
+    #profile-personal-info .profile-header--personal-info h3 {
+      margin: 0;
+      font-size: 1.55rem;
+      line-height: 1.15;
+      color: #0f172a;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    #profile-personal-info .back-to-profile-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.48rem 0.68rem;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #1e293b;
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    #profile-personal-info .back-to-profile-btn:hover {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+
     .profile-view .profile-form {
       padding-top: 0.2rem;
     }
@@ -4494,6 +4536,15 @@
       #profile-modal.profile-modal--register .country-code-selector {
         height: 44px !important;
         min-height: 44px !important;
+      }
+
+      #profile-personal-info .profile-header--personal-info {
+        padding-right: 0.5rem;
+        margin-bottom: 0.8rem;
+      }
+
+      #profile-personal-info .profile-header--personal-info h3 {
+        font-size: 1.35rem;
       }
     }
   </style>
