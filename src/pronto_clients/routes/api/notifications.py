@@ -1,106 +1,87 @@
 """
-Notifications endpoints for clients API.
-Uses customer_ref from flask.session + Redis for authentication.
+Notifications endpoints for clients API - BFF PROXY TO PRONTO-API.
+
+# DEPRECATED: Este módulo implementa lógica de negocio que debe vivir en pronto-api.
+# Fecha de sunset: TBD (por definir en roadmap)
+# Motivo: pronto-client no debe implementar endpoints de negocio según AGENTS.md sección 12.4.2.
+# Autoridad única de API: pronto-api en :6082 bajo "/api/*".
+# Plan de retiro: Migrar lógica de negocio a pronto-api/src/api_app/routes/notifications.py
+# Referencia: AGENTS.md sección 12.4.2, 12.4.3, 12.4.4
+
+NOTE: This is now a BFF proxy to pronto-api. All business logic has been migrated.
 """
 
-from datetime import datetime
+from __future__ import annotations
+
+import requests as http_requests
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, request
 
-from pronto_shared.datetime_utils import utcnow
-from pronto_shared.services.customer_session_store import (
-    customer_session_store,
-    RedisUnavailableError,
-)
+from pronto_shared.trazabilidad import get_logger
+from ._upstream import get_pronto_api_base_url
+
+logger = get_logger(__name__)
 
 notifications_bp = Blueprint("client_notifications", __name__)
 
 
-def _get_authenticated_customer() -> dict | None:
-    """Get authenticated customer from flask.session + Redis."""
-    customer_ref = session.get("customer_ref")
-    if not customer_ref:
-        return None
+def _forward_to_api(method: str, path: str, data: dict | None = None):
+    """
+    Forward request to pronto-api.
+    
+    This is a technical proxy (BFF) as per AGENTS.md 12.4.3.
+    No business logic is applied here.
+    """
+    api_base_url = get_pronto_api_base_url()
+    url = f"{api_base_url}{path}"
+    
+    headers = {
+        "X-PRONTO-CUSTOMER-REF": request.headers.get("X-PRONTO-CUSTOMER-REF", ""),
+        "Content-Type": "application/json",
+    }
+    
+    # Forward correlation ID if present
+    correlation_id = request.headers.get("X-Correlation-ID")
+    if correlation_id:
+        headers["X-Correlation-ID"] = correlation_id
+
+    csrf_token = request.headers.get("X-CSRFToken")
+    if csrf_token:
+        headers["X-CSRFToken"] = csrf_token
+    
     try:
-        if customer_session_store.is_revoked(customer_ref):
-            session.pop("customer_ref", None)
-            return None
-        return customer_session_store.get_customer(customer_ref)
-    except RedisUnavailableError:
-        return None
+        if method == "GET":
+            response = http_requests.get(url, headers=headers, cookies=request.cookies, timeout=5)
+        elif method == "POST":
+            response = http_requests.post(url, json=data, headers=headers, cookies=request.cookies, timeout=5)
+        else:
+            from pronto_shared.serializers import error_response
+            return error_response("Method not supported"), HTTPStatus.METHOD_NOT_ALLOWED
+        
+        # Return response from pronto-api
+        from pronto_shared.serializers import success_response
+        return success_response(response.json()), response.status_code
+    
+    except http_requests.Timeout:
+        from pronto_shared.serializers import error_response
+        return error_response("Timeout conectando a API"), HTTPStatus.GATEWAY_TIMEOUT
+    except http_requests.RequestException as e:
+        logger.error(f"Error forwarding to pronto-api: {e}", error={"exception": str(e)})
+        from pronto_shared.serializers import error_response
+        return error_response("Error conectando a API"), HTTPStatus.BAD_GATEWAY
 
 
 @notifications_bp.get("/notifications")
 def get_notifications():
-    """Get unread notifications for the current authenticated customer."""
-    from sqlalchemy import select
-
-    from pronto_shared.db import get_session as get_db_session
-    from pronto_shared.models import Notification
-
-    customer = _get_authenticated_customer()
-    if not customer:
-        return jsonify({"error": "Authentication required"}), HTTPStatus.UNAUTHORIZED
-
-    customer_id = customer.get("customer_id")
-    if not customer_id:
-        return jsonify({"error": "Authentication required"}), HTTPStatus.UNAUTHORIZED
-
-    with get_db_session() as db_session:
-        query = (
-            select(Notification)
-            .where(
-                Notification.recipient_type == "customer",
-                Notification.recipient_id == customer_id,
-                Notification.status == "unread",
-            )
-            .order_by(Notification.created_at.desc())
-            .limit(50)
-        )
-
-        notifications = db_session.execute(query).scalars().all()
-
-        return jsonify(
-            {
-                "notifications": [
-                    {
-                        "id": n.id,
-                        "type": n.notification_type,
-                        "title": n.title,
-                        "message": n.message,
-                        "priority": n.priority,
-                        "created_at": n.created_at.isoformat(),
-                    }
-                    for n in notifications
-                ]
-            }
-        ), HTTPStatus.OK
+    """PROXY: Get unread notifications for the current authenticated customer."""
+    path = "/api/notifications"
+    return _forward_to_api("GET", path)
 
 
 @notifications_bp.post("/notifications/<int:notification>/read")
 def mark_notification_read(notification: int):
-    """Mark a notification as read (requires auth + ownership check)."""
-    from pronto_shared.db import get_session as get_db_session
-    from pronto_shared.models import Notification
-
-    customer = _get_authenticated_customer()
-    if not customer:
-        return jsonify({"error": "Authentication required"}), HTTPStatus.UNAUTHORIZED
-
-    customer_id = customer.get("customer_id")
-
-    with get_db_session() as db_session:
-        notification = db_session.get(Notification, notification)
-        if not notification:
-            return jsonify({"error": "Notification not found"}), HTTPStatus.NOT_FOUND
-
-        if notification.recipient_type != "customer" or str(
-            notification.recipient_id
-        ) != str(customer_id):
-            return jsonify({"error": "Notification not found"}), HTTPStatus.NOT_FOUND
-
-        notification.status = "read"
-        notification.read_at = utcnow()
-        db_session.commit()
-        return jsonify({"status": "ok"}), HTTPStatus.OK
+    """PROXY: Mark a notification as read."""
+    path = f"/api/notifications/{notification}/read"
+    return _forward_to_api("POST", path)

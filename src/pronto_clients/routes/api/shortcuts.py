@@ -1,23 +1,28 @@
-"""Client UI proxy routes."""
-
-import json
-from urllib.parse import urljoin
-from urllib.request import urlopen
-
+"""
+Keyboard shortcuts endpoints for clients - UI-ONLY.
+This module provides keyboard shortcuts metadata for the client UI.
+No business logic, no database operations, just static metadata.
+This is a frontend convenience endpoint.
+Reference: AGENTS.md section 12.4.2
+"""
+from __future__ import annotations
 from flask import Blueprint, jsonify
-from pronto_clients.routes.api.orders import _forward_to_api
-
+from http import HTTPStatus
 shortcuts_bp = Blueprint("client_shortcuts", __name__)
-
-
 @shortcuts_bp.get("/shortcuts")
-def get_enabled_shortcuts():
-    """Proxy endpoint to fetch shortcuts from the main API."""
-    data, status, _ = _forward_to_api("GET", "/api/shortcuts")
-    return jsonify(data), status
-
-
-@shortcuts_bp.post("/feedback/questions")
-def get_feedback_questions():
-    data, status, _ = _forward_to_api("POST", "/api/feedback/questions", {})
-    return jsonify(data), status
+def get_shortcuts():
+    """
+    Get keyboard shortcuts for the client app.
+    
+    UI-ONLY endpoint: Returns static metadata without business logic.
+    """
+    shortcuts = {
+        "ctrl+s": {"action": "save", "description": "Guardar orden"},
+        "ctrl+e": {"action": "edit", "description": "Editar ítem"},
+        "ctrl+d": {"action": "delete", "description": "Eliminar ítem"},
+        "ctrl+enter": {"action": "submit", "description": "Enviar orden"},
+        "esc": {"action": "close", "description": "Cerrar modal"},
+        "f2": {"action": "help", "description": "Mostrar ayuda"},
+    }
+    
+    return jsonify({"shortcuts": shortcuts}), HTTPStatus.OK

@@ -1,293 +1,105 @@
 """
-Feedback email endpoints for API.
+Feedback email endpoints for clients API - BFF PROXY TO PRONTO-API.
+
+# DEPRECATED: Este módulo implementa lógica de negocio que debe vivir en pronto-api.
+# Fecha de sunset: TBD (por definir en roadmap)
+# Motivo: pronto-client no debe implementar endpoints de negocio según AGENTS.md sección 12.4.2.
+# Autoridad única de API: pronto-api en :6082 bajo "/api/*".
+# Plan de retiro: Migrar lógica de negocio a pronto-api
+# Referencia: AGENTS.md sección 12.4.2, 12.4.3, 12.4.4
+
+NOTE: pronto-api ya tiene endpoints completos de feedback en /api/feedback/
+      Este módulo hace BFF proxy a esos endpoints.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
+import requests as http_requests
 from http import HTTPStatus
 from uuid import UUID
 
-from flask import Blueprint, jsonify, request
-from sqlalchemy import select
+from flask import Blueprint, request
+
 from pronto_shared.trazabilidad import get_logger
+from ._upstream import get_pronto_api_base_url
 
 logger = get_logger(__name__)
 
-feedback_email_bp = Blueprint("feedback_email", __name__)
+feedback_email_bp = Blueprint("client_feedback_email", __name__)
+
+
+def _forward_to_api(method: str, path: str, data: dict | None = None):
+    """
+    Forward request to pronto-api.
+    
+    This is a technical proxy (BFF) as per AGENTS.md 12.4.3.
+    No business logic is applied here.
+    """
+    api_base_url = get_pronto_api_base_url()
+    url = f"{api_base_url}{path}"
+    
+    headers = {
+        "X-PRONTO-CUSTOMER-REF": request.headers.get("X-PRONTO-CUSTOMER-REF", ""),
+        "Content-Type": "application/json",
+    }
+    
+    # Forward correlation ID if present
+    correlation_id = request.headers.get("X-Correlation-ID")
+    if correlation_id:
+        headers["X-Correlation-ID"] = correlation_id
+
+    csrf_token = request.headers.get("X-CSRFToken")
+    if csrf_token:
+        headers["X-CSRFToken"] = csrf_token
+    
+    try:
+        if method == "GET":
+            response = http_requests.get(url, headers=headers, cookies=request.cookies, timeout=5)
+        elif method == "POST":
+            response = http_requests.post(url, json=data, headers=headers, cookies=request.cookies, timeout=5)
+        else:
+            from pronto_shared.serializers import error_response
+            return error_response("Method not supported"), HTTPStatus.METHOD_NOT_ALLOWED
+        
+        # Return response from pronto-api
+        from pronto_shared.serializers import success_response
+        return success_response(response.json()), response.status_code
+    
+    except http_requests.Timeout:
+        from pronto_shared.serializers import error_response
+        return error_response("Timeout conectando a API"), HTTPStatus.GATEWAY_TIMEOUT
+    except http_requests.RequestException as e:
+        logger.error(f"Error forwarding to pronto-api: {e}", error={"exception": str(e)})
+        from pronto_shared.serializers import error_response
+        return error_response("Error conectando a API"), HTTPStatus.BAD_GATEWAY
+
+
+@feedback_email_bp.post("/feedback/email/<token>/submit")
+def submit_feedback_with_token(token):
+    """PROXY: Submit feedback with email token."""
+    payload = request.get_json(silent=True) or {}
+    path = f"/api/feedback/email/{token}/submit"
+    return _forward_to_api("POST", path, data=payload)
 
 
 @feedback_email_bp.post("/orders/<uuid:order_id>/feedback/email-trigger")
 def trigger_feedback_email(order_id: UUID):
-    """
-    Trigger feedback email after timer expires.
-    Called from frontend when feedback prompt times out.
-
-    Validates:
-    1) Order exists, is paid and belongs to:
-       - authenticated user (registered) OR
-       - current anonymous session
-    2) No existing feedback_submissions for order_id.
-    3) feedback_email_enabled = true.
-    4) Determines effective email:
-       - registered => user.email
-       - anonymous => order/session email
-    5) If no effective email => respond 204 (no-op).
-    6) Create token (if no active) with TTL hours.
-    7) Enqueue/send email and set email_sent_at.
-
-    Important:
-    - Idempotent: multiple calls should not send multiple emails (use throttle).
-    - Rate limit per order_id.
-    """
-    from pronto_shared.jwt_middleware import get_current_user
-    from sqlalchemy import select
-
-    from pronto_shared.db import get_session
-    from pronto_shared.models import Order
-    from pronto_shared.services.feedback_email_service import FeedbackEmailService
-
-    try:
-        # Get session from JWT
-        user = get_current_user()
-        session_id_from_cookie = user.get("session_id") if user else None
-
-        # Validate order exists
-        with get_session() as db_session:
-            order = db_session.execute(
-                select(Order).where(Order.id == order_id)
-            ).scalar_one_or_none()
-
-            if not order:
-                return jsonify({"error": "Orden no encontrada"}), HTTPStatus.NOT_FOUND
-
-            # Check if order is paid
-            if not FeedbackEmailService._is_order_paid(order):
-                return jsonify(
-                    {"error": "La orden no ha sido pagada"}
-                ), HTTPStatus.BAD_REQUEST
-
-            # Validate order belongs to current context
-            # Either: registered user OR current anonymous session
-            is_valid_context = False
-            effective_session_id = None
-
-            if order.customer_id:
-                # Registered user - always valid
-                is_valid_context = True
-                effective_session_id = order.session_id
-            elif session_id_from_cookie and session_id_from_cookie == order.session_id:
-                # Anonymous user - must be current session
-                is_valid_context = True
-                effective_session_id = session_id_from_cookie
-
-            if not is_valid_context:
-                return jsonify(
-                    {"error": "No tienes permiso para esta orden"}
-                ), HTTPStatus.FORBIDDEN
-
-            # Get timeout from config or request
-            timeout_seconds = int(request.args.get("timeout") or 10)
-
-            # Get config values
-            from pronto_shared.services.business_config_service import ConfigService
-
-            config = ConfigService()
-            ttl_hours = config.get_int("feedback_email_token_ttl_hours", 24)
-
-            # Trigger email
-            result = FeedbackEmailService.trigger_feedback_email(
-                order_id=order_id,
-                session_id=effective_session_id,
-                timeout_seconds=timeout_seconds,
-                ttl_hours=ttl_hours,
-            )
-
-            status_code = (
-                HTTPStatus.OK if result["success"] else HTTPStatus.INTERNAL_SERVER_ERROR
-            )
-            return jsonify(result), status_code
-
-    except Exception as e:
-        logger.error("Error triggering feedback email", error={"exception": str(e), "traceback": True})
-        return jsonify(
-            {"error": "Error interno del servidor"}
-        ), HTTPStatus.INTERNAL_SERVER_ERROR
+    """PROXY: Trigger feedback email after timer expires."""
+    payload = request.get_json(silent=True) or {}
+    path = f"/api/feedback/orders/{order_id}/feedback/email-trigger"
+    return _forward_to_api("POST", path, data=payload)
 
 
-@feedback_email_bp.get("/feedback/email/<token>")
-def get_feedback_email_form(token: str):
-    """
-    Validate token + return questions + context (order_id).
-
-    Token validation rules:
-    - Token exists
-    - Not expired
-    - Not already used
-
-    Returns feedback form context if valid.
-    """
-    from pronto_shared.db import get_session
-    from pronto_shared.models import FeedbackQuestion
-    from pronto_shared.services.feedback_email_service import FeedbackEmailService
-
-    try:
-        # Validate token
-        token_data = FeedbackEmailService.validate_token(token)
-
-        if not token_data:
-            return jsonify(
-                {"error": "Token inválido o expirado"}
-            ), HTTPStatus.BAD_REQUEST
-
-        # Get enabled questions
-        with get_session() as db_session:
-            questions = (
-                db_session.execute(
-                    select(FeedbackQuestion)
-                    .where(FeedbackQuestion.is_enabled)
-                    .order_by(FeedbackQuestion.sort_order)
-                )
-                .scalars()
-                .all()
-            )
-
-            questions_data = [
-                {
-                    "id": q.id,
-                    "question_text": q.question_text,
-                    "question_type": q.question_type,
-                    "category": q.category,
-                    "is_required": q.is_required,
-                    "min_rating": q.min_rating,
-                    "max_rating": q.max_rating,
-                }
-                for q in questions
-            ]
-
-        # Combine context
-        response_data = {**token_data, "questions": questions_data}
-
-        return jsonify(response_data), HTTPStatus.OK
-
-    except Exception as e:
-        logger.error(
-            "Error getting feedback email form", error={"exception": str(e), "traceback": True}
-        )
-        return jsonify(
-            {"error": "Error interno del servidor"}
-        ), HTTPStatus.INTERNAL_SERVER_ERROR
+@feedback_email_bp.post("/feedback/bulk")
+def submit_bulk_feedback():
+    """PROXY: Submit bulk feedback."""
+    payload = request.get_json(silent=True) or {}
+    path = "/api/feedback/bulk"
+    return _forward_to_api("POST", path, data=payload)
 
 
-@feedback_email_bp.post("/feedback/email/<token>/submit")
-def submit_feedback_email(token: str):
-    """
-    Submit feedback via email link.
-
-    Validation:
-    - Validate token (not expired, not used)
-    - Save submission with source="email"
-    - Mark token used_at
-    - (optional) Mark order/session feedback_completed_at
-    """
-    from http import HTTPStatus
-
-    from flask import jsonify, request
-
-    from pronto_shared.constants import FeedbackCategory
-    from pronto_shared.db import get_session
-    from pronto_shared.models import DiningSession, Feedback, Order
-    from pronto_shared.services.feedback_email_service import FeedbackEmailService
-
-    try:
-        # Validate token first
-        token_data = FeedbackEmailService.validate_token(token)
-
-        if not token_data:
-            return jsonify(
-                {"error": "Token inválido o expirado"}
-            ), HTTPStatus.BAD_REQUEST
-
-        payload = request.get_json(silent=True) or {}
-        ratings = payload.get("ratings", [])
-        comment = payload.get("comment", "").strip()
-
-        # Validate ratings
-        valid_categories = {cat.value for cat in FeedbackCategory}
-
-        with get_session() as db_session:
-            # Fetch order and session
-            order = db_session.execute(
-                select(Order).where(Order.id == token_data["order_id"])
-            ).scalar_one_or_none()
-
-            if not order:
-                return jsonify({"error": "Orden no encontrada"}), HTTPStatus.NOT_FOUND
-
-            session_obj = db_session.execute(
-                select(DiningSession).where(
-                    DiningSession.id == token_data["session_id"]
-                )
-            ).scalar_one_or_none()
-
-            feedback_count = 0
-
-            for rating_data in ratings:
-                category = rating_data.get("category")
-                rating = rating_data.get("rating")
-
-                if not category or category not in valid_categories:
-                    continue
-
-                if not isinstance(rating, int) or rating < 1 or rating > 5:
-                    continue
-
-                feedback = Feedback(
-                    session_id=token_data["session_id"],
-                    customer_id=token_data["user_id"],
-                    category=category,
-                    rating=rating,
-                    comment=comment if category == "overall_experience" else None,
-                    is_anonymous=token_data["user_id"] is None,
-                )
-                db_session.add(feedback)
-                feedback_count += 1
-
-            if feedback_count == 0 and comment:
-                feedback = Feedback(
-                    session_id=token_data["session_id"],
-                    customer_id=token_data["user_id"],
-                    category=FeedbackCategory.OVERALL_EXPERIENCE.value,
-                    rating=3,
-                    comment=comment,
-                    is_anonymous=token_data["user_id"] is None,
-                )
-                db_session.add(feedback)
-                feedback_count = 1
-
-            # Mark token as used
-            FeedbackEmailService.mark_token_used(token_data["token_hash"])
-
-            # Mark session feedback completed
-            if session_obj:
-                session_obj.feedback_completed_at = datetime.now()
-                db_session.flush()
-
-            db_session.commit()
-
-        logger.info(
-            f"Feedback submitted via email for order {token_data['order_id']}",
-            feedback_count=feedback_count
-        )
-
-        return jsonify(
-            {"success": True, "message": "Gracias por tu feedback"}
-        ), HTTPStatus.OK
-
-    except Exception as e:
-        logger.error(
-            "Error submitting feedback via email", error={"exception": str(e), "traceback": True}
-        )
-        return jsonify(
-            {"error": "Error interno del servidor"}
-        ), HTTPStatus.INTERNAL_SERVER_ERROR
+@feedback_email_bp.post("/feedback/questions")
+def get_feedback_questions():
+    """PROXY: Get feedback questions."""
+    path = "/api/feedback/questions"
+    return _forward_to_api("POST", path)

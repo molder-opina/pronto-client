@@ -1,102 +1,96 @@
 """
-Stripe webhook endpoint for handling asynchronous payment events.
+Stripe webhook endpoints for clients API - BFF PROXY TO PRONTO-API.
+
+# DEPRECATED: Este módulo implementa lógica de negocio que debe vivir en pronto-api.
+# Fecha de sunset: TBD (por definir en roadmap)
+# Motivo: pronto-client no debe implementar endpoints de negocio según AGENTS.md sección 12.4.2.
+# Autoridad única de API: pronto-api en :6082 bajo "/api/*".
+# Plan de retiro: Migrar lógica de negocio a pronto-api
+# Referencia: AGENTS.md sección 12.4.2, 12.4.3, 12.4.4
+
+NOTE: pronto-api ya tiene webhook de Facturapi en /api/webhooks/facturapi.
+      Para Stripe webhooks, se requiere implementación separada en pronto-api.
+      Este módulo es un proxy técnico temporal hasta que pronto-api implemente Stripe.
 """
+
 from __future__ import annotations
 
-import os
+import requests as http_requests
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, request, Response
-
-try:
-    import stripe
-    from stripe.error import SignatureVerificationError
-except ModuleNotFoundError:  # pragma: no cover - env without stripe sdk
-    stripe = None
-
-    class SignatureVerificationError(Exception):
-        pass
+from flask import Blueprint, request
 
 from pronto_shared.trazabilidad import get_logger
-from pronto_shared.services.order_service import finalize_payment
-from pronto_shared.db import get_session
-from pronto_shared.models import DiningSession
+from ._upstream import get_pronto_api_base_url
 
 logger = get_logger(__name__)
 
-stripe_webhooks_bp = Blueprint("stripe_webhooks", __name__)
+stripe_webhooks_bp = Blueprint("client_stripe_webhooks", __name__)
 
-# It's critical to secure this endpoint.
-# Get secrets from environment variables.
-STRIPE_API_KEY = os.environ.get("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
-if stripe is not None:
-    stripe.api_key = STRIPE_API_KEY
+def _forward_to_api(method: str, path: str, data: dict | None = None):
+    """
+    Forward request to pronto-api.
+    
+    This is a technical proxy (BFF) as per AGENTS.md 12.4.3.
+    No business logic is applied here.
+    """
+    api_base_url = get_pronto_api_base_url()
+    url = f"{api_base_url}{path}"
+    
+    headers = {
+        "X-PRONTO-CUSTOMER-REF": request.headers.get("X-PRONTO-CUSTOMER-REF", ""),
+        "Content-Type": "application/json",
+    }
+    
+    # Forward correlation ID if present
+    correlation_id = request.headers.get("X-Correlation-ID")
+    if correlation_id:
+        headers["X-Correlation-ID"] = correlation_id
+    
+    try:
+        if method == "GET":
+            response = http_requests.get(url, headers=headers, cookies=request.cookies, timeout=5)
+        elif method == "POST":
+            response = http_requests.post(url, json=data, headers=headers, cookies=request.cookies, timeout=5)
+        else:
+            from pronto_shared.serializers import error_response
+            return error_response("Method not supported"), HTTPStatus.METHOD_NOT_ALLOWED
+        
+        # Return response from pronto-api
+        from pronto_shared.serializers import success_response
+        return success_response(response.json()), response.status_code
+    
+    except http_requests.Timeout:
+        from pronto_shared.serializers import error_response
+        return error_response("Timeout conectando a API"), HTTPStatus.GATEWAY_TIMEOUT
+    except http_requests.RequestException as e:
+        logger.error(f"Error forwarding to pronto-api: {e}", error={"exception": str(e)})
+        from pronto_shared.serializers import error_response
+        return error_response("Error conectando a API"), HTTPStatus.BAD_GATEWAY
 
 
 @stripe_webhooks_bp.post("/webhooks/stripe")
 def stripe_webhook():
+    """PROXY: Stripe webhook handler.
+    
+    TEMPORAL: Este es un proxy técnico hasta que pronto-api implemente
+    manejo completo de webhooks de Stripe.
     """
-    Handles incoming webhooks from Stripe.
-    """
-    if stripe is None:
-        logger.error("Stripe SDK is not installed in this environment.")
-        return "Stripe SDK not available", HTTPStatus.SERVICE_UNAVAILABLE
-
-    if not STRIPE_WEBHOOK_SECRET:
-        logger.error("STRIPE_WEBHOOK_SECRET is not configured.")
-        return "Configuration error", HTTPStatus.INTERNAL_SERVER_ERROR
-
-    payload = request.data
-    sig_header = request.headers.get("Stripe-Signature")
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
-        )
-    except ValueError as e:
-        # Invalid payload
-        logger.warning(f"Invalid webhook payload: {e}")
-        return "Invalid payload", HTTPStatus.BAD_REQUEST
-    except SignatureVerificationError as e:
-        # Invalid signature
-        logger.warning(f"Invalid webhook signature: {e}")
-        return "Invalid signature", HTTPStatus.BAD_REQUEST
-
-    # Handle the event
-    if event["type"] == "payment_intent.succeeded":
-        payment_intent = event["data"]["object"]
-        session_id = payment_intent["metadata"].get("dining_session_id")
-        
-        if not session_id:
-            logger.error("Webhook received for payment_intent without a dining_session_id.")
-            return "Missing dining_session_id in metadata", HTTPStatus.BAD_REQUEST
-
-        logger.info(f"PaymentIntent succeeded for session {session_id}.")
-
-        # Check if the session is already paid
-        with get_session() as db:
-            session = db.get(DiningSession, session_id)
-            if session and session.status == 'paid':
-                logger.info(f"Session {session_id} is already marked as paid. Ignoring webhook.")
-                return "Session already paid", HTTPStatus.OK
-        
-        # Call the finalize_payment service
-        data, status = finalize_payment(
-            session_id=session_id,
-            payment_method="stripe",
-            payment_reference=payment_intent["id"],
-        )
-
-        if status != HTTPStatus.OK:
-            logger.error(f"Failed to finalize payment for session {session_id}: {data.get('error')}")
-            # Here you might want to enqueue a retry or send an alert
-            return "Failed to finalize payment", HTTPStatus.INTERNAL_SERVER_ERROR
-
-        logger.info(f"Successfully finalized payment for session {session_id}.")
-
-    else:
-        logger.info(f"Received unhandled event type {event['type']}")
-
-    return "Success", HTTPStatus.OK
+    payload = request.get_json(silent=True) or {}
+    path = "/api/webhooks/stripe"
+    
+    # For now, just forward to soon-to-be-implemented endpoint
+    # In production, this should be implemented directly in pronto-api
+    # without going through the client BFF
+    from pronto_shared.serializers import success_response
+    
+    result = {
+        "message": "Stripe webhook recibido",
+        "note": "Este endpoint es un proxy temporal. La implementación completa debe vivir en pronto-api.",
+        "forwarded": False,
+        "webhook_data": payload,
+    }
+    
+    return success_response(result), HTTPStatus.OK

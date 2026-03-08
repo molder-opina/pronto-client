@@ -1,367 +1,96 @@
 """
-Waiter call endpoints for clients API.
+Waiter call endpoints for clients API - BFF PROXY TO PRONTO-API.
+
+# DEPRECATED: Este módulo implementa lógica de negocio que debe vivir en pronto-api.
+# Fecha de sunset: TBD (por definir en roadmap)
+# Motivo: pronto-client no debe implementar endpoints de negocio según AGENTS.md sección 12.4.2.
+# Autoridad única de API: pronto-api en :6082 bajo "/api/*".
+# Plan de retiro: Migrar lógica de negocio a pronto-api/src/api_app/routes/customers/waiter_calls.py
+# Referencia: AGENTS.md sección 12.4.2, 12.4.3, 12.4.4
+
+NOTE: This is now a BFF proxy to pronto-api. All business logic has been migrated.
 """
 
-from datetime import datetime, timedelta
+from __future__ import annotations
+
+import requests as http_requests
 from http import HTTPStatus
+from uuid import UUID
 
-from flask import Blueprint, current_app, jsonify, request, session
+from flask import Blueprint, request
 
-from pronto_shared.datetime_utils import utcnow
-from pronto_shared.services.waiter_call_service import get_waiter_assignment_from_db
-from pronto_shared.services.waiter_table_assignment_service import get_table_assignment
-from pronto_shared.services.waiter_calls import (
-    cache_waiter_call_state,
-    get_cached_waiter_call_state,
-)
-from pronto_shared.supabase.realtime import emit_waiter_call
-
-from pronto_shared.services.customer_session_store import customer_session_store
 from pronto_shared.trazabilidad import get_logger
+from ._upstream import get_pronto_api_base_url
 
 logger = get_logger(__name__)
 
 waiter_calls_bp = Blueprint("client_waiter_calls", __name__)
 
 
+def _forward_to_api(method: str, path: str, data: dict | None = None):
+    """
+    Forward request to pronto-api.
+    
+    This is a technical proxy (BFF) as per AGENTS.md 12.4.3.
+    No business logic is applied here.
+    """
+    api_base_url = get_pronto_api_base_url()
+    url = f"{api_base_url}{path}"
+    
+    headers = {
+        "X-PRONTO-CUSTOMER-REF": request.headers.get("X-PRONTO-CUSTOMER-REF", ""),
+        "Content-Type": "application/json",
+    }
+    
+    # Forward correlation ID if present
+    correlation_id = request.headers.get("X-Correlation-ID")
+    if correlation_id:
+        headers["X-Correlation-ID"] = correlation_id
+
+    csrf_token = request.headers.get("X-CSRFToken")
+    if csrf_token:
+        headers["X-CSRFToken"] = csrf_token
+    
+    try:
+        if method == "GET":
+            response = http_requests.get(url, headers=headers, cookies=request.cookies, timeout=5)
+        elif method == "POST":
+            response = http_requests.post(url, json=data, headers=headers, cookies=request.cookies, timeout=5)
+        else:
+            from pronto_shared.serializers import error_response
+            return error_response("Method not supported"), HTTPStatus.METHOD_NOT_ALLOWED
+        
+        # Return response from pronto-api
+        from pronto_shared.serializers import success_response
+        return success_response(response.json()), response.status_code
+    
+    except http_requests.Timeout:
+        from pronto_shared.serializers import error_response
+        return error_response("Timeout conectando a API"), HTTPStatus.GATEWAY_TIMEOUT
+    except http_requests.RequestException as e:
+        logger.error(f"Error forwarding to pronto-api: {e}", error={"exception": str(e)})
+        from pronto_shared.serializers import error_response
+        return error_response("Error conectando a API"), HTTPStatus.BAD_GATEWAY
+
+
 @waiter_calls_bp.post("/call-waiter")
 def call_waiter():
-    """
-    Register a customer request to call a waiter.
-    This creates a WaiterCall record that tracks the status and confirmation.
-    """
-    from sqlalchemy import and_, select
-
-    from pronto_shared.db import get_session
-    from pronto_shared.models import (
-        DiningSession,
-        Notification,
-        Order,
-        Table,
-        WaiterCall,
-        WaiterTableAssignment,
-    )
-
+    """PROXY: Customer requests a waiter for their table."""
     payload = request.get_json(silent=True) or {}
-    table_number = payload.get("table_number", "").strip()
-    session_id = payload.get("session_id")
-
-    # Validate customer session
-    customer_ref = session.get("customer_ref")
-    if not customer_ref:
-        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
-    try:
-        customer = customer_session_store.get_customer(customer_ref)
-        if not customer:
-            session.pop("customer_ref", None)
-            return jsonify({"error": "Sesión expirada"}), HTTPStatus.UNAUTHORIZED
-    except Exception:
-        pass
-
-    if not table_number:
-        return jsonify(
-            {"error": "El número de mesa es requerido"}
-        ), HTTPStatus.BAD_REQUEST
-
-    if len(table_number) > 32:
-        return jsonify({"error": "Número de mesa inválido"}), HTTPStatus.BAD_REQUEST
-
-    order_numbers = []
-    waiter_call_created_at = None
-    waiter_id = waiter_name = None
-    table_id = None
-    table_created_at = None
-
-    with get_session() as db_session:
-        table_obj = (
-            db_session.execute(select(Table).where(Table.table_number == table_number))
-            .scalars()
-            .one_or_none()
-        )
-
-        if not table_obj:
-            return jsonify({"error": "Mesa no encontrada"}), HTTPStatus.BAD_REQUEST
-
-        # Store table info before session ends
-        table_id = table_obj.id
-        table_created_at = table_obj.created_at
-
-        from pronto_shared.services.settings_service import get_setting
-
-        cooldown_seconds = int(get_setting("waiter.call_cooldown_seconds", 120))
-        cooldown_threshold = utcnow() - timedelta(seconds=cooldown_seconds)
-
-        recent_call = (
-            db_session.execute(
-                select(WaiterCall).where(
-                    and_(
-                        WaiterCall.table_number == table_number,
-                        WaiterCall.status == "pending",
-                        WaiterCall.created_at >= cooldown_threshold,
-                    )
-                )
-            )
-            .scalars()
-            .first()
-        )
-
-        if recent_call:
-            try:
-                from pronto_shared.models import DiningSession
-                from pronto_shared.services.waiter_call_service import (
-                    get_waiter_assignment_from_dining_session,
-                )
-
-                waiter_id = None
-                waiter_name = None
-                if session_id:
-                    dining_session = db_session.get(DiningSession, session_id)
-                    if dining_session:
-                        waiter_id, waiter_name = (
-                            get_waiter_assignment_from_dining_session(dining_session)
-                        )
-
-                # Intentar por asignación de mesa si no hay mesero aún
-                if not waiter_id:
-                    table_assignment = get_table_assignment(table_id)
-                    if table_assignment:
-                        waiter_id = table_assignment.get("waiter_id")
-                        waiter_name = table_assignment.get("waiter_name")
-
-                emit_waiter_call(
-                    call_id=recent_call.id,
-                    session_id=session_id,
-                    table_number=table_number,
-                    status="pending",
-                    call_type="waiter_call",
-                    order_numbers=[],
-                    waiter_id=waiter_id,
-                    waiter_name=waiter_name,
-                    created_at=recent_call.created_at,
-                )
-
-                cache_waiter_call_state(
-                    call_id=recent_call.id,
-                    status=recent_call.status,
-                    table_number=recent_call.table_number,
-                    session_id=recent_call.session_id,
-                    waiter_id=waiter_id,
-                    waiter_name=waiter_name,
-                    created_at=recent_call.created_at,
-                    confirmed_at=recent_call.confirmed_at,
-                    confirmed_by=recent_call.confirmed_by,
-                    notes=recent_call.notes,
-                )
-            except Exception as emit_error:
-                logger.warning(
-                    f"Error re-emitting waiter call",
-                    error={"exception": str(emit_error)},
-                )
-
-            return jsonify(
-                {"message": "Llamada reenviada", "call_id": recent_call.id}
-            ), HTTPStatus.OK
-
-        waiter_call = WaiterCall(
-            session_id=session_id if session_id else None,
-            table_number=table_number,
-            status="pending",
-        )
-        db_session.add(waiter_call)
-        db_session.flush()
-
-        # Capture values immediately after flush to avoid detached instance errors
-        call_id = waiter_call.id
-        waiter_call_created_at = waiter_call.created_at
-
-        # Resolver mesero asignado (sesión o asignación de mesa)
-        waiter_id, waiter_name = get_waiter_assignment_from_db(db_session, session_id)
-        if not waiter_id:
-            table_assignment = get_table_assignment(table_id)
-            if table_assignment:
-                waiter_id = table_assignment.get("waiter_id")
-                waiter_name = table_assignment.get("waiter_name")
-
-        recipient_type = "employee" if waiter_id else "all_waiters"
-        notification = Notification(
-            notification_type="waiter_call",
-            recipient_type=recipient_type,
-            recipient_id=waiter_id,
-            title="Cliente solicitando atención",
-            message=f"Mesa {table_number} requiere asistencia",
-            data={"table_number": table_number, "session_id": str(session_id) if session_id else None, "waiter_call_id": call_id},
-            priority="high",
-        )
-        db_session.add(notification)
-
-        # Si no hay mesero asignado, alertar a administradores tras N minutos sin asignación
-        if not waiter_id:
-            try:
-                from pronto_shared.services.business_config_service import (
-                    get_config_value,
-                )
-
-                minutes_cfg = get_config_value("unassigned_table_alert_minutes", "5")
-                alert_minutes = int(minutes_cfg) if str(minutes_cfg).isdigit() else 5
-            except Exception:
-                alert_minutes = 5
-
-            last_assignment = (
-                db_session.execute(
-                    select(WaiterTableAssignment)
-                    .where(WaiterTableAssignment.table_id == table_id)
-                    .order_by(
-                        WaiterTableAssignment.unassigned_at.desc().nulls_last(),
-                        WaiterTableAssignment.assigned_at.desc(),
-                    )
-                )
-                .scalars()
-                .first()
-            )
-            base_time = (
-                last_assignment.unassigned_at or last_assignment.assigned_at
-                if last_assignment
-                else table_created_at
-            )
-            if base_time and (utcnow() - base_time) > timedelta(minutes=alert_minutes):
-                admin_notification = Notification(
-                    notification_type="table_unassigned",
-                    recipient_type="admin",
-                    recipient_id=None,
-                    title="Mesa sin asignar",
-                    message=f"La mesa {table_number} lleva más de {alert_minutes} minutos sin mesero asignado",
-                    data={"table_number": table_number, "waiter_call_id": call_id},
-                    priority="high",
-                )
-                db_session.add(admin_notification)
-
-        db_session.commit()
-
-        cache_waiter_call_state(
-            call_id=call_id,
-            status=waiter_call.status,
-            table_number=waiter_call.table_number,
-            session_id=waiter_call.session_id,
-            waiter_id=waiter_id,
-            waiter_name=waiter_name,
-            created_at=waiter_call.created_at,
-            confirmed_at=waiter_call.confirmed_at,
-            confirmed_by=waiter_call.confirmed_by,
-            notes=waiter_call.notes,
-        )
-
-        # Get order numbers if session exists (call_id and waiter_call_created_at already captured)
-        if session_id:
-            order_numbers = (
-                db_session.execute(
-                    select(Order.id).where(Order.session_id == session_id)
-                )
-                .scalars()
-                .all()
-            )
-            waiter_id, waiter_name = get_waiter_assignment_from_db(
-                db_session, session_id
-            )
-
-    logger.info(
-        f"Waiter called from table {table_number}",
-        session_id=session_id,
-        call_id=call_id,
-    )
-
-    emit_waiter_call(
-        call_id=call_id,
-        session_id=session_id if session_id else 0,
-        table_number=table_number,
-        status="pending",
-        order_numbers=order_numbers,
-        waiter_id=waiter_id,
-        waiter_name=waiter_name,
-        created_at=waiter_call_created_at,
-    )
-
-    return jsonify(
-        {"success": True, "call_id": call_id, "message": "Mesero notificado"}
-    ), 200
+    path = "/api/customers/waiter-calls/call-waiter"
+    return _forward_to_api("POST", path, data=payload)
 
 
-@waiter_calls_bp.get("/call-waiter/status/<int:call>")
-def get_waiter_call_status(call):
-    """Check the status of a waiter call."""
-    customer_ref = session.get("customer_ref")
-    if not customer_ref:
-        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
-
-    cached = get_cached_waiter_call_state(int(call))
-    if cached:
-        return jsonify(cached), HTTPStatus.OK
-
-    from sqlalchemy import select
-
-    from pronto_shared.db import get_session
-    from pronto_shared.models import WaiterCall
-
-    with get_session() as db_session:
-        waiter_call = (
-            db_session.execute(select(WaiterCall).where(WaiterCall.id == call))
-            .scalars()
-            .one_or_none()
-        )
-
-        if not waiter_call:
-            return jsonify({"error": "Llamada no encontrada"}), 404
-
-        return jsonify(
-            {
-                "id": waiter_call.id,
-                "status": waiter_call.status,
-                "created_at": waiter_call.created_at.isoformat()
-                if waiter_call.created_at
-                else None,
-                "confirmed_at": waiter_call.confirmed_at.isoformat()
-                if waiter_call.confirmed_at
-                else None,
-                "confirmed_by": waiter_call.confirmed_by,
-            }
-        ), 200
+@waiter_calls_bp.get("/status/<int:call>")
+def get_waiter_call_status(call: int):
+    """PROXY: Get the status of a waiter call."""
+    path = f"/api/customers/waiter-calls/status/{call}"
+    return _forward_to_api("GET", path)
 
 
-@waiter_calls_bp.get("/notifications/waiter/status/<int:call_id>")
-def get_waiter_call_status_alt(call_id):
-    """Check the status of a waiter call (notification status endpoint)."""
-    customer_ref = session.get("customer_ref")
-    if not customer_ref:
-        return jsonify({"error": "Autenticación requerida"}), HTTPStatus.UNAUTHORIZED
-
-    cached = get_cached_waiter_call_state(int(call_id))
-    if cached:
-        return jsonify(cached), HTTPStatus.OK
-
-    from sqlalchemy import select
-
-    from pronto_shared.db import get_session
-    from pronto_shared.models import WaiterCall
-
-    with get_session() as db_session:
-        waiter_call = (
-            db_session.execute(select(WaiterCall).where(WaiterCall.id == call_id))
-            .scalars()
-            .one_or_none()
-        )
-
-        if not waiter_call:
-            return jsonify({"error": "Llamada no encontrada"}), 404
-
-        return jsonify(
-            {
-                "id": waiter_call.id,
-                "status": waiter_call.status,
-                "created_at": waiter_call.created_at.isoformat()
-                if waiter_call.created_at
-                else None,
-                "confirmed_at": waiter_call.confirmed_at.isoformat()
-                if waiter_call.confirmed_at
-                else None,
-                "confirmed_by": waiter_call.confirmed_by,
-            }
-        ), 200
+@waiter_calls_bp.post("/cancel")
+def cancel_waiter_call():
+    """PROXY: Cancel a pending waiter call."""
+    payload = request.get_json(silent=True) or {}
+    path = "/api/customers/waiter-calls/cancel"
+    return _forward_to_api("POST", path, data=payload)

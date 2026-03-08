@@ -6,16 +6,14 @@ from __future__ import annotations
 
 import os
 from uuid import UUID
-from flask import Blueprint, current_app, render_template, request, session, jsonify
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request, session, url_for
 from sqlalchemy import select
 from pronto_shared.trazabilidad import get_logger
 
 from pronto_shared.db import get_session
-from pronto_shared.jwt_middleware import get_current_user
 from pronto_shared.models import Area, Table, DiningSession
 from pronto_shared.services.customer_service import (
     get_customer_by_email,
-    authenticate_customer,
 )
 from pronto_shared.services.customer_session_store import (
     customer_session_store,
@@ -28,6 +26,107 @@ _KIOSK_SECRET = os.getenv("PRONTO_KIOSK_SECRET", "")
 _KIOSK_PASSWORD = os.getenv(
     "PRONTO_KIOSK_PASSWORD", "kiosk-no-auth-change-in-production"
 )
+logger = get_logger("clients.web")
+
+
+def _get_current_customer() -> dict | None:
+    customer_ref = session.get("customer_ref")
+    if not customer_ref:
+        return None
+
+    try:
+        return customer_session_store.get_customer(customer_ref)
+    except RedisUnavailableError:
+        logger.warning("Customer session store unavailable while resolving web customer")
+        return None
+    except Exception as exc:  # pragma: no cover - defensive logging
+        logger.error(
+            "Unexpected error resolving customer session",
+            error={"type": type(exc).__name__, "message": str(exc)},
+        )
+        return None
+
+
+def _build_next_url() -> str:
+    return request.full_path.rstrip("?") if request.query_string else request.path
+
+
+def _redirect_to_auth(tab: str = "login"):
+    endpoint = "client_web.register_page" if tab == "register" else "client_web.login_page"
+    return redirect(url_for(endpoint, next=_build_next_url()))
+
+
+def _require_customer_web_auth():
+    customer = _get_current_customer()
+    if customer:
+        return customer, None
+    return None, _redirect_to_auth("login")
+
+
+def _is_authorized_kiosk_bootstrap(location: str):
+    debug_mode = bool(current_app.config.get("DEBUG_MODE", False))
+    provided_secret = request.headers.get("X-PRONTO-KIOSK-SECRET", "")
+
+    if _KIOSK_SECRET:
+        if provided_secret != _KIOSK_SECRET:
+            logger.warning(
+                "kiosk secret mismatch",
+                extra={"location": location, "remote_addr": request.remote_addr},
+            )
+            return jsonify({"error": "Unauthorized"}), 401
+        return None
+
+    if not debug_mode:
+        logger.error(
+            "kiosk secret missing in non-debug mode",
+            extra={"location": location},
+        )
+        return jsonify({"error": "Kiosk misconfigured"}), 503
+
+    forwarded_for = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+    source_ip = forwarded_for or request.remote_addr or ""
+    if source_ip not in {"127.0.0.1", "::1", "localhost"}:
+        logger.warning(
+            "kiosk start blocked in debug due non-local source",
+            extra={"location": location, "remote_addr": source_ip},
+        )
+        return jsonify({"error": "Unauthorized"}), 401
+
+    logger.warning(
+        "kiosk start in debug mode without kiosk secret",
+        extra={"location": location, "remote_addr": source_ip},
+    )
+    return None
+
+
+def _is_matching_kiosk_session(customer: dict | None, location: str) -> bool:
+    return bool(
+        customer
+        and customer.get("kind") == "kiosk"
+        and customer.get("kiosk_location") == location
+    )
+
+
+@web_bp.get("/login")
+def login_page():
+    current_customer = _get_current_customer()
+    next_url = request.args.get("next") or "/"
+    if current_customer:
+        return redirect(next_url)
+
+    return redirect(url_for("client_web.home", view="profile", tab="login", next=next_url))
+
+
+@web_bp.get("/register")
+def register_page():
+    current_customer = _get_current_customer()
+    next_url = request.args.get("next") or "/"
+    if current_customer:
+        return redirect(next_url)
+
+    return redirect(
+        url_for("client_web.home", view="profile", tab="register", next=next_url)
+    )
 
 
 @web_bp.get("/")
@@ -36,7 +135,7 @@ def home():
     Landing page that consumes the API via HTMX/fetch for a richer experience.
     """
     debug_auto_table = current_app.config.get("DEBUG_AUTO_TABLE", False)
-    customer_data = get_current_user()
+    customer_data = _get_current_customer()
 
     # Fetch available tables for debug panel
     available_tables = []
@@ -59,7 +158,6 @@ def home():
                     for t, a in results
                 ]
         except Exception as e:
-            logger = get_logger("clients.web")
             logger.error(
                 f"Error fetching tables for debug: {e}", error={"message": str(e)}
             )
@@ -80,7 +178,10 @@ def checkout():
     Separated from the menu page for better UX and cleaner code organization.
     """
     debug_auto_table = current_app.config.get("DEBUG_AUTO_TABLE", False)
-    customer_data = get_current_user()
+    customer_data, auth_redirect = _require_customer_web_auth()
+    if auth_redirect:
+        return auth_redirect
+
     return render_template(
         "checkout.html",
         debug_auto_table=debug_auto_table,
@@ -95,7 +196,10 @@ def menu_alt():
     Alternative menu design with modern delivery app layout.
     """
     debug_auto_table = current_app.config.get("DEBUG_AUTO_TABLE", False)
-    customer_data = get_current_user()
+    customer_data, auth_redirect = _require_customer_web_auth()
+    if auth_redirect:
+        return auth_redirect
+
     return render_template(
         "index-alt.html",
         debug_auto_table=debug_auto_table,
@@ -113,11 +217,11 @@ def feedback_form():
         - session_id: The dining session ID (optional, uses Flask session if available)
         - employee_id: The waiter/employee ID (optional)
     """
-    # Try to get session_id from JWT first, then query param
-    current_user = get_current_user()
-    session_id_raw = (
-        current_user.get("session_id") if current_user else None
-    ) or request.args.get("session_id")
+    current_customer, auth_redirect = _require_customer_web_auth()
+    if auth_redirect:
+        return auth_redirect
+
+    session_id_raw = request.args.get("session_id") or session.get("dining_session_id")
     employee_id_raw = request.args.get("employee_id")
 
     if not session_id_raw:
@@ -140,7 +244,12 @@ def feedback_form():
         stmt = select(DiningSession).where(DiningSession.id == session_id)
         dining_session = db_session.execute(stmt).scalars().one_or_none()
 
-        if not dining_session:
+        current_customer_id = current_customer.get("customer_id")
+        if (
+            not dining_session
+            or not current_customer_id
+            or str(dining_session.customer_id) != str(current_customer_id)
+        ):
             return "Sesión no encontrada", 404
 
     return render_template(
@@ -160,6 +269,12 @@ def kiosk_screen(location: str):
     Args:
         location: Kiosk location identifier (e.g., 'lobby', 'entrance')
     """
+    current_customer = _get_current_customer()
+    if not _is_matching_kiosk_session(current_customer, location):
+        kiosk_auth_error = _is_authorized_kiosk_bootstrap(location)
+        if kiosk_auth_error:
+            return kiosk_auth_error
+
     return render_template(
         "kiosk.html",
         location=location,
@@ -179,38 +294,10 @@ def kiosk_start(location: str):
         - In production: requires PRONTO_KIOSK_SECRET header
         - In dev mode: no secret required
     """
-    logger = get_logger("client.web.kiosk")
-    debug_mode = bool(current_app.config.get("DEBUG_MODE", False))
-    provided_secret = request.headers.get("X-PRONTO-KIOSK-SECRET", "")
-
-    if _KIOSK_SECRET:
-        if provided_secret != _KIOSK_SECRET:
-            logger.warning(
-                "kiosk secret mismatch",
-                extra={"location": location, "remote_addr": request.remote_addr},
-            )
-            return jsonify({"error": "Unauthorized"}), 401
-    else:
-        if not debug_mode:
-            logger.error(
-                "kiosk secret missing in non-debug mode",
-                extra={"location": location},
-            )
-            return jsonify({"error": "Kiosk misconfigured"}), 503
-
-        forwarded_for = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-        source_ip = forwarded_for or request.remote_addr or ""
-        if source_ip not in {"127.0.0.1", "::1", "localhost"}:
-            logger.warning(
-                "kiosk start blocked in debug due non-local source",
-                extra={"location": location, "remote_addr": source_ip},
-            )
-            return jsonify({"error": "Unauthorized"}), 401
-
-        logger.warning(
-            "kiosk start in debug mode without kiosk secret",
-            extra={"location": location, "remote_addr": source_ip},
-        )
+    kiosk_logger = get_logger("client.web.kiosk")
+    kiosk_auth_error = _is_authorized_kiosk_bootstrap(location)
+    if kiosk_auth_error:
+        return kiosk_auth_error
 
     kiosk_email = f"kiosk+{location}@pronto.local"
 

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const tab = {{ auth_tab|tojson }} === 'register' ? 'register' : 'login';
+    const next = {{ next_url|default('/', true)|tojson }};
+    const target = new URL('/', window.location.origin);
+    target.searchParams.set('view', 'profile');
+    target.searchParams.set('tab', tab);
+    if (next && next !== '/') {
+      target.searchParams.set('next', next);
+    }
+    window.location.replace(target.toString());
+  });
+</script>
+
+<noscript>
+  <div style="max-width: 640px; margin: 2rem auto; text-align: center;">
+    <a class="btn btn-primary" href="/?view=profile&tab={{ auth_tab|default('login', true) }}">Abrir autenticación</a>
+  </div>
+</noscript>
+{% endblock %}

@@ -1877,6 +1877,28 @@
             <label for="personal-info-tax-address">Domicilio Fiscal (C.P.)</label>
             <input type="text" id="personal-info-tax-address" placeholder="Código Postal" />
           </div>
+          <div class="form-group">
+            <label for="personal-info-tax-regime">Régimen Fiscal</label>
+            <select id="personal-info-tax-regime">
+              <option value="">Selecciona un régimen...</option>
+              <option value="601">601 - General de Ley Personas Morales</option>
+              <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
+              <option value="612">612 - Personas Físicas con Actividades Empresariales</option>
+              <option value="621">621 - Incorporación Fiscal</option>
+              <option value="626">626 - Actividades Empresariales por Plataformas Tecnológicas</option>
+              <option value="605">605 - Sueldos y Salarios</option>
+              <option value="606">606 - Arrendamiento</option>
+              <option value="608">608 - Demás Ingresos</option>
+              <option value="610">610 - Residentes en el Extranjero</option>
+              <option value="611">611 - Ingresos por Dividendos</option>
+              <option value="614">614 - Ingresos por Intereses</option>
+              <option value="615">615 - Ingresos por Premios</option>
+              <option value="616">616 - Sin Obligaciones Fiscales</option>
+              <option value="622">622 - Actividad Agrícola, Ganadera, Silvícola y Pesquera</option>
+              <option value="629">629 - Regímenes Fiscales Preferentes</option>
+              <option value="630">630 - Enajenación de Acciones en Bolsa</option>
+            </select>
+          </div>
           <button type="submit" class="btn btn-primary btn--full">Guardar Cambios</button>
           <div class="form-feedback" id="personal-info-feedback"></div>
         </form>
@@ -4328,6 +4350,29 @@
       max-height: calc(min(86vh, 760px) - 74px) !important;
     }
 
+    #business-hours-modal .hours-empty-state {
+      display: grid;
+      gap: 0.45rem;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(15, 23, 42, 0.03);
+      color: #0f172a;
+    }
+
+    #business-hours-modal .hours-empty-state strong {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    #business-hours-modal .hours-empty-state p {
+      margin: 0;
+      font-size: 0.92rem;
+      line-height: 1.35;
+      color: #475569;
+    }
+
     /* Item customization modal must always stay above sticky header/tabs. */
     #item-modal {
       position: fixed !important;
@@ -4792,8 +4837,8 @@
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
-  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260305j"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260305j"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260307a"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260307a"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">
@@ -4832,8 +4877,6 @@
 
 
 
-  <script defer src="{{ assets_js }}/shared/bindings.js"></script>
-  <script defer src="{{ assets_js }}/shared/keyboard-shortcuts.js"></script>
 
 
 

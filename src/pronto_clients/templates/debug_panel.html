@@ -435,7 +435,7 @@
   async function debugQuickLogin() {
     showStatus('Iniciando sesión...', 'info');
     try {
-      const res = await fetch(`/api/auth/login`, {
+      const res = await fetch(`/api/client-auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -459,7 +459,7 @@
   async function debugCreateUser() {
     showStatus('Creando usuario...', 'info');
     try {
-      const res = await fetch(`/api/auth/register`, {
+      const res = await fetch(`/api/client-auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -629,104 +629,20 @@
   }
 
   async function debugAdvanceCurrentOrder() {
-    const sessionId = await getSession();
-    if (!sessionId) {
-      showStatus('No hay sesión activa', 'error');
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/session/${sessionId}/orders`, { method: 'GET' });
-      const data = await res.json();
-      const activeOrder = data.orders?.find((o) => o.status !== 'delivered');
-      if (activeOrder) {
-        await csrfFetch(`/api/debug/orders/${activeOrder.order_id}/advance`, { method: 'POST' });
-        showStatus(`✅ Orden #${activeOrder.order_id} avanzada`, 'success');
-        setTimeout(() => location.reload(), 1000);
-      } else {
-        showStatus('No hay órdenes activas', 'warning');
-      }
-    } catch (e) {
-      showStatus('Error: ' + e.message, 'error');
-    }
+    showStatus('⚠️ Avanzar órdenes desde cliente debug quedó deshabilitado; usa el panel de empleados.', 'warning');
   }
 
   async function debugAdvanceAllOrders() {
-    const sessionId = await getSession();
-    if (!sessionId) {
-      showStatus('No hay sesión activa', 'error');
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/session/${sessionId}/orders`, { method: 'GET' });
-      const data = await res.json();
-      const activeOrders = data.orders?.filter((o) => o.status !== 'delivered') || [];
-
-      if (activeOrders.length === 0) {
-        showStatus('No hay órdenes activas', 'warning');
-        return;
-      }
-
-      for (const order of activeOrders) {
-        await csrfFetch(`/api/debug/orders/${order.order_id}/advance`, { method: 'POST' });
-        await new Promise((r) => setTimeout(r, 200));
-      }
-
-      showStatus(`✅ ${activeOrders.length} órdenes avanzadas`, 'success');
-      setTimeout(() => location.reload(), 1500);
-    } catch (e) {
-      showStatus('Error: ' + e.message, 'error');
-    }
+    showStatus('⚠️ Avanzar órdenes en lote desde cliente debug quedó deshabilitado; usa el panel de empleados.', 'warning');
   }
 
   // ============ PAGO ============
   async function debugRequestBill() {
-    const sessionId = await getSession();
-    if (!sessionId) {
-      showStatus('No hay sesión activa', 'error');
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/debug/sessions/${sessionId}/request-checkout`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showStatus(`🧾 Cuenta solicitada: $${data.total_amount?.toFixed(2) || '0.00'}`, 'success');
-      } else {
-        showStatus('❌ ' + data.error, 'error');
-      }
-    } catch (e) {
-      showStatus('Error: ' + e.message, 'error');
-    }
+    showStatus('ℹ️ La solicitud de cuenta de debug ya no se expone en cliente; usa el flujo normal o el panel de empleados.', 'info');
   }
 
   async function debugSimulateCashPayment() {
-    const sessionId = await getSession();
-    if (!sessionId) {
-      showStatus('No hay sesión activa', 'error');
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/debug/sessions/${sessionId}/simulate-payment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payment_method: 'cash' }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showStatus(`✅ Pago en efectivo: $${data.total_amount?.toFixed(2)}`, 'success');
-        localStorage.removeItem('pronto-session-id');
-        setTimeout(() => (location.href = '/thank-you'), 2000);
-      } else {
-        showStatus('❌ ' + data.error, 'error');
-      }
-    } catch (e) {
-      showStatus('Error: ' + e.message, 'error');
-    }
+    showStatus('ℹ️ La simulación de pago en efectivo desde cliente debug fue retirada; usa el flujo real de pago o el panel de empleados.', 'info');
   }
 
   async function debugSimulateCardPayment() {
@@ -769,25 +685,7 @@
   }
 
   async function debugSubmitSupportTicket() {
-    try {
-      const res = await fetch(`/api/support-tickets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Debug User',
-          email: 'debug@test.com',
-          description: 'Ticket de prueba desde debug panel',
-          category: 'suggestion',
-        }),
-      });
-      if (res.ok) {
-        showStatus('🎫 Ticket enviado', 'success');
-      } else {
-        showStatus('Error enviando ticket', 'error');
-      }
-    } catch (e) {
-      showStatus('🎫 Ticket enviado (simulado)', 'success');
-    }
+    showStatus('ℹ️ El envío directo de tickets desde debug fue retirado; usa el modal de soporte disponible en la UI.', 'info');
   }
 
   // ============ HORARIOS ============
@@ -819,14 +717,9 @@
 
   // ============ PROMOCIONES ============
   async function debugViewPromotions() {
-    showStatus('Cargando promociones...', 'info');
-    try {
-      const res = await fetch(`/api/promotions`);
-      const data = await res.json();
-      const count = data.promotions?.length || 0;
-      showStatus(`🎉 ${count} promociones encontradas`, 'success');
-    } catch (e) {
-      showStatus('Error cargando promociones', 'error');
+    showStatus('ℹ️ Las promociones ya no se consultan desde el cliente debug; revisa el panel de empleados.', 'info');
+    if (employeesBaseUrl) {
+      showStatus(`💡 Dirígete a ${employeesBaseUrl}/promotions`, 'info');
     }
   }
 

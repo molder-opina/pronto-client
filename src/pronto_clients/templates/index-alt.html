@@ -336,7 +336,7 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     try {
       const response = await fetch('/api/business-info', {
         method: 'GET',
-        credentials: 'same-origin',
+        credentials: 'include',
         signal: controller.signal,
       });
 
@@ -436,10 +436,27 @@ currency_code = app_settings.currency_code or 'MXN' %} {% block content %}
     const todayIndex = today === 0 ? 6 : today - 1; // Convert Sunday=0 to our 0-6 format
 
     content.replaceChildren();
+
+    if (!Array.isArray(schedule) || schedule.length === 0) {
+      const emptyState = document.createElement('div');
+      emptyState.className = 'hours-empty-state';
+
+      const emptyTitle = document.createElement('strong');
+      emptyTitle.textContent = 'Horarios no disponibles por ahora';
+      emptyState.appendChild(emptyTitle);
+
+      const emptyMessage = document.createElement('p');
+      emptyMessage.textContent = 'Estamos actualizando los horarios de atención. Intenta de nuevo en unos minutos.';
+      emptyState.appendChild(emptyMessage);
+
+      content.appendChild(emptyState);
+      if (!currentDaySchedule) return;
+    }
+
     const list = document.createElement('div');
     list.className = 'hours-list';
 
-    schedule.forEach((day, index) => {
+    (Array.isArray(schedule) ? schedule : []).forEach((day, index) => {
       const isToday = index === todayIndex;
       const isOpen = day.is_open;
       const openTime = day.open_time || '--:--';
