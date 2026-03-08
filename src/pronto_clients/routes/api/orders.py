@@ -1,185 +1,169 @@
+"""
+Orders endpoints for clients API - BFF PROXY TO PRONTO-API.
+
+# DEPRECATED: Este módulo implementa lógica de negocio que debe vivir en pronto-api.
+# Fecha de sunset: TBD (por definir en roadmap)
+# Motivo: pronto-client no debe implementar endpoints de negocio según AGENTS.md sección 12.4.2.
+# Autoridad única de API: pronto-api en :6082 bajo "/api/*".
+# Plan de retiro: Migrar lógica de negocio a pronto-api
+# Referencia: AGENTS.md sección 12.4.2, 12.4.3, 12.4.4
+
+NOTE: pronto-api no tiene endpoints completos de gestión de órdenes para clientes.
+      Solo tiene /modifications para aprobar/rechazar modificaciones.
+      Esta es una limitación temporal.
+"""
+
 from __future__ import annotations
 
-import os
+import requests as http_requests
 from http import HTTPStatus
-from urllib.parse import urljoin, urlparse
+from uuid import UUID
 
-import requests
-from flask import Blueprint, current_app, jsonify, request, session
-from pronto_clients.routes.api.auth import customer_session_required
+from flask import Blueprint, Response, request
 
-from pronto_shared.serializers import error_response
 from pronto_shared.trazabilidad import get_logger
+from ._upstream import get_pronto_api_base_url
 
 logger = get_logger(__name__)
 
-orders_bp = Blueprint("client_orders_api", __name__)
+orders_bp = Blueprint("client_orders", __name__)
 
 
-def _resolve_api_base() -> str:
-    bases = _resolve_api_bases()
-    return bases[0] if bases else "http://api:5000"
-
-
-def _resolve_api_bases() -> list[str]:
+def _forward_to_api(method: str, path: str, data: dict | None = None):
     """
-    Build candidate API bases ordered by reliability for container runtime.
-
-    If a configured base points to localhost, prefer internal Docker DNS first.
-    Default matches docker-compose service name "api" and internal port 5000.
+    Forward request to pronto-api.
+    
+    This is a technical proxy (BFF) as per AGENTS.md 12.4.3.
+    No business logic is applied here.
     """
-    configured = [
-        (current_app.config.get("API_BASE_URL") or "").strip().rstrip("/"),
-        (os.getenv("PRONTO_API_BASE_URL") or "").strip().rstrip("/"),
-        (os.getenv("PRONTO_API_INTERNAL_BASE_URL") or "").strip().rstrip("/"),
-    ]
-    raw_candidates = [value for value in configured if value]
-    raw_candidates.append("http://api:5000")
-
-    candidates: list[str] = []
-    seen: set[str] = set()
-
-    def append_candidate(url: str) -> None:
-        normalized = (url or "").strip().rstrip("/")
-        if not normalized or normalized in seen:
-            return
-        seen.add(normalized)
-        candidates.append(normalized)
-
-    for raw in raw_candidates:
-        parsed = urlparse(raw)
-        hostname = (parsed.hostname or "").lower()
-        if hostname in {"localhost", "127.0.0.1", "0.0.0.0"}:
-            append_candidate("http://api:5000")
-        append_candidate(raw)
-
-    return candidates
-
-
-def _forward_to_api(
-    method: str,
-    path: str,
-    payload: dict | None = None,
-    params: dict | None = None,
-) -> tuple[dict, int, list]:
+    api_base_url = get_pronto_api_base_url()
+    url = f"{api_base_url}{path}"
+    
     headers = {
-        "Accept": "application/json",
-        "X-Requested-With": "XMLHttpRequest",
+        "X-PRONTO-CUSTOMER-REF": request.headers.get("X-PRONTO-CUSTOMER-REF", ""),
+        "Content-Type": "application/json",
     }
-    internal_secret = (os.getenv("PRONTO_INTERNAL_SECRET") or "").strip()
-    if internal_secret:
-        headers["X-Pronto-Internal-Auth"] = internal_secret
+    
+    # Forward correlation ID if present
+    correlation_id = request.headers.get("X-Correlation-ID")
+    if correlation_id:
+        headers["X-Correlation-ID"] = correlation_id
 
-    customer_ref = session.get("customer_ref")
-    if customer_ref:
-        headers["X-PRONTO-CUSTOMER-REF"] = str(customer_ref)
-    dining_session_id = session.get("dining_session_id")
-    if dining_session_id:
-        headers["X-Pronto-Dining-Session-ID"] = str(dining_session_id)
-
-    # NO cookies propagation - clients use session + Redis, not JWT cookies
-    # The X-PRONTO-CUSTOMER-REF header is sufficient for backend authentication
-
-    response = None
-    errors: list[str] = []
-    for base_url in _resolve_api_bases():
-        target_url = urljoin(f"{base_url}/", path.lstrip("/"))
-        try:
-            response = requests.request(
-                method=method.upper(),
-                url=target_url,
-                json=payload if payload is not None else None,
-                params=params if params else None,
-                headers=headers,
-                timeout=20,
-            )
-            break
-        except requests.RequestException as exc:
-            errors.append(f"{base_url}: {exc}")
-            continue
-
-    if response is None:
-        logger.error(
-            "Error proxying request to API",
-            action="forward_to_api",
-            path=path,
-            error={"message": " | ".join(errors)},
-        )
-        return error_response("Error de comunicación con API"), HTTPStatus.BAD_GATEWAY, []
-
+    csrf_token = request.headers.get("X-CSRFToken")
+    if csrf_token:
+        headers["X-CSRFToken"] = csrf_token
+    
     try:
-        data = response.json()
-    except ValueError:
-        data = {"raw_response": response.text}
+        if method == "GET":
+            response = http_requests.get(
+                url,
+                headers=headers,
+                cookies=request.cookies,
+                timeout=5,
+                allow_redirects=False,
+                stream=True,
+            )
+        elif method == "POST":
+            response = http_requests.post(
+                url,
+                json=data,
+                headers=headers,
+                cookies=request.cookies,
+                timeout=5,
+                allow_redirects=False,
+                stream=True,
+            )
+        elif method == "DELETE":
+            response = http_requests.delete(
+                url,
+                headers=headers,
+                cookies=request.cookies,
+                timeout=5,
+                allow_redirects=False,
+                stream=True,
+            )
+        else:
+            from pronto_shared.serializers import error_response
+            return error_response("Method not supported"), HTTPStatus.METHOD_NOT_ALLOWED
 
-    return data, response.status_code, list(response.cookies)
+        excluded_headers = {"content-encoding", "content-length", "transfer-encoding", "connection"}
+        response_headers = [
+            (k, v)
+            for k, v in response.raw.headers.items()
+            if k.lower() not in excluded_headers
+        ]
+
+        return Response(
+            response.content,
+            status=response.status_code,
+            headers=response_headers,
+            content_type=response.headers.get("Content-Type"),
+        )
+    
+    except http_requests.Timeout:
+        from pronto_shared.serializers import error_response
+        return error_response("Timeout conectando a API"), HTTPStatus.GATEWAY_TIMEOUT
+    except http_requests.RequestException as e:
+        logger.error(f"Error forwarding to pronto-api: {e}", error={"exception": str(e)})
+        from pronto_shared.serializers import error_response
+        return error_response("Error conectando a API"), HTTPStatus.BAD_GATEWAY
 
 
-def _extract_session_id(payload: dict) -> str | None:
-    if not isinstance(payload, dict):
-        return None
-
-    candidates = [
-        payload.get("session_id"),
-        (payload.get("data") or {}).get("session_id")
-        if isinstance(payload.get("data"), dict)
-        else None,
-        (payload.get("session") or {}).get("id")
-        if isinstance(payload.get("session"), dict)
-        else None,
-    ]
-    for candidate in candidates:
-        value = str(candidate or "").strip()
-        if value:
-            return value
-    return None
-
-
-def _proxy_create_customer_order():
-    payload = request.get_json(silent=True) or {}
-    data, status, _ = _forward_to_api("POST", "/api/customer/orders", payload)
-
-    if status in (HTTPStatus.OK, HTTPStatus.CREATED):
-        session_id = _extract_session_id(data if isinstance(data, dict) else {})
-        if session_id:
-            session["dining_session_id"] = session_id
-
-    return jsonify(data), status
+@orders_bp.get("/customer/orders")
+def get_customer_orders():
+    """PROXY: Get orders for customer (historial)."""
+    path = "/api/customer/orders"
+    return _forward_to_api("GET", path)
 
 
 @orders_bp.post("/customer/orders")
-@customer_session_required
 def create_customer_order():
-    """Canonical customer order creation endpoint."""
-    return _proxy_create_customer_order()
+    """PROXY: Create customer order (session-scoped client flow)."""
+    payload = request.get_json(silent=True) or {}
+    path = "/api/customer/orders"
+    return _forward_to_api("POST", path, data=payload)
+
+
+@orders_bp.post("/customer/orders/session/<session_id>/request-check")
+def request_customer_check(session_id: str):
+    """PROXY: Customer requests the check for a session."""
+    path = f"/api/customer/orders/session/{session_id}/request-check"
+    return _forward_to_api("POST", path)
 
 
 @orders_bp.post("/orders")
-@customer_session_required
-def create_order_legacy_alias():
-    """Legacy alias kept for cached clients still posting to /api/orders."""
-    return _proxy_create_customer_order()
+def create_order():
+    """PROXY: Create new order."""
+    payload = request.get_json(silent=True) or {}
+    path = "/api/orders"
+    return _forward_to_api("POST", path, data=payload)
 
 
-@orders_bp.get("/orders/send-confirmation")
+@orders_bp.get("/orders/<uuid:order_id>")
+def get_order(order_id: UUID):
+    """PROXY: Get order details."""
+    path = f"/api/orders/{order_id}"
+    return _forward_to_api("GET", path)
+
+
+@orders_bp.post("/orders/<uuid:order_id>/items")
+def add_order_item(order_id: UUID):
+    """PROXY: Add item to order."""
+    payload = request.get_json(silent=True) or {}
+    path = f"/api/orders/{order_id}/items"
+    return _forward_to_api("POST", path, data=payload)
+
+
+@orders_bp.delete("/orders/<uuid:order_id>/items/<uuid:item_id>")
+def delete_order_item(order_id: UUID, item_id: UUID):
+    """PROXY: Delete item from order."""
+    path = f"/api/orders/{order_id}/items/{item_id}"
+    return _forward_to_api("DELETE", path)
+
+
 @orders_bp.post("/orders/send-confirmation")
 def send_order_confirmation():
-    """
-    Trigger order confirmation email for a dining session.
-    Supports GET (query string) and POST (json body) for compatibility.
-    """
+    """PROXY: Send order confirmation email."""
     payload = request.get_json(silent=True) or {}
-    session_id = (
-        str(payload.get("session_id") or "").strip()
-        or str(request.args.get("session_id") or "").strip()
-        or str(session.get("dining_session_id") or "").strip()
-    )
-    if not session_id:
-        return jsonify(error_response("session_id is required")), HTTPStatus.BAD_REQUEST
-
-    data, status, _ = _forward_to_api(
-        "POST",
-        f"/api/customer/orders/session/{session_id}/send-ticket-email",
-        {},
-    )
-    return jsonify(data), status
+    path = "/api/orders/send-confirmation"
+    return _forward_to_api("POST", path, data=payload)
