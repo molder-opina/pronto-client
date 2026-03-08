@@ -8,16 +8,15 @@ Stripe webhook endpoints for clients API - BFF PROXY TO PRONTO-API.
 # Plan de retiro: Migrar lógica de negocio a pronto-api
 # Referencia: AGENTS.md sección 12.4.2, 12.4.3, 12.4.4
 
-NOTE: pronto-api ya tiene webhook de Facturapi en /api/webhooks/facturapi.
-      Para Stripe webhooks, se requiere implementación separada en pronto-api.
-      Este módulo es un proxy técnico temporal hasta que pronto-api implemente Stripe.
+NOTE: Este workspace no debe asumir un webhook público de Facturapi en `pronto-api`.
+      Para Stripe webhooks, se requiere una implementación explícita y compatible
+      con guardrails en `pronto-api`; este módulo sigue siendo un proxy técnico temporal.
 """
 
 from __future__ import annotations
 
 import requests as http_requests
 from http import HTTPStatus
-from uuid import UUID
 
 from flask import Blueprint, request
 
@@ -79,7 +78,6 @@ def stripe_webhook():
     manejo completo de webhooks de Stripe.
     """
     payload = request.get_json(silent=True) or {}
-    path = "/api/webhooks/stripe"
     
     # For now, just forward to soon-to-be-implemented endpoint
     # In production, this should be implemented directly in pronto-api

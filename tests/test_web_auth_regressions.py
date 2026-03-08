@@ -1,3 +1,5 @@
+# ruff: noqa: E402
+
 import os
 import sys
 import types
@@ -40,14 +42,12 @@ def _client_app():
     return app.test_client()
 
 
-def test_home_renders_for_anonymous_customer():
+def test_home_redirects_anonymous_customer_to_login():
     client = _client_app()
-    with patch("pronto_clients.routes.web.render_template", return_value="landing-page") as render_mock:
-        response = client.get("/")
+    response = client.get("/")
 
-    assert response.status_code == 200
-    assert response.get_data(as_text=True) == "landing-page"
-    render_mock.assert_called_once()
+    assert response.status_code == 302
+    assert response.headers["Location"].startswith("/login?next=/")
 
 
 def test_login_page_redirects_anonymous_customer_to_profile_login_tab():

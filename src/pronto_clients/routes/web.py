@@ -11,7 +11,7 @@ from sqlalchemy import select
 from pronto_shared.trazabilidad import get_logger
 
 from pronto_shared.db import get_session
-from pronto_shared.models import Area, Table, DiningSession
+from pronto_shared.models import DiningSession
 from pronto_shared.services.customer_service import (
     get_customer_by_email,
 )
@@ -135,7 +135,9 @@ def home():
     Landing page that consumes the API via HTMX/fetch for a richer experience.
     """
     debug_auto_table = current_app.config.get("DEBUG_AUTO_TABLE", False)
-    customer_data = _get_current_customer()
+    customer_data, auth_redirect = _require_customer_web_auth()
+    if auth_redirect:
+        return auth_redirect
 
     # Fetch available tables for debug panel
     available_tables = []
@@ -294,7 +296,6 @@ def kiosk_start(location: str):
         - In production: requires PRONTO_KIOSK_SECRET header
         - In dev mode: no secret required
     """
-    kiosk_logger = get_logger("client.web.kiosk")
     kiosk_auth_error = _is_authorized_kiosk_bootstrap(location)
     if kiosk_auth_error:
         return kiosk_auth_error
