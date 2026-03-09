@@ -1,12 +1,12 @@
 """
 Notifications endpoints for clients API - BFF PROXY TO PRONTO-API.
 
-# DEPRECATED: Este módulo implementa lógica de negocio que debe vivir en pronto-api.
-# Fecha de sunset: TBD (por definir en roadmap)
-# Motivo: pronto-client no debe implementar endpoints de negocio según AGENTS.md sección 12.4.2.
-# Autoridad única de API: pronto-api en :6082 bajo "/api/*".
-# Plan de retiro: Migrar lógica de negocio a pronto-api/src/api_app/routes/notifications.py
-# Referencia: AGENTS.md sección 12.4.2, 12.4.3, 12.4.4
+# DEPRECATED: This module implements business logic that should live in pronto-api.
+# Sunset date: TBD (to be defined in roadmap)
+# Reason: pronto-client should not implement business endpoints per AGENTS.md section 12.4.2.
+# Single API authority: pronto-api at :6082 under "/api/*".
+# Migration plan: Migrate business logic to pronto-api/src/api_app/routes/notifications.py
+# Reference: AGENTS.md section 12.4.2, 12.4.3, 12.4.4
 
 NOTE: This is now a BFF proxy to pronto-api. All business logic has been migrated.
 """
