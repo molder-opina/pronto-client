@@ -23,9 +23,8 @@ from pronto_shared.services.customer_session_store import (
 web_bp = Blueprint("client_web", __name__)
 
 _KIOSK_SECRET = os.getenv("PRONTO_KIOSK_SECRET", "")
-_KIOSK_PASSWORD = os.getenv(
-    "PRONTO_KIOSK_PASSWORD", "kiosk-no-auth-change-in-production"
-)
+# Kiosk password: use env var or generate random (must be configured in production)
+_KIOSK_PASSWORD = os.getenv("PRONTO_KIOSK_PASSWORD") or os.urandom(16).hex()
 logger = get_logger("clients.web")
 
 
@@ -135,9 +134,9 @@ def home():
     Landing page that consumes the API via HTMX/fetch for a richer experience.
     """
     debug_auto_table = current_app.config.get("DEBUG_AUTO_TABLE", False)
-    customer_data, auth_redirect = _require_customer_web_auth()
-    if auth_redirect:
-        return auth_redirect
+    # Business rule: menu/home must be accessible without authentication.
+    # Authentication is requested later when the customer confirms/places an order.
+    customer_data = _get_current_customer()
 
     # Fetch available tables for debug panel
     available_tables = []

@@ -196,31 +196,62 @@
     }
 
     .mini-tracker-close {
-      position: absolute;
-      top: 4px;
-      right: 4px;
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      min-height: 44px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #cbd5e1;
       background: #f8fafc;
-      border-radius: 999px;
-      color: #475569;
-      font-size: .9rem;
+      color: #334155;
+      border-radius: 8px;
+      font-size: .74rem;
+      font-weight: 700;
+      padding: .42rem .58rem;
       cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s ease;
+      white-space: nowrap;
+      line-height: 1;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
     }
     .mini-tracker-close:hover {
       background: #e2e8f0;
-      border-color: #cbd5e1;
+      border-color: #94a3b8;
+      color: #0f172a;
     }
     .mini-tracker-close:focus-visible {
       outline: none;
       box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.4);
+    }
+
+    .mini-tracker-toggle {
+      position: fixed;
+      right: 1rem;
+      bottom: 5.3rem;
+      z-index: 1091;
+      display: none;
+      align-items: center;
+      gap: .45rem;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 999px;
+      padding: .5rem .75rem;
+      box-shadow: 0 12px 26px rgba(15, 23, 42, .2);
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mini-tracker-toggle.visible {
+      display: inline-flex;
+    }
+
+    .mini-tracker-toggle__icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: #f97316;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .85rem;
+      flex-shrink: 0;
     }
 
     .mini-tracker-content {
@@ -228,7 +259,6 @@
       align-items: center;
       justify-content: space-between;
       gap: .75rem;
-      padding-right: 1.65rem;
     }
 
     .mini-tracker-left {
@@ -398,11 +428,16 @@
         padding: .55rem .6rem;
       }
 
+      .mini-tracker-toggle {
+        right: .5rem;
+        bottom: 4.8rem;
+        max-width: calc(100vw - 1rem);
+      }
+
       .mini-tracker-content {
         flex-direction: column;
         align-items: stretch;
         gap: .45rem;
-        padding-right: 1.45rem;
       }
 
       .mini-tracker-right {
@@ -820,7 +855,7 @@
     /* Modal hiding logic shifted to head for robustness */
     .profile-modal:not(.active),
     .password-recovery-modal:not(.active),
-    .order-history-modal:not(.active),
+    .order-history-modal:not(.active):not(.is-open),
     .support-modal:not(.active),
     .outside-hours-modal:not(.active) {
       display: none !important;
@@ -1705,10 +1740,10 @@
   <div class="notification-container" id="notification-container"></div>
 
   <!-- Profile Modal -->
-  <div class="profile-modal" id="profile-modal">
+  <div class="profile-modal" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
     <div class="profile-modal-overlay"></div>
     <div class="profile-modal-content">
-      <button class="profile-modal-close">×</button>
+      <button class="profile-modal-close" aria-label="Cerrar modal">×</button>
 
       <!-- Not Logged In View -->
       <div id="profile-not-logged-in" class="profile-view">
@@ -1976,9 +2011,9 @@
     </div>
 
     <!-- Modal de detalle -->
-    <div class="order-detail-modal" id="order-detail-modal">
+    <div class="order-detail-modal" id="order-detail-modal" role="dialog" aria-modal="true">
       <div class="order-detail-content" id="order-detail-content">
-        <button class="order-detail-close" id="close-order-detail">✕</button>
+        <button class="order-detail-close" id="close-order-detail" aria-label="Cerrar detalle de orden">✕</button>
         <div id="order-detail-body"></div>
       </div>
     </div>
@@ -2039,12 +2074,43 @@
         }
 
         .accordion-chevron {
-          transition: transform 0.3s ease;
+          width: 0.6rem;
+          height: 0.6rem;
+          display: inline-block;
+          border-right: 2px solid currentColor;
+          border-bottom: 2px solid currentColor;
+          transform: rotate(45deg);
+          transition: transform 0.25s ease;
           color: var(--text-tertiary, #9ca3af);
+          flex-shrink: 0;
+          margin-right: 0.05rem;
+        }
+
+        .accordion-toggle-btn {
+          width: 32px;
+          height: 32px;
+          border: 0;
+          background: transparent;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          cursor: pointer;
+          padding: 0;
+        }
+
+        .accordion-toggle-btn:hover {
+          background: rgba(255, 255, 255, 0.12);
+        }
+
+        .accordion-toggle-btn:focus-visible {
+          outline: 2px solid #93c5fd;
+          outline-offset: 1px;
         }
 
         .checkout-accordion:not(.collapsed) .accordion-chevron {
-          transform: rotate(180deg);
+          transform: rotate(-135deg);
+          margin-top: 0.2rem;
         }
 
         .accordion-content {
@@ -2126,6 +2192,30 @@
           background: #ffffff !important;
           color: #0f172a !important;
           border: 1px solid #cbd5e1 !important;
+          border-radius: 8px;
+          padding: 0.65rem 0.75rem;
+          width: 100% !important;
+          box-sizing: border-box;
+        }
+
+        #checkout-section #notes {
+          min-height: 96px;
+          resize: vertical;
+          line-height: 1.4;
+        }
+
+        #checkout-section .form-group label {
+          display: block;
+          margin-bottom: 0.35rem;
+          font-weight: 600;
+        }
+
+        #checkout-section .form-group__counter {
+          display: block;
+          float: none !important;
+          text-align: right;
+          margin-top: 0.35rem;
+          color: #64748b !important;
         }
 
         #checkout-section #details-table-select::placeholder,
@@ -2151,12 +2241,14 @@
       <div class="checkout-accordion-list" id="checkout-accordions">
         <!-- Mesa Info -->
         <div class="checkout-accordion" id="accordion-mesa">
-          <div class="checkout-accordion-header" data-action="toggle-parent-class" data-class="collapsed">
+          <div class="checkout-accordion-header">
             <div class="accordion-title" style="color: #f8fafc">
               <span>Datos de la Mesa</span>
             </div>
             <div style="display: flex; align-items: center">
-              <span class="accordion-chevron" style="color: #f8fafc">▼</span>
+              <button type="button" class="accordion-toggle-btn" aria-label="Comprimir o expandir sección">
+                <span class="accordion-chevron" style="color: #f8fafc" aria-hidden="true"></span>
+              </button>
             </div>
           </div>
           <div class="accordion-content">
@@ -2193,7 +2285,7 @@
                 <label for="notes">Notas especiales</label>
                 <textarea id="notes" name="notes" rows="3" placeholder="Alergias, preferencias..."
                   maxlength="500"></textarea>
-                <span class="form-group__counter" id="notes-counter" style="font-size: 0.8em; float: right">0/500</span>
+                <span class="form-group__counter" id="notes-counter" style="font-size: 0.8em">0/500</span>
               </div>
 
               <div class="feedback-message" id="checkout-feedback"></div>
@@ -2208,14 +2300,16 @@
 
         <!-- 3. Current Cart Accordion -->
         <div class="checkout-accordion expanded" id="accordion-current-order">
-          <div class="checkout-accordion-header" data-action="toggle-parent-class" data-class="collapsed">
+          <div class="checkout-accordion-header">
             <div class="accordion-title" style="color: #f8fafc">
               <span class="accordion-icon">🛒</span>
               <span>Orden Actual</span>
             </div>
             <div style="display: flex; align-items: center">
               <span class="header-status new">Por Confirmar</span>
-              <span class="accordion-chevron" style="color: #f8fafc">▼</span>
+              <button type="button" class="accordion-toggle-btn" aria-label="Comprimir o expandir sección">
+                <span class="accordion-chevron" style="color: #f8fafc" aria-hidden="true"></span>
+              </button>
             </div>
           </div>
           <div class="accordion-content">
@@ -2270,9 +2364,6 @@
 
   <!-- Mini Order Tracker (shown when there's an active order) - Global across all pages -->
   <div class="mini-tracker" id="mini-tracker">
-    <button class="mini-tracker-close" id="mini-tracker-close" aria-label="Cerrar tracker" title="Ocultar tracker">
-      ×
-    </button>
     <div class="mini-tracker-content">
       <div class="mini-tracker-left">
         <div class="mini-tracker-icon">🍽️</div>
@@ -2292,8 +2383,12 @@
           </div>
           <div class="mini-tracker-percentage" id="mini-tracker-percentage">0%</div>
         </div>
-        <button class="mini-tracker-btn" id="view-detail-btn" data-action="call" data-fn="viewFullTracker">
+        <button class="mini-tracker-btn" id="view-detail-btn" type="button" data-action="call" data-fn="viewFullTracker">
           Ver detalle
+        </button>
+        <button class="mini-tracker-close" id="mini-tracker-close" type="button"
+          aria-label="Ocultar tracker" title="Ocultar tracker">
+          Ocultar
         </button>
         <button class="mini-tracker-btn mini-tracker-btn--primary" id="request-checkout-btn" style="display: none"
           data-action="call" data-fn="requestCheckoutFromTracker">
@@ -2302,6 +2397,11 @@
       </div>
     </div>
   </div>
+  <button class="mini-tracker-toggle" id="mini-tracker-toggle" type="button"
+    aria-label="Mostrar tracker del pedido" title="Mostrar tracker del pedido">
+    <span class="mini-tracker-toggle__icon">🍽️</span>
+    <span>Mostrar pedido</span>
+  </button>
 
   <footer class="footer">
     <div class="footer-container">
@@ -2356,9 +2456,9 @@
   <!-- All outside-hours styles moved to menu.css for better maintainability -->
 
   <!-- Support Modal -->
-  <div class="support-modal" id="support-modal">
+  <div class="support-modal" id="support-modal" role="dialog" aria-modal="true" aria-labelledby="support-modal-title">
     <div class="support-modal-content">
-      <button class="support-modal-close" id="support-modal-close">×</button>
+      <button class="support-modal-close" id="support-modal-close" aria-label="Cerrar modal de soporte">×</button>
       <h2>Soporte técnico</h2>
       <p>Cuéntanos qué problema encontraste y te contactaremos.</p>
       <form id="support-form">
@@ -2395,7 +2495,7 @@
             <input type="file" id="support-image" accept="image/*" capture="environment" />
             <div class="file-upload-preview" id="support-image-preview" style="display: none">
               <img id="support-image-img" src="" alt="Vista previa" />
-              <button type="button" class="remove-image" id="remove-support-image">×</button>
+              <button type="button" class="remove-image" id="remove-support-image" aria-label="Eliminar imagen">×</button>
             </div>
             <div class="file-upload-placeholder" id="support-image-placeholder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2906,6 +3006,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .order-history-modal.is-open {
+      display: block !important;
     }
 
     .order-history-modal-overlay {
@@ -4017,9 +4121,9 @@
     }
 
     #profile-personal-info .profile-header--personal-info {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto 1fr;
       align-items: center;
-      justify-content: space-between;
       gap: 0.75rem;
       margin-bottom: 0.85rem;
       padding-right: 2.25rem;
@@ -4033,6 +4137,8 @@
       color: #0f172a;
       font-weight: 800;
       letter-spacing: -0.01em;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     #profile-personal-info .back-to-profile-btn {
@@ -4081,7 +4187,10 @@
       letter-spacing: 0.01em;
     }
 
-    #profile-personal-info .form-group input {
+    #profile-personal-info .form-group input,
+    #profile-personal-info .form-group select {
+      width: 100%;
+      box-sizing: border-box;
       min-height: 46px;
       height: 46px;
       background: #ffffff;
@@ -4091,14 +4200,28 @@
       padding: 0.75rem 0.9rem;
     }
 
-    #profile-personal-info .form-group input::placeholder {
+    #profile-personal-info .form-group input::placeholder,
+    #profile-personal-info .form-group select {
       color: #94a3b8;
     }
 
-    #profile-personal-info .form-group input:focus-visible {
+    #profile-personal-info .form-group input:focus-visible,
+    #profile-personal-info .form-group select:focus-visible {
       border-color: #ff6b35;
       box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.18);
       outline: none;
+    }
+
+    #profile-personal-info .form-group select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding-right: 2.2rem;
+      background-image: linear-gradient(45deg, transparent 50%, #64748b 50%),
+        linear-gradient(135deg, #64748b 50%, transparent 50%);
+      background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
     }
 
     #profile-personal-info .profile-form .btn.btn-primary.btn--full {
@@ -4674,7 +4797,9 @@
       }
 
       #profile-personal-info .profile-header--personal-info {
-        padding-right: 0.5rem;
+        grid-template-columns: 1fr;
+        justify-items: start;
+        padding-right: 2rem;
         margin-bottom: 0.8rem;
       }
 
@@ -4690,7 +4815,8 @@
         margin-bottom: 0.72rem;
       }
 
-      #profile-personal-info .form-group input {
+      #profile-personal-info .form-group input,
+      #profile-personal-info .form-group select {
         min-height: 44px;
         height: 44px;
       }
@@ -4703,7 +4829,7 @@
 
     #profile-modal.profile-modal--compact #profile-personal-info .profile-header--personal-info {
       margin-bottom: 0.72rem !important;
-      padding-right: 2.1rem !important;
+      padding-right: 1.9rem !important;
       gap: 0.5rem !important;
     }
 
@@ -4724,6 +4850,247 @@
     #profile-modal.profile-modal--compact #profile-personal-info .profile-avatar-picker {
       margin: 0 0 0.72rem !important;
       padding: 0.68rem !important;
+    }
+
+    /* === Canonical Responsive Overrides (last-wins) === */
+    html,
+    body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    .header-container,
+    .view-tabs-container,
+    .checkout-shell,
+    .container {
+      width: min(100%, 1280px);
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
+    }
+
+    .profile-modal.active,
+    .password-recovery-modal.active,
+    .order-history-modal.active,
+    .order-history-modal.is-open {
+      padding: clamp(0.5rem, 2vw, 1rem) !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    .profile-modal-overlay,
+    .password-recovery-modal-overlay,
+    .order-history-modal-overlay {
+      pointer-events: auto;
+    }
+
+    .profile-modal-content,
+    .password-recovery-modal-content,
+    .order-history-modal-content {
+      width: min(96vw, 560px) !important;
+      max-width: 560px !important;
+      max-height: calc(100dvh - 1rem) !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      box-sizing: border-box;
+    }
+
+    .order-history-modal-content {
+      max-width: 760px !important;
+      width: min(96vw, 760px) !important;
+    }
+
+    .profile-modal-close,
+    .password-recovery-modal-close,
+    .order-history-modal-close,
+    .modal__close,
+    .modal-close {
+      width: 44px !important;
+      height: 44px !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+      z-index: 30 !important;
+      pointer-events: auto !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      touch-action: manipulation;
+    }
+
+    #profile-personal-info .profile-form,
+    #profile-not-logged-in .profile-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    #profile-personal-info .form-group input,
+    #profile-personal-info .form-group select,
+    #profile-personal-info .form-group textarea,
+    #profile-not-logged-in .form-group input,
+    #profile-not-logged-in .form-group select,
+    #profile-not-logged-in .form-group textarea {
+      width: 100% !important;
+      box-sizing: border-box !important;
+      min-height: 44px !important;
+    }
+
+    #checkout-section .checkout-accordion-header {
+      min-height: 54px;
+      gap: 0.65rem;
+      flex-wrap: nowrap;
+    }
+
+    #checkout-section .accordion-title {
+      min-width: 0;
+      flex: 1;
+      font-size: clamp(0.96rem, 1.2vw, 1.05rem);
+    }
+
+    #checkout-section .accordion-toggle-btn {
+      width: 44px !important;
+      height: 44px !important;
+      min-width: 44px !important;
+      min-height: 44px !important;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      touch-action: manipulation;
+      flex-shrink: 0;
+    }
+
+    #checkout-section .accordion-toggle-btn .accordion-chevron {
+      width: 12px !important;
+      height: 12px !important;
+      border-right-width: 2.5px;
+      border-bottom-width: 2.5px;
+      margin: 0 !important;
+      transform-origin: center;
+    }
+
+    #checkout-section .checkout-accordion:not(.collapsed) .accordion-toggle-btn .accordion-chevron {
+      transform: rotate(-135deg) !important;
+    }
+
+    #checkout-section #details-table-select,
+    #checkout-section #notes,
+    #checkout-section textarea,
+    #checkout-section select,
+    #checkout-section input[type="text"],
+    #checkout-section input[type="email"] {
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    #checkout-section #notes {
+      min-height: 108px !important;
+      max-height: 240px;
+      resize: vertical !important;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+
+    #checkout-section .form-group__counter {
+      width: 100%;
+      text-align: right;
+      margin-top: 0.35rem;
+    }
+
+    .cart-panel {
+      width: min(100vw, 420px);
+      max-width: 100vw;
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        height: 60px;
+      }
+
+      #profile-modal.active .profile-modal-overlay {
+        top: 60px !important;
+        height: calc(100% - 60px) !important;
+      }
+
+      .header-container,
+      .view-tabs-container {
+        padding-left: 0.65rem !important;
+        padding-right: 0.65rem !important;
+      }
+
+      .view-tabs {
+        top: 60px;
+      }
+
+      .view-tab {
+        min-height: 44px;
+        padding: 0.62rem 0.48rem !important;
+      }
+
+      .brand-name {
+        display: none !important;
+      }
+
+      .profile-modal-content,
+      .password-recovery-modal-content,
+      .order-history-modal-content {
+        border-radius: 14px !important;
+        width: min(97vw, 600px) !important;
+      }
+
+      #profile-modal.profile-modal--compact.active {
+        align-items: flex-end !important;
+        justify-content: center !important;
+        padding: 0.45rem !important;
+      }
+
+      #profile-modal.profile-modal--compact .profile-modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 14px !important;
+        max-height: min(80dvh, 620px) !important;
+      }
+
+      #checkout-section .checkout-accordion-header {
+        padding: 0.86rem 0.8rem !important;
+      }
+
+      #checkout-section .accordion-content {
+        padding: 0.85rem !important;
+      }
+
+      #checkout-section .header-status {
+        margin-right: 0.45rem;
+        font-size: 0.72rem;
+        padding: 0.22rem 0.46rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .profile-view {
+        padding: 0.92rem 0.75rem 0.85rem !important;
+      }
+
+      #profile-personal-info .profile-header--personal-info {
+        grid-template-columns: 1fr !important;
+        gap: 0.45rem !important;
+      }
+
+      #profile-personal-info .profile-header--personal-info h3 {
+        font-size: 1.18rem !important;
+      }
+
+      #profile-personal-info .back-to-profile-btn {
+        font-size: 0.82rem !important;
+        padding: 0.42rem 0.6rem !important;
+      }
+
+      #checkout-section #notes {
+        min-height: 98px !important;
+      }
+
+      #checkout-section .checkout-submit-btn {
+        min-height: 46px !important;
+      }
     }
   </style>
 
@@ -4837,8 +5204,8 @@
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
-  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260307a"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260307a"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260308l"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260308l"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">

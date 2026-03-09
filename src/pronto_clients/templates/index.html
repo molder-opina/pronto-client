@@ -2,8 +2,8 @@
 '$') %} {% set
 currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css?v={{ system_version }}&rev=20260305j" />
-<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css?v={{ system_version }}&rev=20260305j" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu.css?v={{ system_version }}&rev=20260308g" />
+<link rel="stylesheet" href="{{ assets_css_clients }}/menu-updates.css?v={{ system_version }}&rev=20260308g" />
 <div class="menu-page" data-menu-root="">
   <!-- Category Tabs -->
   <div class="category-tabs" id="category-tabs"></div>
@@ -89,8 +89,6 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       </button>
     </div>
   </div>
-  <input type="hidden" id="table-number" name="table_number" />
-
   <!-- Menu Container -->
   <div class="container">
     <div class="menu-empty-state" id="menu-empty-state" hidden>
@@ -108,11 +106,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 </div> <!-- end .menu-page -->
 
 <!-- Item Customization Modal -->
-<div class="modal-overlay" id="item-modal">
-  <div class="modal modal--item-customization">
+<div class="modal-overlay" id="item-modal" role="dialog" aria-modal="true" aria-labelledby="modal-item-name">
+  <div class="modal modal--item-customization modal-card">
     <div class="modal-header">
       <h3 id="modal-item-name"></h3>
-      <button class="modal-close" data-action="call" data-fn="closeItemModal">×</button>
+      <button class="modal-close" data-action="call" data-fn="closeItemModal" aria-label="Cerrar modal de producto">×</button>
     </div>
     <div class="modal-body">
       <div class="modal-image-wrapper">
@@ -122,6 +120,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
       <div class="extras-section extras-section--hidden" id="extras-section">
         <h4>Extras disponibles</h4>
+        <p id="modal-scroll-hint" class="modal-scroll-hint" aria-live="polite">
+          ↓ Desliza hacia abajo para ver más opciones
+        </p>
         <div id="extras-list"></div>
       </div>
     </div>
@@ -214,10 +215,10 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 <div class="cart-backdrop" id="cart-backdrop"></div>
 
 <!-- Cart Panel -->
-<div class="cart-panel" id="cart-panel">
+<div class="cart-panel" id="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
   <div class="cart-header">
-    <h2>Tu pedido</h2>
-    <button class="cart-close">×</button>
+    <h2 id="cart-title">Tu pedido</h2>
+    <button class="cart-close" aria-label="Cerrar carrito">×</button>
   </div>
   <div class="cart-items" id="cart-items">
     <div class="empty-state">
@@ -256,6 +257,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     assets_css_clients: '{{ assets_css_clients }}',
     assets_js_clients: '{{ assets_js_clients }}',
     restaurant_assets: '{{ restaurant_assets }}',
+    static_host_url: '{{ static_host_url }}',
     currency_code: '{{ currency_code }}',
     currency_symbol: '{{ currency_symbol }}',
     debug_mode: {{ 'true' if config.get('DEBUG') else 'false' }},
@@ -269,38 +271,96 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     let modalModifierGroups = [];
     let modalSelectedModifiers = {};
     let modalModifierLookup = new Map();
+    let modalScrollHintHandler = null;
+    const NO_SELECTION_PREFIX = 'none:';
+    const STATIC_HOST = String(window.APP_SETTINGS?.static_host_url || '').trim().replace(/\/$/, '');
+    const MODAL_IMAGE_PLACEHOLDER = `${STATIC_HOST}/assets/images/placeholder-food.png`;
+    const MODAL_IMAGE_INLINE_FALLBACK =
+      'data:image/svg+xml;utf8,' +
+      encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">' +
+          '<rect width="960" height="540" fill="#eef2ff"/>' +
+          '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#475569" font-family="Arial" font-size="28">Imagen no disponible</text>' +
+        '</svg>'
+      );
 
     function formatCurrency(value) {
       const amount = Number(value) || 0;
       return `{{ currency_symbol }}${amount.toFixed(2)}`;
     }
 
-    function normalizeModifierGroups(rawGroups) {
+    function normalizeModifierGroups(rawGroups, options = {}) {
+      const groupIdPrefix = String(options.groupIdPrefix || '');
+      const labelPrefix = String(options.labelPrefix || '').trim();
+      const sourceType = String(options.sourceType || 'product');
       if (!Array.isArray(rawGroups)) return [];
       return rawGroups
         .map((group, index) => {
-          const groupId = Number(group?.id);
+          const rawGroupId = String(group?.id || '').trim() || `group-${index + 1}`;
+          const groupId = groupIdPrefix ? `${groupIdPrefix}${rawGroupId}` : rawGroupId;
           const modifiers = Array.isArray(group?.modifiers)
             ? group.modifiers
-                .map((modifier) => ({
-                  id: Number(modifier?.id),
+                .map((modifier, modifierIndex) => {
+                  const modifierId = String(modifier?.id || '').trim();
+                  const selectionKey = modifierId
+                    ? `${groupId}::${modifierId}`
+                    : `${groupId}::modifier-${modifierIndex + 1}`;
+                  return {
+                  id: modifierId,
+                  selection_key: selectionKey,
                   name: String(modifier?.name || '').trim(),
                   price_adjustment: Number(modifier?.price_adjustment || 0),
                   is_available: modifier?.is_available !== false,
-                }))
-                .filter((modifier) => Number.isFinite(modifier.id) && modifier.name)
+                };
+                })
+                .filter((modifier) => modifier.id && modifier.name)
             : [];
+          const allowNoneOption = group?.allow_none_option !== false;
+          if (allowNoneOption) {
+            const noSelectionId = `${NO_SELECTION_PREFIX}${groupId}`;
+            modifiers.unshift({
+              id: noSelectionId,
+              selection_key: `${groupId}::${noSelectionId}`,
+              name: `No lleve ${String(group?.name || `Grupo ${index + 1}`).toLowerCase()}`,
+              price_adjustment: 0,
+              is_available: true,
+              is_no_selection: true,
+            });
+          }
           if (!modifiers.length) return null;
           return {
-            id: Number.isFinite(groupId) ? groupId : index + 1,
-            name: String(group?.name || `Grupo ${index + 1}`),
+            id: groupId,
+            name: labelPrefix
+              ? `${labelPrefix} · ${String(group?.name || `Grupo ${index + 1}`)}`
+              : String(group?.name || `Grupo ${index + 1}`),
             min_selection: Number(group?.min_selection || 0),
             max_selection: Number(group?.max_selection || 0),
             is_required: Boolean(group?.is_required),
+            allow_none_option: allowNoneOption,
+            source_type: sourceType,
             modifiers,
           };
         })
         .filter(Boolean);
+    }
+
+    function collectModifierGroupsForModal(product) {
+      const baseGroups = normalizeModifierGroups(product?.modifier_groups, {
+        sourceType: 'product',
+      });
+      const componentGroups = [];
+      const components = Array.isArray(product?.package_components) ? product.package_components : [];
+      components.forEach((component, componentIndex) => {
+        const componentId = String(component?.component_item_id || component?.menu_item_id || componentIndex + 1);
+        const componentName = String(component?.name || `Producto ${componentIndex + 1}`);
+        const groups = normalizeModifierGroups(component?.modifier_groups, {
+          groupIdPrefix: `component:${componentId}:`,
+          labelPrefix: componentName,
+          sourceType: 'component',
+        });
+        componentGroups.push(...groups);
+      });
+      return [...baseGroups, ...componentGroups];
     }
 
     function getGroupMinSelection(group) {
@@ -316,37 +376,48 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       groups.forEach((group) => {
         modalSelectedModifiers[group.id] = [];
         group.modifiers.forEach((modifier) => {
-          modalModifierLookup.set(String(modifier.id), {
+          const lookupPayload = {
             id: modifier.id,
+            selection_key: modifier.selection_key || `${group.id}::${modifier.id}`,
             name: modifier.name,
             price_adjustment: modifier.price_adjustment,
             groupId: group.id,
-          });
+            is_no_selection: modifier.is_no_selection === true,
+          };
+          // Compatibility: selection state stores selection_key, while older flows may
+          // still use raw modifier ids. Support both keys to avoid losing selections.
+          modalModifierLookup.set(String(modifier.id), lookupPayload);
+          modalModifierLookup.set(String(lookupPayload.selection_key), lookupPayload);
         });
       });
     }
 
     function getSelectedModifierSummary() {
       const modifierIds = [];
+      const noneGroupIds = [];
       const extras = [];
       let extrasTotal = 0;
-      Object.values(modalSelectedModifiers).forEach((selection) => {
+      Object.entries(modalSelectedModifiers).forEach(([groupId, selection]) => {
         if (!Array.isArray(selection)) return;
         selection.forEach((modifierId) => {
           const selected = modalModifierLookup.get(String(modifierId));
           if (!selected) return;
+          if (selected.is_no_selection) {
+            noneGroupIds.push(String(groupId));
+            return;
+          }
           modifierIds.push(selected.id);
           extras.push(selected.name);
           extrasTotal += Number(selected.price_adjustment || 0);
         });
       });
-      return { modifierIds, extras, extrasTotal };
+      return { modifierIds, noneGroupIds, extras, extrasTotal };
     }
 
     function updateGroupCounter(groupId) {
       const counter = document.querySelector(`[data-modifier-counter="${groupId}"]`);
       if (!counter) return;
-      const group = modalModifierGroups.find((item) => item.id === Number(groupId));
+      const group = modalModifierGroups.find((item) => String(item.id) === String(groupId));
       if (!group) return;
       const selectedCount = (modalSelectedModifiers[group.id] || []).length;
       counter.textContent = `${selectedCount}/${group.max_selection > 0 ? group.max_selection : '∞'}`;
@@ -360,13 +431,23 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       if (!groups.length) {
         extrasSection.classList.add('extras-section--hidden');
         extrasList.replaceChildren();
+        updateModalScrollHint();
         return;
       }
 
       extrasSection.classList.remove('extras-section--hidden');
       extrasList.replaceChildren();
 
+      let componentSectionRendered = false;
       groups.forEach((group) => {
+        if (group.source_type === 'component' && !componentSectionRendered) {
+          const componentTitle = document.createElement('h4');
+          componentTitle.className = 'section-title section-title--components';
+          componentTitle.textContent = 'Productos incluidos en el paquete';
+          extrasList.appendChild(componentTitle);
+          componentSectionRendered = true;
+        }
+
         const wrapper = document.createElement('div');
         wrapper.className = 'modifier-group';
         wrapper.dataset.groupId = String(group.id);
@@ -408,7 +489,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           input.name = `modifier-group-${group.id}`;
           input.dataset.groupId = String(group.id);
           input.dataset.modifierId = String(modifier.id);
+          input.dataset.selectionKey = String(modifier.selection_key || `${group.id}::${modifier.id}`);
           input.dataset.maxSelection = String(group.max_selection || 0);
+          input.dataset.noSelection = modifier.is_no_selection ? '1' : '0';
           input.disabled = !modifier.is_available;
           label.appendChild(input);
 
@@ -440,20 +523,29 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           if (!(target instanceof HTMLInputElement)) return;
           if (!target.matches('input[data-modifier-id][data-group-id]')) return;
 
-          const groupId = Number(target.dataset.groupId || 0);
-          const modifierId = Number(target.dataset.modifierId || 0);
-          if (!groupId || !modifierId) return;
+          const groupId = String(target.dataset.groupId || '').trim();
+          const modifierId = String(target.dataset.modifierId || '').trim();
+          const selectionKey = String(target.dataset.selectionKey || '').trim();
+          if (!groupId || !modifierId || !selectionKey) return;
 
-          const group = modalModifierGroups.find((item) => item.id === groupId);
+          const group = modalModifierGroups.find((item) => String(item.id) === groupId);
           if (!group) return;
 
           const maxSelection = Number(target.dataset.maxSelection || 0);
+          const isNoSelection = target.dataset.noSelection === '1';
+          const noSelectionId = `${NO_SELECTION_PREFIX}${groupId}`;
           const currentSelection = [...(modalSelectedModifiers[groupId] || [])];
-          const selectedIndex = currentSelection.indexOf(modifierId);
+          const selectedIndex = currentSelection.indexOf(selectionKey);
 
-          if (target.type === 'radio') {
-            modalSelectedModifiers[groupId] = [modifierId];
+          if (isNoSelection) {
+            modalSelectedModifiers[groupId] = target.checked ? [noSelectionId] : [];
+          } else if (target.type === 'radio') {
+            modalSelectedModifiers[groupId] = [selectionKey];
           } else if (target.checked) {
+            const noSelectionIndex = currentSelection.indexOf(noSelectionId);
+            if (noSelectionIndex > -1) {
+              currentSelection.splice(noSelectionIndex, 1);
+            }
             if (maxSelection > 0 && selectedIndex === -1 && currentSelection.length >= maxSelection) {
               target.checked = false;
               if (typeof window.showNotification === 'function') {
@@ -461,10 +553,10 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               }
               return;
             }
-            if (selectedIndex === -1) currentSelection.push(modifierId);
+            if (selectedIndex === -1) currentSelection.push(selectionKey);
             modalSelectedModifiers[groupId] = currentSelection;
           } else {
-            modalSelectedModifiers[groupId] = currentSelection.filter((id) => id !== modifierId);
+            modalSelectedModifiers[groupId] = currentSelection.filter((id) => id !== selectionKey);
           }
 
           updateGroupCounter(groupId);
@@ -473,13 +565,53 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         });
         extrasList.dataset.boundChange = '1';
       }
+
+      updateModalScrollHint();
+    }
+
+    function updateModalScrollHint() {
+      const modal = document.getElementById('item-modal');
+      const hint = document.getElementById('modal-scroll-hint');
+      const extrasSection = document.getElementById('extras-section');
+      const modalBody = modal ? modal.querySelector('.modal-body') : null;
+
+      if (!hint || !modalBody || !extrasSection) return;
+
+      if (extrasSection.classList.contains('extras-section--hidden')) {
+        hint.classList.remove('is-visible');
+        return;
+      }
+
+      const maxScrollTop = Math.max(0, modalBody.scrollHeight - modalBody.clientHeight);
+      const canScroll = maxScrollTop > 24;
+      const nearBottom = modalBody.scrollTop >= maxScrollTop - 20;
+      hint.classList.toggle('is-visible', canScroll && !nearBottom);
+    }
+
+    function bindModalScrollHint() {
+      const modal = document.getElementById('item-modal');
+      const modalBody = modal ? modal.querySelector('.modal-body') : null;
+      if (!modalBody) return;
+
+      if (!modalBody.dataset.scrollHintBound) {
+        modalScrollHintHandler = () => updateModalScrollHint();
+        modalBody.addEventListener('scroll', modalScrollHintHandler, { passive: true });
+        window.addEventListener('resize', modalScrollHintHandler, { passive: true });
+        modalBody.dataset.scrollHintBound = '1';
+      }
+
+      updateModalScrollHint();
     }
 
     function validateModifierSelections(showFeedback = false) {
       let valid = true;
       modalModifierGroups.forEach((group) => {
         const wrapper = document.querySelector(`.modifier-group[data-group-id="${group.id}"]`);
-        const count = (modalSelectedModifiers[group.id] || []).length;
+        const selected = (modalSelectedModifiers[group.id] || []);
+        const hasNoSelection = selected.some((modifierId) =>
+          String(modifierId).startsWith(NO_SELECTION_PREFIX)
+        );
+        const count = hasNoSelection ? 1 : selected.length;
         const minSelection = getGroupMinSelection(group);
         const maxSelection = Number(group.max_selection || 0);
         const isValid =
@@ -513,19 +645,46 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       const raw = String(url || '').trim();
       if (!raw) return '';
       if (!/^https?:\/\//i.test(raw)) {
-        return raw
+        const normalizedPath = raw
           .replace('/assets/cafeter-a-de-prueba/', '/assets/pronto/')
           .replace('/assets/cafeteria-de-prueba/', '/assets/pronto/');
+        if (normalizedPath.startsWith('/assets/') && STATIC_HOST) {
+          return `${STATIC_HOST}${normalizedPath}`;
+        }
+        return normalizedPath;
       }
       try {
         const parsed = new URL(raw);
         const normalizedPath = parsed.pathname
           .replace('/assets/cafeter-a-de-prueba/', '/assets/pronto/')
           .replace('/assets/cafeteria-de-prueba/', '/assets/pronto/');
+        if (STATIC_HOST && normalizedPath.startsWith('/assets/')) {
+          return `${STATIC_HOST}${normalizedPath}${parsed.search}${parsed.hash}`;
+        }
         return `${parsed.origin}${normalizedPath}${parsed.search}${parsed.hash}`;
       } catch (_err) {
         return raw;
       }
+    }
+
+    function setModalImageWithFallback(imgEl, src, altText) {
+      if (!imgEl) return;
+      imgEl.onerror = null;
+      imgEl.alt = altText || 'Imagen del producto';
+      const primary = normalizeMenuAssetUrl(src) || MODAL_IMAGE_PLACEHOLDER;
+      imgEl.onerror = () => {
+        if (imgEl.src !== MODAL_IMAGE_PLACEHOLDER) {
+          imgEl.onerror = () => {
+            imgEl.onerror = null;
+            imgEl.src = MODAL_IMAGE_INLINE_FALLBACK;
+          };
+          imgEl.src = MODAL_IMAGE_PLACEHOLDER;
+          return;
+        }
+        imgEl.onerror = null;
+        imgEl.src = MODAL_IMAGE_INLINE_FALLBACK;
+      };
+      imgEl.src = primary;
     }
 
     async function getMenu() {
@@ -534,8 +693,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         const response = await fetch('/api/menu');
         const result = await response.json();
         // The API response is wrapped in .data
-        menuCache = result.data.categories || [];
-        console.log('[BRIDGE] Menu cache loaded:', menuCache.length, 'categories');
+        menuCache = result.data.catalog_items || [];
+        console.log('[BRIDGE] Menu cache loaded:', menuCache.length, 'items');
         return menuCache;
       } catch (e) {
         console.error('[BRIDGE] Failed to load menu for modal', e);
@@ -545,14 +704,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
     window.openProductModal = async function (productId) {
       console.log('[BRIDGE] openProductModal called for ID:', productId);
-      const categories = await getMenu();
-      let product = null;
-      for (const cat of categories) {
-        if (cat.items) {
-          product = cat.items.find((item) => item.id == productId);
-          if (product) break;
-        }
-      }
+      const items = await getMenu();
+      const product = items.find((item) => item.id == productId);
 
       if (!product) {
         console.error('[BRIDGE] Product not found in cache:', productId);
@@ -584,15 +737,14 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
       if (nameEl) nameEl.textContent = product.name;
       if (descEl) descEl.textContent = product.description || '';
-      const resolvedImage = normalizeMenuAssetUrl(product.image_path) || '{{ restaurant_assets }}/icons/placeholder.png';
+      const resolvedImage = normalizeMenuAssetUrl(product.image_path) || MODAL_IMAGE_PLACEHOLDER;
       if (imgEl) {
-        imgEl.src = resolvedImage;
-        imgEl.alt = product.name;
+        setModalImageWithFallback(imgEl, resolvedImage, product.name);
       }
 
       const price = parseFloat(product.price) || 0;
       const formattedPrice = formatCurrency(price);
-      const modifierGroups = normalizeModifierGroups(product.modifier_groups);
+      const modifierGroups = collectModifierGroupsForModal(product);
       currentModalProduct = {
         id: product.id,
         name: product.name,
@@ -617,15 +769,35 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       // Show modal
       modal.classList.add('active');
       document.body.classList.add('modal-open');
+      window.requestAnimationFrame(() => {
+        const modalBody = modal.querySelector('.modal-body');
+        if (modalBody) modalBody.scrollTop = 0;
+        bindModalScrollHint();
+        window.setTimeout(updateModalScrollHint, 120);
+      });
     };
 
     window.closeItemModal = function () {
       const modal = document.getElementById('item-modal');
+      const hint = document.getElementById('modal-scroll-hint');
       if (modal) {
         modal.classList.remove('active');
         document.body.classList.remove('modal-open');
       }
+      if (hint) {
+        hint.classList.remove('is-visible');
+      }
     };
+
+    const itemModalCloseBtn = document.querySelector('#item-modal .modal-close');
+    if (itemModalCloseBtn && !itemModalCloseBtn.dataset.boundClick) {
+      itemModalCloseBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        window.closeItemModal();
+      });
+      itemModalCloseBtn.dataset.boundClick = '1';
+    }
 
     function updateModalTotals() {
       const qtyEl = document.getElementById('modal-quantity');
@@ -671,6 +843,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         extras: selected.extras,
         extrasTotal: selected.extrasTotal,
         modifiers: selected.modifierIds,
+        modifier_none_groups: selected.noneGroupIds,
       });
 
       window.closeItemModal();
@@ -1072,19 +1245,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       return fallbackBuild(areaCode, tableNumber);
     };
 
-    const DUMMY_TABLES = (() => {
-      const make = (label, areaCode, number) => {
-        const code = buildCode(areaCode, number);
-        return { id: code, fullName: label, areaCode, tableNumber: number, code };
-      };
-      const mesas = Array.from({ length: 10 }, (_, i) => make(`Mesa ${i + 1}`, 'M', i + 1));
-      const terrazas = Array.from({ length: 8 }, (_, i) =>
-        make(`Terraza ${i + 11}`, 'T', i + 11)
-      );
-      const barras = Array.from({ length: 4 }, (_, i) => make(`Barra ${i + 1}`, 'B', i + 1));
-      const vips = Array.from({ length: 3 }, (_, i) => make(`VIP ${i + 1}`, 'V', i + 1));
-      return [...mesas, ...terrazas, ...barras, ...vips];
-    })();
+    const SERVER_TABLES = {{ (available_tables or []) | tojson | safe }};
 
     const AREA_LABELS = {
       M: 'Mesa',
@@ -1092,30 +1253,54 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       B: 'Barra',
       V: 'VIP',
     };
-    let tableOptions = [...DUMMY_TABLES];
+    let tableOptions = [];
     let tableOptionsPromise = null;
+
+    const isUuidLike = (value) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        String(value || '').trim()
+      );
+
+    const normalizeMaybeUuid = (value) => {
+      if (value === null || value === undefined) return '';
+      const normalized = String(value).trim();
+      return normalized && normalized !== '[object Object]' ? normalized : '';
+    };
 
     const buildTableEntry = (tableData) => {
       const value = String(tableData?.table_number || tableData?.code || tableData || '').trim();
       if (!value) return null;
-      const tableId = String(tableData?.id || '').trim();
-      const zoneLabel = tableData?.zone || tableData?.area_name || '';
+      const tableId =
+        normalizeMaybeUuid(tableData?.id) ||
+        normalizeMaybeUuid(tableData?.table_id) ||
+        normalizeMaybeUuid(tableData?.uuid);
+      const areaPrefixRaw =
+        tableData?.area?.prefix ||
+        tableData?.area_prefix ||
+        tableData?.areaCode ||
+        tableData?.area_code ||
+        '';
+      const areaPrefix = String(areaPrefixRaw || '').trim().toUpperCase();
+      const zoneLabel =
+        tableData?.area?.name || tableData?.zone || tableData?.area_name || '';
       const utils = window.ProntoTableCode;
-      const parsedCode = utils?.parseTableCode?.(value);
+      const parsedCode =
+        utils?.parseTableCode?.(value) ||
+        (areaPrefix && value ? utils?.parseTableCode?.(buildCode(areaPrefix, Number(value.replace(/[^\d]/g, '')))) : null);
       if (parsedCode) {
         const label = AREA_LABELS[parsedCode.areaCode] || zoneLabel || 'Mesa';
         return {
           id: tableId || null,
           areaCode: parsedCode.areaCode,
           tableNumber: parsedCode.tableNumber,
-          code: value,
+          code: buildCode(parsedCode.areaCode, parsedCode.tableNumber) || value,
           fullName: `${label} ${parsedCode.tableNumber}`,
         };
       }
 
       const digitsMatch = value.match(/(\d{1,2})/);
       const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
-      const areaCode = (zoneLabel || 'G').trim().slice(0, 1).toUpperCase() || 'G';
+      const areaCode = areaPrefix || (zoneLabel || 'G').trim().slice(0, 1).toUpperCase() || 'G';
       return {
         id: tableId || null,
         areaCode,
@@ -1125,8 +1310,42 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       };
     };
 
+    if (Array.isArray(SERVER_TABLES) && SERVER_TABLES.length > 0) {
+      const normalizedServerTables = SERVER_TABLES.map((table) => buildTableEntry(table)).filter(Boolean);
+      if (normalizedServerTables.length > 0) {
+        tableOptions = normalizedServerTables;
+      }
+    }
+
+    const hasAuthenticatedContext = () => {
+      const appCustomer = window.APP_SESSION?.customer;
+      if (appCustomer && (appCustomer.id || appCustomer.email || appCustomer.customer_id)) {
+        return true;
+      }
+      try {
+        const explicitRef = String(localStorage.getItem('pronto-customer-ref') || '').trim();
+        if (explicitRef) return true;
+        const userRaw = localStorage.getItem('pronto-user');
+        if (!userRaw) return false;
+        const user = JSON.parse(userRaw);
+        return Boolean(user?.id || user?.email || user?.customer_ref);
+      } catch (_error) {
+        return false;
+      }
+    };
+
     const loadTableOptions = () => {
       if (tableOptionsPromise) return tableOptionsPromise;
+      // If SSR already delivered real tables, avoid extra API call.
+      if (Array.isArray(tableOptions) && tableOptions.length > 0) {
+        tableOptionsPromise = Promise.resolve();
+        return tableOptionsPromise;
+      }
+      // Public flow: keep server-rendered real tables, avoid noisy 401 calls.
+      if (!hasAuthenticatedContext()) {
+        tableOptionsPromise = Promise.resolve();
+        return tableOptionsPromise;
+      }
       tableOptionsPromise = fetch(`/api/tables`, {
         method: 'GET',
         credentials: 'include',
@@ -1196,20 +1415,47 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     }
 
     function handleCheckoutUnauthorized() {
-      try {
-        localStorage.removeItem('pronto-user');
-        localStorage.removeItem('pronto-customer-ref');
-      } catch (_error) {
-        // no-op
-      }
-      window.APP_SESSION = { customer: null };
-      setCheckoutFeedback('Tu sesión expiró. Inicia sesión nuevamente para confirmar el pedido.', 'error');
-      if (typeof window.showNotification === 'function') {
-        window.showNotification('Sesión expirada. Inicia sesión de nuevo.', 'warning');
-      }
-      if (typeof window.toggleProfile === 'function') {
-        window.toggleProfile();
-      }
+      void (async () => {
+        try {
+          const response = await fetch('/api/client-auth/me', {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              Accept: 'application/json',
+              ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
+            },
+          });
+          if (response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const customer = payload?.customer || payload?.data?.customer;
+            if (customer && (customer.id || customer.email)) {
+              window.APP_SESSION = { customer };
+              setCheckoutFeedback('Sesión validada. Intenta confirmar nuevamente.', 'info');
+              return;
+            }
+          }
+        } catch (_error) {
+          // continue with logout fallback on probe failure
+        }
+
+        try {
+          localStorage.removeItem('pronto-user');
+          localStorage.removeItem('pronto-customer-ref');
+        } catch (_error) {
+          // no-op
+        }
+        window.APP_SESSION = { customer: null };
+        setCheckoutFeedback('');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification(
+            'Tu sesión expiró. Inicia sesión nuevamente para confirmar el pedido.',
+            'warning'
+          );
+        }
+        if (typeof window.toggleProfile === 'function') {
+          window.toggleProfile();
+        }
+      })();
     }
 
     function hasAuthenticatedCustomerSession() {
@@ -1307,6 +1553,32 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       checkoutFeedback.style.fontSize = '0.92rem';
     }
 
+    window.addEventListener('pronto:auth-success', () => {
+      setCheckoutFeedback('');
+      void (async () => {
+        const persistedContext = await loadPersistedTableContext();
+        const persistedTableRef = persistedContext?.table_code || persistedContext?.table_id;
+
+        // Backend context is authoritative when available.
+        if (persistedTableRef) {
+          assignTable(persistedTableRef, persistedContext.table_source || 'manual', false);
+          return;
+        }
+
+        // If there is no backend context yet, keep/propagate current local assignment
+        // (QR/manual) so authenticated customer sessions preserve table continuity.
+        const localContext = getLocalAssignedTableContext();
+        if (!localContext) return;
+
+        await persistTableContext(localContext.tableData, localContext.source);
+        const hydratedContext = await loadPersistedTableContext();
+        const hydratedRef = hydratedContext?.table_code || hydratedContext?.table_id;
+        if (hydratedRef) {
+          assignTable(hydratedRef, hydratedContext.table_source || localContext.source, false);
+        }
+      })();
+    });
+
     function getCheckoutItemsPayload() {
       const cartItems =
         typeof window.getCartItems === 'function' ? window.getCartItems() || [] : [];
@@ -1319,14 +1591,53 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           const modifiers = Array.isArray(item?.modifiers)
             ? item.modifiers.filter((modifierId) => modifierId !== null && modifierId !== undefined)
             : [];
+          const modifierNoneGroups = Array.isArray(item?.modifier_none_groups)
+            ? item.modifier_none_groups.filter((groupId) => groupId !== null && groupId !== undefined)
+            : [];
+          const packageComponents = Array.isArray(item?.package_components)
+            ? item.package_components.map((component) => ({
+                component_item_id: component?.component_item_id || component?.menu_item_id || null,
+                menu_item_id: component?.menu_item_id || component?.component_item_id || null,
+                quantity: Number(component?.quantity || 1),
+                modifiers: Array.isArray(component?.modifiers) ? component.modifiers : [],
+                modifier_none_groups: Array.isArray(component?.modifier_none_groups)
+                  ? component.modifier_none_groups
+                  : [],
+              }))
+              .filter((component) => component.menu_item_id)
+            : [];
           return {
             menu_item_id: menuItemId,
             quantity,
             modifiers,
+            modifier_none_groups: modifierNoneGroups,
+            package_components: packageComponents,
             special_instructions: String(item?.special_instructions || '').trim(),
           };
         })
         .filter(Boolean);
+    }
+
+    function resolveSelectedTableId(rawValue) {
+      const selected = String(rawValue || '').trim();
+      if (!selected) return '';
+      if (isUuidLike(selected)) return selected;
+
+      const selectedOption = detailsTableSelect?.options?.[detailsTableSelect.selectedIndex];
+      const selectedCode = String(selectedOption?.dataset?.code || selected).trim();
+      const parsed = parseIncomingTable(selectedCode);
+      const candidateId = String(parsed?.id || '').trim();
+      if (candidateId && isUuidLike(candidateId)) return candidateId;
+
+      const directMatch = tableOptions.find(
+        (table) =>
+          String(table?.id || '').trim().toLowerCase() === selected.toLowerCase() ||
+          String(table?.code || '').trim().toLowerCase() === selectedCode.toLowerCase()
+      );
+      const directId = String(directMatch?.id || '').trim();
+      if (directId && isUuidLike(directId)) return directId;
+
+      return '';
     }
 
     function parseIncomingTable(rawValue, preferSavedLabel = '') {
@@ -1418,6 +1729,29 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       }
     }
 
+    function setMesaAccordionCollapsed(collapsed) {
+      const accordion = document.getElementById('accordion-mesa');
+      if (!accordion) return;
+
+      const header = accordion.querySelector('.checkout-accordion-header');
+      const content = accordion.querySelector('.accordion-content');
+      const shouldCollapse = Boolean(collapsed);
+
+      accordion.classList.toggle('collapsed', shouldCollapse);
+      if (header) {
+        header.setAttribute('aria-expanded', String(!shouldCollapse));
+      }
+      if (content) {
+        if (shouldCollapse) {
+          content.setAttribute('hidden', '');
+          content.style.setProperty('display', 'none', 'important');
+        } else {
+          content.removeAttribute('hidden');
+          content.style.removeProperty('display');
+        }
+      }
+    }
+
     function assignTable(rawTable, source = 'qr', persist = true) {
       if (!tableInput) return false;
       const savedLabel = sessionStorage.getItem('pronto-table-label') || undefined;
@@ -1438,6 +1772,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         tableLabel.textContent = formatTableLabel(tableData);
       }
       applyTableLock(source);
+      // Business rule: whenever a table is already assigned (qr/kiosk/manual),
+      // keep "Datos de la Mesa" collapsed by default.
+      setMesaAccordionCollapsed(true);
 
       const menuTableLabel = document.getElementById('menu-table-label');
       if (menuTableLabel) {
@@ -1455,6 +1792,26 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       }
 
       return true;
+    }
+
+    function getLocalAssignedTableContext() {
+      const currentTableRef = String(tableIdInput?.value || tableInput?.value || '').trim();
+      if (!currentTableRef) return null;
+
+      const parsed = parseIncomingTable(
+        currentTableRef,
+        sessionStorage.getItem('pronto-table-label') || ''
+      );
+      if (!parsed) return null;
+
+      const currentSource = String(tableSourceInput?.value || '').trim().toLowerCase();
+      return {
+        tableData: parsed,
+        source:
+          currentSource === 'qr' || currentSource === 'kiosk' || currentSource === 'manual'
+            ? currentSource
+            : 'manual',
+      };
     }
 
     function renderTableOptions() {
@@ -1614,7 +1971,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       checkoutForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         event.stopPropagation();
-        const selectedTable = String(tableIdInput?.value || detailsTableSelect?.value || '').trim();
+        const selectedTableRaw = String(tableIdInput?.value || detailsTableSelect?.value || '').trim();
+        const selectedTable = resolveSelectedTableId(selectedTableRaw);
         if (!selectedTable) {
           showTableRequiredError();
           setCheckoutFeedback('Selecciona una mesa para confirmar el pedido.', 'error');
@@ -1728,7 +2086,12 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
           const result = data?.data || data || {};
           const orderId = result?.order_id || result?.id;
-          const sessionId = result?.session_id || '';
+          const sessionId =
+            result?.session_id ||
+            result?.session?.id ||
+            result?.dining_session_id ||
+            result?.session_uuid ||
+            '';
 
           if (typeof window.setSessionId === 'function' && sessionId) {
             window.setSessionId(sessionId);
@@ -1750,8 +2113,15 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           if (typeof window.showNotification === 'function') {
             window.showNotification('Pedido confirmado exitosamente', 'success');
           }
+          if (typeof window.activateOrdersTab === 'function') {
+            window.activateOrdersTab(1);
+          }
           if (typeof window.refreshMiniTracker === 'function') {
-            window.refreshMiniTracker();
+            try {
+              await window.refreshMiniTracker();
+            } catch (_refreshError) {
+              // no-op: tab switch still proceeds
+            }
           }
           if (typeof window.switchView === 'function') {
             window.switchView('orders');
@@ -1797,10 +2167,6 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
         if (savedTable) {
           assigned = assignTable(savedTable, 'manual', false);
-        } else if (window.DEBUG_AUTO_TABLE) {
-          // Debug mode: auto-assign Mesa 1 (primer dummy)
-          console.log('[DEBUG] Auto-assigning Mesa 1 for testing');
-          assigned = assignTable('Mesa 1', 'manual', true);
         }
       }
 
@@ -1810,6 +2176,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         if (tableIdInput) tableIdInput.value = '';
         if (tableInput) tableInput.value = '';
         applyTableLock('manual');
+        setMesaAccordionCollapsed(false);
         clearTableError();
       }
     }

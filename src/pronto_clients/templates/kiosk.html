@@ -1,28 +1,77 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="kiosk-container" style="max-width: 800px; margin: 2rem auto; text-align: center; padding: 2rem;">
-  <div class="kiosk-header" style="margin-bottom: 3rem;">
-    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Bienvenido a {{ restaurant_name }}</h1>
-    <p style="color: var(--muted); font-size: 1.2rem;">Kiosk - {{ location }}</p>
+<style>
+  .kiosk-container {
+    max-width: 800px;
+    margin: 1rem auto;
+    text-align: center;
+    padding: clamp(0.9rem, 3vw, 2rem);
+    box-sizing: border-box;
+  }
+
+  .kiosk-header {
+    margin-bottom: clamp(1.2rem, 4vw, 3rem);
+  }
+
+  .kiosk-title {
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+
+  .kiosk-subtitle {
+    color: var(--muted);
+    font-size: clamp(0.95rem, 2.8vw, 1.2rem);
+  }
+
+  .kiosk-message {
+    background: var(--card-bg);
+    padding: clamp(0.9rem, 3vw, 2rem);
+    border-radius: 16px;
+    margin-bottom: 1.2rem;
+  }
+
+  .kiosk-message p {
+    font-size: clamp(0.95rem, 2.8vw, 1.1rem);
+    margin-bottom: 0;
+  }
+
+  #kiosk-start-btn {
+    background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+    color: white;
+    border: none;
+    padding: clamp(0.9rem, 3vw, 1.5rem) clamp(1.1rem, 4vw, 3rem);
+    font-size: clamp(1rem, 3.8vw, 1.5rem);
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: min(100%, 420px);
+    min-height: 44px;
+  }
+
+  @media (max-width: 520px) {
+    .kiosk-container {
+      margin: 0.5rem auto;
+      padding: 0.75rem;
+    }
+  }
+</style>
+
+<div class="kiosk-container">
+  <div class="kiosk-header">
+    <h1 class="kiosk-title">Bienvenido a {{ restaurant_name }}</h1>
+    <p class="kiosk-subtitle">Kiosk - {{ location }}</p>
   </div>
   
-  <div class="kiosk-message" style="background: var(--card-bg); padding: 2rem; border-radius: 16px; margin-bottom: 2rem;">
-    <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+  <div class="kiosk-message">
+    <p>
       Toca el botón para comenzar tu pedido
     </p>
   </div>
   
-  <button id="kiosk-start-btn" 
-          style="background: linear-gradient(135deg, #f97316 0%, #fb923c 100%); 
-                 color: white; 
-                 border: none; 
-                 padding: 1.5rem 3rem; 
-                 font-size: 1.5rem; 
-                 border-radius: 12px; 
-                 cursor: pointer; 
-                 box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-                 transition: transform 0.2s, box-shadow 0.2s;">
+  <button id="kiosk-start-btn">
     Comenzar Pedido
   </button>
   

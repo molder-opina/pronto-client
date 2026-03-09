@@ -8,6 +8,7 @@ Session Flask only stores: customer_ref, dining_session_id (allowlist AGENTS.md 
 from __future__ import annotations
 
 import os
+import secrets
 from datetime import datetime, timezone
 
 from flask import Flask, jsonify, session
@@ -23,7 +24,6 @@ from pronto_shared.error_handlers import register_error_handlers
 from pronto_shared.logging_config import configure_logging
 from pronto_shared.security_middleware import configure_security_headers
 from pronto_shared.services.business_config_service import (
-    get_config_map,
     sync_env_config_to_db,
 )
 from pronto_shared.services.secret_service import (
@@ -127,7 +127,6 @@ def init_runtime(app: Flask, config) -> None:
             {
                 "error": "CSRF Error",
                 "details": e.description,
-                "diagnosis": "Server Reloaded on new handler",
             }
         ), 400
 
@@ -159,7 +158,6 @@ def init_runtime(app: Flask, config) -> None:
             customer_session_store,
             RedisUnavailableError,
         )
-        from flask import current_app
         from pronto_shared.trazabilidad import get_logger
 
         customer_ref = session.get("customer_ref")
@@ -245,7 +243,9 @@ def create_app() -> Flask:
         ), 200
 
     if routes_only:
-        app.config["SECRET_KEY"] = "routes-only"
+        # Use env var or generate a random secret for routes-only mode
+        # Random secret is fine for unit tests where session persistence doesn't matter
+        app.config["SECRET_KEY"] = os.getenv("PRONTO_ROUTES_SECRET") or secrets.token_hex(32)
         return app
 
     config = load_config("pronto-clients")

@@ -1,0 +1,103 @@
+repos:
+  # Basic file quality checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Fmt-Agent: Formato determinístico
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff-format
+        name: pronto-client ruff-format
+
+  # Lint-Agent: Errores estáticos + estilo
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        name: pronto-client ruff
+        args: [--no-fix]
+
+  # Types-Agent: Chequeo de tipos
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        name: pronto-client mypy
+        args: [--ignore-missing-imports]
+        additional_dependencies: ['types-requests']
+
+  # Documentation Agent
+  - repo: local
+    hooks:
+      - id: pronto-doc-documenter
+        name: pronto-doc documenter
+        entry: ../pronto-scripts/bin/agents/documenter.sh
+        language: system
+        pass_filenames: false
+
+  # Business Auditor Agent
+  - repo: local
+    hooks:
+      - id: pronto-business-auditor
+        name: pronto-business auditor
+        entry: ../pronto-scripts/bin/agents/business_auditor.sh
+        language: system
+        pass_filenames: false
+
+  # Security-Agent (SAST): Vulnerabilidades en código
+  - repo: local
+    hooks:
+      - id: pronto-client-bandit
+        name: pronto-client bandit (SAST)
+        entry: bash -lc '.venv/bin/bandit -q -r src/ || (echo "Security issues found"; exit 1)'
+        language: system
+        pass_filenames: false
+
+  # Security-Agent (deps): Vulnerabilidades en dependencias
+  - repo: local
+    hooks:
+      - id: pronto-client-pip-audit
+        name: pronto-client pip-audit (deps security)
+        entry: bash -lc '.venv/bin/pip-audit --ignore-vuln CVE-2026-1703 || (echo "Dependency vulnerabilities found"; exit 1)'
+        language: system
+        pass_filenames: false
+
+  # Config-Agent: Validación de configuración
+  - repo: local
+    hooks:
+      - id: pronto-client-pycompile
+        name: pronto-client py_compile (syntax check)
+        entry: bash -lc '.venv/bin/python -m compileall -q . || (echo "Python syntax errors"; exit 1)'
+        language: system
+        pass_filenames: false
+
+# Configuración global
+default_language_version:
+  python: python3.11
+
+# Excluir archivos y directorios
+exclude: |
+  (?x)^(
+      \.git|
+      \.venv|
+      __pycache__|
+      \.pytest_cache|
+      \.mypy_cache|
+      \.ruff_cache|
+      build|
+      dist|
+      migrations|
+      \.eggs|
+      .*\.egg-info
+  )$

@@ -1,5 +1,5 @@
 <!-- Profile Modal -->
-<div class="profile-modal" id="profile-modal">
+<div class="profile-modal" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
     <div class="profile-modal-overlay"></div>
     <div class="profile-modal-content">
       <button class="profile-modal-close" aria-label="Cerrar modal">×</button>
@@ -7,7 +7,7 @@
       <!-- Not Logged In View -->
       <div id="profile-not-logged-in" class="profile-view">
         <div class="profile-header">
-          <h2>Bienvenido a Pronto</h2>
+          <h2 id="profile-modal-title">Bienvenido a Pronto</h2>
           <p class="profile-subheading">
             Inicia sesión o regístrate para guardar tus pedidos
           </p>
@@ -177,15 +177,15 @@
     </div>
 </div>
 <!-- Password Recovery Modal -->
-<div class="password-recovery-modal" id="password-recovery-modal">
+<div class="password-recovery-modal" id="password-recovery-modal" role="dialog" aria-modal="true" aria-labelledby="password-recovery-title">
     <div class="password-recovery-modal-overlay"></div>
     <div class="password-recovery-modal-content">
-        <button class="password-recovery-modal-close" id="password-recovery-close">×</button>
+        <button class="password-recovery-modal-close" id="password-recovery-close" aria-label="Cerrar modal de recuperación">×</button>
 
         <!-- Step 1: Request Recovery -->
         <div id="password-recovery-step-1" class="password-recovery-step">
         <div class="password-recovery-header">
-            <h2>¿Olvidaste tu contraseña?</h2>
+            <h2 id="password-recovery-title">¿Olvidaste tu contraseña?</h2>
             <p class="profile-subheading">
             Ingresa tu email y te enviaremos un enlace para restablecerla
             </p>
@@ -275,13 +275,13 @@
     </div>
 </div>
 <!-- Order History Modal -->
-<div class="order-history-modal" id="order-history-modal">
+<div class="order-history-modal" id="order-history-modal" role="dialog" aria-modal="true" aria-labelledby="order-history-title">
     <div class="order-history-modal-overlay"></div>
     <div class="order-history-modal-content">
-        <button class="order-history-modal-close" id="order-history-close">×</button>
+        <button class="order-history-modal-close" id="order-history-close" aria-label="Cerrar historial de pedidos">×</button>
 
         <div class="order-history-header">
-        <h2>Mis Pedidos</h2>
+        <h2 id="order-history-title">Mis Pedidos</h2>
         <div class="order-history-tabs">
             <button class="order-history-tab active" data-status="all">Todos</button>
             <button class="order-history-tab" data-status="active">Activos</button>

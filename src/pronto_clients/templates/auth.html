@@ -16,7 +16,7 @@
 </script>
 
 <noscript>
-  <div style="max-width: 640px; margin: 2rem auto; text-align: center;">
+  <div style="max-width: min(640px, calc(100vw - 1.25rem)); margin: 1rem auto; text-align: center; padding: 0.5rem;">
     <a class="btn btn-primary" href="/?view=profile&tab={{ auth_tab|default('login', true) }}">Abrir autenticación</a>
   </div>
 </noscript>
