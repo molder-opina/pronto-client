@@ -199,32 +199,33 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: .3rem;
-      border: 1px solid #94a3b8;
-      background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
-      color: #1e293b;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #64748b;
       border-radius: 10px;
-      font-size: .74rem;
-      font-weight: 800;
-      padding: .42rem .62rem;
-      min-width: 96px;
-      height: 40px;
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      padding: 0;
       cursor: pointer;
-      white-space: nowrap;
       line-height: 1;
-      transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease, box-shadow .15s ease;
-      box-shadow: 0 4px 10px rgba(15, 23, 42, .12);
+      transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
+      box-shadow: none;
     }
     .mini-tracker-close:hover {
-      background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
-      border-color: #64748b;
-      color: #0f172a;
+      background: #eef2f7;
+      border-color: #94a3b8;
+      color: #334155;
       transform: translateY(-1px);
-      box-shadow: 0 7px 14px rgba(15, 23, 42, .16);
     }
     .mini-tracker-close:focus-visible {
       outline: none;
       box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.4);
+    }
+    .mini-tracker-close .mini-tracker-close-icon {
+      font-size: 1rem;
+      font-weight: 700;
+      transform: translateY(-1px);
     }
 
     .mini-tracker-toggle {
@@ -2398,8 +2399,7 @@
         </button>
         <button class="mini-tracker-close" id="mini-tracker-close" type="button"
           aria-label="Minimizar tracker" title="Minimizar tracker">
-          <span aria-hidden="true">−</span>
-          <span>Minimizar</span>
+          <span class="mini-tracker-close-icon" aria-hidden="true">—</span>
         </button>
         <button class="mini-tracker-btn mini-tracker-btn--primary" id="request-checkout-btn" style="display: none"
           data-action="call" data-fn="requestCheckoutFromTracker">
@@ -5215,8 +5215,8 @@
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
-  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260309e"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260309e"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260309f"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260309f"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">
