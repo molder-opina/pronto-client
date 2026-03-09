@@ -1,11 +1,12 @@
 """
 Business info endpoint for clients - BFF CACHE.
 
-This module provides cached business information for the client app.
-Business info is read from pronto-api and cached to reduce load.
-Business logic lives in pronto-api:6082 under "/api/*".
+Public read-only endpoint used by the customer-facing UI to render
+business hours even before authentication. This preserves the business
+rule that menu/hours are visible for guests, while order placement
+remains authenticated.
 
-Reference: AGENTS.md section 12.4.2, 12.4.3
+Business info is read from shared services.
 """
 
 from __future__ import annotations
@@ -15,11 +16,9 @@ from http import HTTPStatus
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, jsonify, session
+from flask import Blueprint, jsonify
 
-from pronto_shared.serializers import error_response
 from pronto_shared.services.business_info_service import BusinessInfoService, BusinessScheduleService
-from pronto_shared.services.customer_session_store import RedisUnavailableError, customer_session_store
 from pronto_shared.trazabilidad import get_logger
 
 logger = get_logger(__name__)
@@ -27,47 +26,14 @@ logger = get_logger(__name__)
 business_info_bp = Blueprint("client_business_info", __name__)
 
 
-def _require_authenticated_customer() -> tuple[dict[str, Any] | None, tuple[dict[str, Any], int] | None]:
-    customer_ref = session.get("customer_ref")
-    if not customer_ref:
-        return None, (error_response("Autenticación requerida"), HTTPStatus.UNAUTHORIZED)
-
-    try:
-        customer = customer_session_store.get_customer(customer_ref)
-    except RedisUnavailableError:
-        logger.warning("Customer session store unavailable while resolving business info")
-        return None, (
-            error_response("No se pudo validar la sesión del cliente"),
-            HTTPStatus.SERVICE_UNAVAILABLE,
-        )
-    except Exception as exc:  # pragma: no cover - defensive logging
-        logger.error(
-            "Unexpected error resolving business info customer session",
-            error={"type": type(exc).__name__, "message": str(exc)},
-        )
-        return None, (
-            error_response("No se pudo validar la sesión del cliente"),
-            HTTPStatus.INTERNAL_SERVER_ERROR,
-        )
-
-    if not customer:
-        return None, (error_response("Autenticación requerida"), HTTPStatus.UNAUTHORIZED)
-
-    return customer, None
-
-
 @business_info_bp.get("/business-info")
 def get_business_info() -> tuple[Any, int]:
     """
     Get business information and schedule for client-facing display.
 
-    This route requires an authenticated customer session and reads the canonical
-    shared services instead of depending on deprecated public API surfaces.
+    Public endpoint: does not require customer authentication.
     """
-    _customer, auth_error = _require_authenticated_customer()
-    if auth_error:
-        return auth_error
-    
+
     business_info = {}
     try:
         business_info_response = BusinessInfoService.get_business_info()

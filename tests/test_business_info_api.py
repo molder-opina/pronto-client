@@ -3,7 +3,6 @@
 import os
 import sys
 import types
-import uuid
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -49,25 +48,40 @@ def _client_app():
     return app.test_client()
 
 
-def test_business_info_requires_authenticated_customer_session():
+def test_business_info_is_public_without_authenticated_customer_session():
     client = _client_app()
-
-    response = client.get("/api/business-info")
-
-    assert response.status_code == 401
-    assert response.get_json()["status"] == "error"
-
-
-def test_business_info_returns_schedule_for_authenticated_customer():
-    client = _client_app()
-    with client.session_transaction() as flask_session:
-        flask_session["customer_ref"] = str(uuid.uuid4())
 
     with (
         patch(
-            "pronto_clients.routes.api.business_info.customer_session_store.get_customer",
-            return_value={"customer_id": str(uuid.uuid4()), "name": "Cliente"},
+            "pronto_clients.routes.api.business_info.BusinessInfoService.get_business_info",
+            return_value={
+                "status": "success",
+                "data": {
+                    "business_name": "Pronto Centro",
+                    "timezone": "America/Mexico_City",
+                },
+            },
         ),
+        patch(
+            "pronto_clients.routes.api.business_info.BusinessScheduleService.get_schedule",
+            return_value={"status": "success", "data": {"schedules": []}},
+        ),
+        patch("pronto_clients.routes.api.business_info.datetime", _FixedDateTime),
+    ):
+        response = client.get("/api/business-info")
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["business_name"] == "Pronto Centro"
+    assert payload["schedule"] == []
+    assert payload["current_day_schedule"] is None
+    assert payload["is_currently_open"] is False
+
+
+def test_business_info_returns_schedule_for_public_customer_view():
+    client = _client_app()
+
+    with (
         patch(
             "pronto_clients.routes.api.business_info.BusinessInfoService.get_business_info",
             return_value={
@@ -104,4 +118,28 @@ def test_business_info_returns_schedule_for_authenticated_customer():
     assert payload["is_currently_open"] is True
     assert payload["current_day_schedule"]["day_of_week"] == 0
     assert payload["schedule"][0]["open_time"] == "09:00"
+
+
+def test_business_info_falls_back_to_defaults_when_services_fail():
+    client = _client_app()
+
+    with (
+        patch(
+            "pronto_clients.routes.api.business_info.BusinessInfoService.get_business_info",
+            side_effect=RuntimeError("business-info unavailable"),
+        ),
+        patch(
+            "pronto_clients.routes.api.business_info.BusinessScheduleService.get_schedule",
+            side_effect=RuntimeError("schedule unavailable"),
+        ),
+        patch("pronto_clients.routes.api.business_info.datetime", _FixedDateTime),
+    ):
+        response = client.get("/api/business-info")
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["business_name"] == "Restaurant"
+    assert payload["schedule"] == []
+    assert payload["current_day_schedule"] is None
+    assert payload["is_currently_open"] is False
 
