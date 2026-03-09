@@ -202,7 +202,7 @@ def menu_alt():
         return auth_redirect
 
     return render_template(
-        "index-alt.html",
+        "index_alt.html",
         debug_auto_table=debug_auto_table,
         customer_data=customer_data,
         api_base_url=current_app.config.get("API_BASE_URL", ""),

@@ -24,20 +24,22 @@ def _strip_accents(value: str) -> str:
 
 def _reject_html(value: str, field: str) -> None:
     if "<" in value or ">" in value:
-        raise InputValidationError(f"Caracteres no permitidos en {field}")
+        raise InputValidationError(f"Invalid characters in {field}")
 
 
-def sanitize_customer_name(value: str | None, allow_empty: bool = False, default: str = "") -> str:
+def sanitize_customer_name(
+    value: str | None, allow_empty: bool = False, default: str = ""
+) -> str:
     if not value:
         if allow_empty:
             return default
-        raise InputValidationError("El nombre es requerido")
+        raise InputValidationError("Name is required")
 
     cleaned = _strip_accents(value).strip().upper()
-    _reject_html(cleaned, "nombre")
+    _reject_html(cleaned, "name")
 
     if not SAFE_NAME_PATTERN.fullmatch(cleaned):
-        raise InputValidationError("El nombre contiene caracteres no permitidos")
+        raise InputValidationError("Name contains invalid characters")
 
     return cleaned
 
@@ -48,9 +50,9 @@ def sanitize_phone(value: str | None) -> str:
 
     cleaned = _strip_accents(value)
     cleaned = cleaned.replace("(", "").replace(")", "").replace(".", "").strip()
-    _reject_html(cleaned, "teléfono")
+    _reject_html(cleaned, "phone")
 
-    # Normalizar: permitir solo dígitos, espacios y guiones, manteniendo '+' inicial si existe
+    # Normalize: allow only digits, spaces and hyphens, keeping '+' prefix if exists
     has_plus = cleaned.startswith("+")
     cleaned = re.sub(r"[^\d\s\-]", "", cleaned)
     cleaned = cleaned.strip()
@@ -58,7 +60,7 @@ def sanitize_phone(value: str | None) -> str:
         cleaned = f"+{cleaned.lstrip('+')}"
 
     if not PHONE_PATTERN.fullmatch(cleaned):
-        raise InputValidationError("El teléfono contiene caracteres no permitidos")
+        raise InputValidationError("Phone contains invalid characters")
 
     return cleaned
 
@@ -67,48 +69,50 @@ def sanitize_email(value: str | None, allow_empty: bool = False) -> str:
     if not value:
         if allow_empty:
             return ""
-        raise InputValidationError("El email es requerido")
+        raise InputValidationError("Email is required")
 
     cleaned = value.strip().lower()
     _reject_html(cleaned, "email")
 
     if not EMAIL_PATTERN.fullmatch(cleaned):
-        raise InputValidationError("El email no tiene un formato válido")
+        raise InputValidationError("Email does not have a valid format")
 
     return cleaned
 
 
-def sanitize_notes(value: str | None, allow_empty: bool = True, max_length: int = 240) -> str:
+def sanitize_notes(
+    value: str | None, allow_empty: bool = True, max_length: int = 240
+) -> str:
     if not value:
         if allow_empty:
             return ""
-        raise InputValidationError("Las notas son requeridas")
+        raise InputValidationError("Notes are required")
 
     cleaned = _strip_accents(value).strip().upper()
-    _reject_html(cleaned, "notas")
+    _reject_html(cleaned, "notes")
 
     if len(cleaned) > max_length:
         cleaned = cleaned[:max_length]
 
     if not SAFE_NOTE_PATTERN.fullmatch(cleaned):
-        raise InputValidationError("Las notas contienen caracteres no permitidos")
+        raise InputValidationError("Notes contain invalid characters")
 
     return cleaned
 
 
 def sanitize_support_description(value: str | None, max_length: int = 1000) -> str:
     if not value:
-        raise InputValidationError("La descripción es requerida")
+        raise InputValidationError("Description is required")
 
     cleaned = value.strip()
-    _reject_html(cleaned, "descripción")
+    _reject_html(cleaned, "description")
 
-    # Normalizar espacios en blanco
+    # Normalize whitespace
     cleaned = re.sub(r"\s+", " ", cleaned)
 
     if len(cleaned) > max_length:
         cleaned = cleaned[:max_length]
 
-    # Permitir cualquier carácter excepto HTML (ya validado arriba)
-    # No convertimos a mayúsculas ni removemos acentos para soporte técnico
+    # Allow any character except HTML (already validated above)
+    # We don't convert to uppercase or remove accents for technical support
     return cleaned

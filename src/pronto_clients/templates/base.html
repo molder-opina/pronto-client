@@ -1716,7 +1716,7 @@
         'server_time': '{{ server_time }}'
       };
 
-      // Defer APP_CONFIG to useAppConfig.ts to avoid strictly frozen redeclare issues
+      // Defer APP_CONFIG to use-app-config.ts to avoid strictly frozen redeclare issues
     })();
   </script>
   {% if customer_data is defined %}
@@ -5204,8 +5204,8 @@
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
   </script>
-  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260308l"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260308l"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260309d"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260309d"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">
