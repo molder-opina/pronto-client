@@ -55,6 +55,10 @@ def _build_forwarding_headers() -> dict[str, str]:
     if csrf_token:
         headers["X-CSRFToken"] = csrf_token
 
+    idempotency_key = request.headers.get("X-Idempotency-Key")
+    if idempotency_key:
+        headers["X-Idempotency-Key"] = idempotency_key
+
     return headers
 
 

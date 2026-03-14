@@ -102,6 +102,28 @@ def create_customer_order():
     return proxy_response
 
 
+@orders_bp.get("/customer/orders/cart")
+def get_customer_cart():
+    """PROXY: Get customer draft cart."""
+    path = "/api/customer/orders/cart"
+    return forward_to_api("GET", path, stream=True)
+
+
+@orders_bp.put("/customer/orders/cart")
+def upsert_customer_cart():
+    """PROXY: Upsert customer draft cart."""
+    payload = request.get_json(silent=True) or {}
+    path = "/api/customer/orders/cart"
+    return forward_to_api("PUT", path, data=payload, stream=False)
+
+
+@orders_bp.post("/customer/orders/cart/abandon")
+def abandon_customer_cart():
+    """PROXY: Mark customer cart as abandoned."""
+    path = "/api/customer/orders/cart/abandon"
+    return forward_to_api("POST", path, stream=False)
+
+
 @orders_bp.post("/customer/orders/<path:order_id>/cancel")
 def cancel_customer_order(order_id: str):
     """PROXY: Cancel a specific customer order."""
