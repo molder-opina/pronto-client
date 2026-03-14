@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Términos de Servicio - {{ restaurant_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="policy-page">
+    <h1>Términos de Servicio</h1>
+    <div class="policy-content">
+      <p><strong>Última actualización:</strong> {{ current_date }}</p>
+      
+      <h2>1. Aceptación de Términos</h2>
+      <p>Al utilizar nuestros servicios, usted acepta estos términos y condiciones.</p>
+      
+      <h2>2. Uso del Servicio</h2>
+      <p>Nuestro servicio está diseñado para facilitar pedidos en restaurantes. Usted se compromete a proporcionar información precisa y completa.</p>
+      
+      <h2>3. Pedidos y Pagos</h2>
+      <p>Todos los pedidos están sujetos a disponibilidad. Los precios pueden variar y están sujetos a cambios sin previo aviso.</p>
+      
+      <h2>4. Privacidad</h2>
+      <p>Su información personal será tratada de acuerdo con nuestra Política de Privacidad.</p>
+      
+      <h2>5. Limitación de Responsabilidad</h2>
+      <p>No nos hacemos responsables por daños indirectos, incidentales o consecuentes derivados del uso de nuestros servicios.</p>
+      
+      <h2>6. Modificaciones</h2>
+      <p>Nos reservamos el derecho de modificar estos términos en cualquier momento.</p>
+      
+      <h2>7. Ley Aplicable</h2>
+      <p>Estos términos se rigen por las leyes de la jurisdicción correspondiente.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

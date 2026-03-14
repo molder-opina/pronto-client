@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Política de Privacidad - {{ restaurant_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="policy-page">
+    <h1>Política de Privacidad</h1>
+    <div class="policy-content">
+      <p><strong>Última actualización:</strong> {{ current_date }}</p>
+      
+      <h2>1. Información que Recopilamos</h2>
+      <p>Recopilamos información personal como nombre, correo electrónico, número de teléfono y preferencias para proporcionar nuestros servicios.</p>
+      
+      <h2>2. Uso de la Información</h2>
+      <p>Utilizamos su información para procesar pedidos, mejorar nuestros servicios y comunicarnos con usted sobre su experiencia.</p>
+      
+      <h2>3. Compartir Información</h2>
+      <p>No compartimos su información personal con terceros, excepto cuando sea necesario para procesar pagos o cumplir con obligaciones legales.</p>
+      
+      <h2>4. Seguridad</h2>
+      <p>Implementamos medidas de seguridad adecuadas para proteger su información personal.</p>
+      
+      <h2>5. Cookies</h2>
+      <p>Utilizamos cookies para mejorar su experiencia y recordar sus preferencias.</p>
+      
+      <h2>6. Sus Derechos</h2>
+      <p>Tiene derecho a acceder, corregir o eliminar su información personal en cualquier momento.</p>
+      
+      <h2>7. Cambios en la Política</h2>
+      <p>Nos reservamos el derecho de actualizar esta política de privacidad periódicamente.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

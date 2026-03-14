@@ -108,8 +108,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 <!-- Item Customization Modal -->
 <div class="modal-overlay" id="item-modal" role="dialog" aria-modal="true" aria-labelledby="modal-item-name">
   <div class="modal modal--item-customization modal-card">
-    <div class="modal-header">
-      <h3 id="modal-item-name"></h3>
+    <div class="modal-header modal-header--item">
+      <div class="modal-header__content">
+        <h3 id="modal-item-name"></h3>
+        <span id="modal-header-price" class="modal-header-price">{{ currency_symbol }}0.00</span>
+      </div>
       <button class="modal-close" data-action="call" data-fn="closeItemModal" aria-label="Cerrar modal de producto">×</button>
     </div>
     <div class="modal-body">
@@ -119,32 +122,16 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       <p id="modal-item-description" class="modal-item-description"></p>
 
       <div class="extras-section extras-section--hidden" id="extras-section">
-        <h4>Extras disponibles</h4>
-        <p id="modal-scroll-hint" class="modal-scroll-hint" aria-live="polite">
-          ↓ Desliza hacia abajo para ver más opciones
-        </p>
+        <div class="extras-section__header">
+          <h4>Extras</h4>
+          <span id="modal-extras-indicator" class="extras-section__indicator">{{ currency_symbol }}0.00</span>
+        </div>
         <div id="extras-list"></div>
       </div>
     </div>
-    <!-- Fixed Footer containing Prices, Quantity, and Action -->
+    <!-- Fixed Footer containing Quantity, Total, and Action -->
     <div class="modal-footer">
-      <!-- Price Breakdown -->
-      <div class="modal-price-breakdown" id="modal-price-breakdown">
-        <div class="modal-price-row">
-          <span>Precio base:</span>
-          <span id="modal-base-price">{{ currency_symbol }}0.00</span>
-        </div>
-        <div class="modal-price-row" id="modal-extras-price-row">
-          <span>Extras:</span>
-          <span id="modal-extras-price">{{ currency_symbol }}0.00</span>
-        </div>
-        <div class="modal-price-row modal-price-row--total">
-          <span>Total:</span>
-          <span id="modal-breakdown-total">{{ currency_symbol }}0.00</span>
-        </div>
-      </div>
-
-      <div class="modal-actions-row">
+      <div class="modal-footer-top">
         <div class="quantity-selector">
           <span>Cantidad:</span>
           <div class="quantity-selector-controls">
@@ -157,10 +144,20 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           </div>
         </div>
 
-        <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn"
-          onclick="window.addToCartFromModal()">
-          Agregar al carrito: <span id="modal-total-price">{{ currency_symbol }}0.00</span>
-        </button>
+        <div class="modal-footer-total">
+          <span>Total:</span>
+          <span id="modal-breakdown-total">{{ currency_symbol }}0.00</span>
+        </div>
+      </div>
+
+      <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn"
+        onclick="window.addToCartFromModal()">
+        Agregar al pedido — <span id="modal-total-price">{{ currency_symbol }}0.00</span>
+      </button>
+
+      <div class="modal-price-meta" aria-hidden="true">
+        <span id="modal-base-price">{{ currency_symbol }}0.00</span>
+        <span id="modal-extras-price">{{ currency_symbol }}0.00</span>
       </div>
     </div>
   </div>
@@ -271,7 +268,6 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     let modalModifierGroups = [];
     let modalSelectedModifiers = {};
     let modalModifierLookup = new Map();
-    let modalScrollHintHandler = null;
     const NO_SELECTION_PREFIX = 'none:';
     const STATIC_HOST = String(window.APP_SETTINGS?.static_host_url || '').trim().replace(/\/$/, '');
     const MODAL_IMAGE_PLACEHOLDER = `${STATIC_HOST}/assets/images/placeholder-food.png`;
@@ -298,6 +294,33 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         .map((group, index) => {
           const rawGroupId = String(group?.id || '').trim() || `group-${index + 1}`;
           const groupId = groupIdPrefix ? `${groupIdPrefix}${rawGroupId}` : rawGroupId;
+          const rawMinSelection = Number(
+            group?.min_selection ?? group?.min_required ?? 0
+          );
+          const minSelection = Number.isFinite(rawMinSelection)
+            ? Math.max(0, rawMinSelection)
+            : 0;
+          const rawMaxSelection = Number(
+            group?.max_selection ?? group?.max_allowed ?? 0
+          );
+          let maxSelection = Number.isFinite(rawMaxSelection)
+            ? Math.max(0, rawMaxSelection)
+            : 0;
+          if (
+            group?.is_multiple_choice === false ||
+            String(group?.selection_type || '').toLowerCase() === 'single'
+          ) {
+            maxSelection = 1;
+          }
+          if (maxSelection > 0 && maxSelection < minSelection) {
+            maxSelection = minSelection;
+          }
+          const isRequired = Boolean(group?.is_required) || minSelection > 0;
+          const allowNoneOption =
+            group?.allow_none_option !== undefined
+              ? group.allow_none_option !== false
+              : minSelection === 0 && !isRequired;
+
           const modifiers = Array.isArray(group?.modifiers)
             ? group.modifiers
                 .map((modifier, modifierIndex) => {
@@ -309,13 +332,16 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                   id: modifierId,
                   selection_key: selectionKey,
                   name: String(modifier?.name || '').trim(),
-                  price_adjustment: Number(modifier?.price_adjustment || 0),
+                  price_adjustment: Number(
+                    modifier?.price_adjustment ?? modifier?.price ?? 0
+                  ),
+                  image_path: String(modifier?.image_path || modifier?.image_url || '').trim() || null,
+                  image_url: String(modifier?.image_url || modifier?.image_path || '').trim() || null,
                   is_available: modifier?.is_available !== false,
                 };
                 })
                 .filter((modifier) => modifier.id && modifier.name)
             : [];
-          const allowNoneOption = group?.allow_none_option !== false;
           if (allowNoneOption) {
             const noSelectionId = `${NO_SELECTION_PREFIX}${groupId}`;
             modifiers.unshift({
@@ -323,6 +349,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               selection_key: `${groupId}::${noSelectionId}`,
               name: `No lleve ${String(group?.name || `Grupo ${index + 1}`).toLowerCase()}`,
               price_adjustment: 0,
+              image_path: null,
+              image_url: null,
               is_available: true,
               is_no_selection: true,
             });
@@ -333,9 +361,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             name: labelPrefix
               ? `${labelPrefix} · ${String(group?.name || `Grupo ${index + 1}`)}`
               : String(group?.name || `Grupo ${index + 1}`),
-            min_selection: Number(group?.min_selection || 0),
-            max_selection: Number(group?.max_selection || 0),
-            is_required: Boolean(group?.is_required),
+            min_selection: minSelection,
+            max_selection: maxSelection,
+            is_required: isRequired,
             allow_none_option: allowNoneOption,
             source_type: sourceType,
             modifiers,
@@ -367,6 +395,16 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       const min = Number(group?.min_selection || 0);
       if (min > 0) return min;
       return group?.is_required ? 1 : 0;
+    }
+
+    function getGroupEffectiveMaxSelection(group) {
+      const configuredMax = Number(group?.max_selection || 0);
+      if (configuredMax > 0) return configuredMax;
+      const minSelection = getGroupMinSelection(group);
+      const availableModifiers = Array.isArray(group?.modifiers)
+        ? group.modifiers.filter((modifier) => !modifier?.is_no_selection && modifier?.is_available !== false).length
+        : 0;
+      return Math.max(minSelection, availableModifiers, 1);
     }
 
     function buildModifierState(groups) {
@@ -420,7 +458,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       const group = modalModifierGroups.find((item) => String(item.id) === String(groupId));
       if (!group) return;
       const selectedCount = (modalSelectedModifiers[group.id] || []).length;
-      counter.textContent = `${selectedCount}/${group.max_selection > 0 ? group.max_selection : '∞'}`;
+      const maxSelection = getGroupEffectiveMaxSelection(group);
+      counter.textContent = `${selectedCount}/${maxSelection}`;
     }
 
     function renderModalModifiers(groups) {
@@ -431,7 +470,6 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       if (!groups.length) {
         extrasSection.classList.add('extras-section--hidden');
         extrasList.replaceChildren();
-        updateModalScrollHint();
         return;
       }
 
@@ -470,7 +508,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         const counter = document.createElement('span');
         counter.className = 'modifier-selection-counter';
         counter.dataset.modifierCounter = String(group.id);
-        counter.textContent = `0/${group.max_selection > 0 ? group.max_selection : '∞'}`;
+        const maxSelection = getGroupEffectiveMaxSelection(group);
+        counter.textContent = `0/${maxSelection}`;
         header.appendChild(counter);
 
         wrapper.appendChild(header);
@@ -485,15 +524,27 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           const label = document.createElement('label');
 
           const input = document.createElement('input');
-          input.type = group.max_selection === 1 ? 'radio' : 'checkbox';
+          input.type = maxSelection === 1 ? 'radio' : 'checkbox';
           input.name = `modifier-group-${group.id}`;
           input.dataset.groupId = String(group.id);
           input.dataset.modifierId = String(modifier.id);
           input.dataset.selectionKey = String(modifier.selection_key || `${group.id}::${modifier.id}`);
-          input.dataset.maxSelection = String(group.max_selection || 0);
+          input.dataset.maxSelection = String(maxSelection);
           input.dataset.noSelection = modifier.is_no_selection ? '1' : '0';
           input.disabled = !modifier.is_available;
           label.appendChild(input);
+
+          const modifierImage = String(modifier.image_path || modifier.image_url || '').trim();
+          if (modifierImage && !modifier.is_no_selection) {
+            option.classList.add('extra-option--with-image');
+            const thumb = document.createElement('img');
+            thumb.className = 'extra-thumb';
+            thumb.alt = modifier.name;
+            thumb.loading = 'lazy';
+            thumb.decoding = 'async';
+            setModalImageWithFallback(thumb, modifierImage, modifier.name);
+            label.appendChild(thumb);
+          }
 
           const labelText = document.createElement('span');
           labelText.className = 'extra-label';
@@ -566,41 +617,6 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         extrasList.dataset.boundChange = '1';
       }
 
-      updateModalScrollHint();
-    }
-
-    function updateModalScrollHint() {
-      const modal = document.getElementById('item-modal');
-      const hint = document.getElementById('modal-scroll-hint');
-      const extrasSection = document.getElementById('extras-section');
-      const modalBody = modal ? modal.querySelector('.modal-body') : null;
-
-      if (!hint || !modalBody || !extrasSection) return;
-
-      if (extrasSection.classList.contains('extras-section--hidden')) {
-        hint.classList.remove('is-visible');
-        return;
-      }
-
-      const maxScrollTop = Math.max(0, modalBody.scrollHeight - modalBody.clientHeight);
-      const canScroll = maxScrollTop > 24;
-      const nearBottom = modalBody.scrollTop >= maxScrollTop - 20;
-      hint.classList.toggle('is-visible', canScroll && !nearBottom);
-    }
-
-    function bindModalScrollHint() {
-      const modal = document.getElementById('item-modal');
-      const modalBody = modal ? modal.querySelector('.modal-body') : null;
-      if (!modalBody) return;
-
-      if (!modalBody.dataset.scrollHintBound) {
-        modalScrollHintHandler = () => updateModalScrollHint();
-        modalBody.addEventListener('scroll', modalScrollHintHandler, { passive: true });
-        window.addEventListener('resize', modalScrollHintHandler, { passive: true });
-        modalBody.dataset.scrollHintBound = '1';
-      }
-
-      updateModalScrollHint();
     }
 
     function validateModifierSelections(showFeedback = false) {
@@ -613,7 +629,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         );
         const count = hasNoSelection ? 1 : selected.length;
         const minSelection = getGroupMinSelection(group);
-        const maxSelection = Number(group.max_selection || 0);
+        const maxSelection = getGroupEffectiveMaxSelection(group);
         const isValid =
           count >= minSelection &&
           (maxSelection <= 0 || count <= maxSelection);
@@ -732,8 +748,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       const totalPriceEl = document.getElementById('modal-total-price');
       const breakdownTotalEl = document.getElementById('modal-breakdown-total');
       const qtyEl = document.getElementById('modal-quantity');
+      const headerPriceEl = document.getElementById('modal-header-price');
       const extrasPriceEl = document.getElementById('modal-extras-price');
-      const extrasPriceRowEl = document.getElementById('modal-extras-price-row');
+      const extrasIndicatorEl = document.getElementById('modal-extras-indicator');
 
       if (nameEl) nameEl.textContent = product.name;
       if (descEl) descEl.textContent = product.description || '';
@@ -759,9 +776,13 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       if (basePriceEl) basePriceEl.textContent = formattedPrice;
       if (totalPriceEl) totalPriceEl.textContent = formattedPrice;
       if (breakdownTotalEl) breakdownTotalEl.textContent = formattedPrice;
+      if (headerPriceEl) headerPriceEl.textContent = formattedPrice;
       if (qtyEl) qtyEl.textContent = '1';
       if (extrasPriceEl) extrasPriceEl.textContent = formatCurrency(0);
-      if (extrasPriceRowEl) extrasPriceRowEl.style.display = modifierGroups.length ? '' : 'none';
+      if (extrasIndicatorEl) {
+        extrasIndicatorEl.textContent = modifierGroups.length ? formatCurrency(0) : 'Sin extras';
+        extrasIndicatorEl.classList.remove('has-value');
+      }
 
       renderModalModifiers(modifierGroups);
       updateAddToCartButtonState();
@@ -772,20 +793,14 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       window.requestAnimationFrame(() => {
         const modalBody = modal.querySelector('.modal-body');
         if (modalBody) modalBody.scrollTop = 0;
-        bindModalScrollHint();
-        window.setTimeout(updateModalScrollHint, 120);
       });
     };
 
     window.closeItemModal = function () {
       const modal = document.getElementById('item-modal');
-      const hint = document.getElementById('modal-scroll-hint');
       if (modal) {
         modal.classList.remove('active');
         document.body.classList.remove('modal-open');
-      }
-      if (hint) {
-        hint.classList.remove('is-visible');
       }
     };
 
@@ -804,10 +819,16 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       const totalPriceEl = document.getElementById('modal-total-price');
       const breakdownTotalEl = document.getElementById('modal-breakdown-total');
       const extrasPriceEl = document.getElementById('modal-extras-price');
+      const extrasIndicatorEl = document.getElementById('modal-extras-indicator');
       if (!currentModalProduct) return;
       if (qtyEl) qtyEl.textContent = String(modalQuantity);
       const selected = getSelectedModifierSummary();
       if (extrasPriceEl) extrasPriceEl.textContent = formatCurrency(selected.extrasTotal);
+      if (extrasIndicatorEl) {
+        const hasExtras = Number(selected.extrasTotal || 0) > 0;
+        extrasIndicatorEl.textContent = hasExtras ? `+${formatCurrency(selected.extrasTotal)}` : formatCurrency(0);
+        extrasIndicatorEl.classList.toggle('has-value', hasExtras);
+      }
       const total = ((currentModalProduct.price || 0) + selected.extrasTotal) * modalQuantity;
       const formattedTotal = formatCurrency(total);
       if (totalPriceEl) totalPriceEl.textContent = formattedTotal;
@@ -1460,7 +1481,12 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
     function hasAuthenticatedCustomerSession() {
       const appSessionCustomer = window.APP_SESSION?.customer;
-      return !!(appSessionCustomer && (appSessionCustomer.id || appSessionCustomer.email));
+      const customerRef = getCustomerRef();
+      return !!(
+        customerRef &&
+        appSessionCustomer &&
+        (appSessionCustomer.id || appSessionCustomer.email)
+      );
     }
 
     async function persistTableContext(tableData, source) {
@@ -1469,6 +1495,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       try {
         const csrfToken = getCsrfToken();
         const customerRef = getCustomerRef();
+        if (!customerRef) return;
         const response = await fetch('/api/sessions/table-context', {
           method: 'POST',
           credentials: 'include',
@@ -1498,12 +1525,14 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       if (!hasAuthenticatedCustomerSession()) return null;
 
       try {
+        const customerRef = getCustomerRef();
+        if (!customerRef) return null;
         const response = await fetch('/api/sessions/table-context', {
           method: 'GET',
           credentials: 'include',
           headers: {
             Accept: 'application/json',
-            ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
+            'X-PRONTO-CUSTOMER-REF': customerRef,
           },
         });
         if (response.status === 401) return null;
@@ -2015,16 +2044,36 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               body: JSON.stringify(payload),
             });
           const postOrder = async (csrfToken) => {
+            const editContext =
+              typeof window.getOrderEditContext === 'function' ? window.getOrderEditContext() : null;
+
+            if (editContext?.orderId && typeof window.buildOrderModificationPayload === 'function') {
+              const editPayload = window.buildOrderModificationPayload(payload);
+              const res = await fetch(`/api/customer/orders/${editContext.orderId}/modify`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Accept: 'application/json',
+                  ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+                  ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
+                },
+                body: JSON.stringify(editPayload || { changes: {} }),
+              });
+              const parsed = await res.json().catch(() => ({}));
+              return { response: res, data: parsed, mode: 'edit' };
+            }
+
             let res = await doCreateOrder('/api/customer/orders', csrfToken);
             if (res.status === 404) {
               res = await doCreateOrder('/api/orders', csrfToken);
             }
             const parsed = await res.json().catch(() => ({}));
-            return { response: res, data: parsed };
+            return { response: res, data: parsed, mode: 'create' };
           };
 
           let csrfToken = getCsrfToken();
-          let { response, data } = await postOrder(csrfToken);
+          let { response, data, mode } = await postOrder(csrfToken);
           const isCsrfError =
             response.status === 400 &&
             String(data?.error || '').toLowerCase().includes('csrf');
@@ -2032,10 +2081,15 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
           if (isCsrfError) {
             const refreshedToken = await refreshCsrfToken();
             if (refreshedToken) {
-              ({ response, data } = await postOrder(refreshedToken));
+              ({ response, data, mode } = await postOrder(refreshedToken));
             }
           }
           if (!response.ok) {
+            console.error('[CHECKOUT] create order failed', {
+              status: response.status,
+              payload,
+              response: data,
+            });
             if (response.status === 401) {
               handleCheckoutUnauthorized();
               return false;
@@ -2059,7 +2113,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               if (currentTable) {
                 assignTable(currentTable, currentSource === 'qr' || currentSource === 'kiosk' ? currentSource : 'manual', true);
                 setCheckoutFeedback('Mesa actualizada desde la sesión. Reintentando confirmación...', 'info');
-                ({ response, data } = await postOrder(getCsrfToken()));
+                ({ response, data, mode } = await postOrder(getCsrfToken()));
                 if (response.ok) {
                   // Continue with success flow below.
                 } else {
@@ -2105,13 +2159,22 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             checkoutNotes.value = '';
           }
 
+          if (mode === 'edit' && typeof window.clearOrderEditContext === 'function') {
+            window.clearOrderEditContext();
+          }
+
           setCheckoutFeedback(
-            `Pedido confirmado${orderId ? ` (#${orderId})` : ''}.`,
+            mode === 'edit'
+              ? `Pedido actualizado${orderId ? ` (#${orderId})` : ''}.`
+              : `Pedido confirmado${orderId ? ` (#${orderId})` : ''}.`,
             'success'
           );
 
           if (typeof window.showNotification === 'function') {
-            window.showNotification('Pedido confirmado exitosamente', 'success');
+            window.showNotification(
+              mode === 'edit' ? 'Pedido actualizado exitosamente' : 'Pedido confirmado exitosamente',
+              'success'
+            );
           }
           if (typeof window.activateOrdersTab === 'function') {
             window.activateOrdersTab(1);

@@ -13,7 +13,7 @@ from http import HTTPStatus
 from typing import Any
 
 import requests as http_requests
-from flask import Response, request
+from flask import Response, request, session
 from flask import jsonify as flask_jsonify
 
 from pronto_shared.trazabilidad import get_logger
@@ -37,8 +37,14 @@ def _build_forwarding_headers() -> dict[str, str]:
     """Build headers to forward to pronto-api."""
     headers = {
         "Content-Type": "application/json",
-        "X-PRONTO-CUSTOMER-REF": request.headers.get("X-PRONTO-CUSTOMER-REF", ""),
     }
+    customer_ref = str(
+        request.headers.get("X-PRONTO-CUSTOMER-REF")
+        or session.get("customer_ref")
+        or ""
+    ).strip()
+    if customer_ref:
+        headers["X-PRONTO-CUSTOMER-REF"] = customer_ref
 
     # Forward correlation ID if present
     correlation_id = request.headers.get("X-Correlation-ID")

@@ -104,8 +104,8 @@
           <div class="form-group checkbox-group">
             <input type="checkbox" id="accept-terms" required />
             <label for="accept-terms">
-              Acepto los <a href="#" target="_blank">Términos de Servicio</a> y
-              <a href="#" target="_blank">Política de Privacidad</a>
+              Acepto los <a href="/terms-of-service" target="_blank">Términos de Servicio</a> y
+              <a href="/privacy-policy" target="_blank">Política de Privacidad</a>
             </label>
           </div>
           <button type="submit" class="btn btn-primary btn--full" id="register-submit-btn" disabled>
@@ -271,41 +271,6 @@
             <p class="profile-subheading">Tu contraseña ha sido cambiada exitosamente.</p>
             <button class="btn btn-primary btn--full" id="reset-success-btn">Iniciar sesión</button>
         </div>
-        </div>
-    </div>
-</div>
-<!-- Order History Modal -->
-<div class="order-history-modal" id="order-history-modal" role="dialog" aria-modal="true" aria-labelledby="order-history-title">
-    <div class="order-history-modal-overlay"></div>
-    <div class="order-history-modal-content">
-        <button class="order-history-modal-close" id="order-history-close" aria-label="Cerrar historial de pedidos">×</button>
-
-        <div class="order-history-header">
-        <h2 id="order-history-title">Mis Pedidos</h2>
-        <div class="order-history-tabs">
-            <button class="order-history-tab active" data-status="all">Todos</button>
-            <button class="order-history-tab" data-status="active">Activos</button>
-            <button class="order-history-tab" data-status="completed">Completados</button>
-        </div>
-        </div>
-
-        <div class="order-history-content" id="order-history-content">
-        <div class="order-history-loading" id="order-history-loading" style="display: none">
-            <div class="spinner"></div>
-            <p>Cargando pedidos...</p>
-        </div>
-        <div class="order-history-empty" id="order-history-empty" style="display: none">
-            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <h3 class="empty-state-title">Sin pedidos aún</h3>
-            <p class="empty-state-description">
-            Tus pedidos aparecerán aquí después de realizar uno.
-            </p>
-            <button class="btn btn-primary" data-action="call" data-fn="backToMenu">Ver menú</button>
-        </div>
-        <div class="order-history-list" id="order-history-list"></div>
         </div>
     </div>
 </div>

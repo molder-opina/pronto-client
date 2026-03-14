@@ -6,7 +6,16 @@ from __future__ import annotations
 
 import os
 from uuid import UUID
-from flask import Blueprint, current_app, jsonify, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from sqlalchemy import select
 from pronto_shared.trazabilidad import get_logger
 
@@ -36,7 +45,9 @@ def _get_current_customer() -> dict | None:
     try:
         return customer_session_store.get_customer(customer_ref)
     except RedisUnavailableError:
-        logger.warning("Customer session store unavailable while resolving web customer")
+        logger.warning(
+            "Customer session store unavailable while resolving web customer"
+        )
         return None
     except Exception as exc:  # pragma: no cover - defensive logging
         logger.error(
@@ -51,7 +62,9 @@ def _build_next_url() -> str:
 
 
 def _redirect_to_auth(tab: str = "login"):
-    endpoint = "client_web.register_page" if tab == "register" else "client_web.login_page"
+    endpoint = (
+        "client_web.register_page" if tab == "register" else "client_web.login_page"
+    )
     return redirect(url_for(endpoint, next=_build_next_url()))
 
 
@@ -113,7 +126,9 @@ def login_page():
     if current_customer:
         return redirect(next_url)
 
-    return redirect(url_for("client_web.home", view="profile", tab="login", next=next_url))
+    return redirect(
+        url_for("client_web.home", view="profile", tab="login", next=next_url)
+    )
 
 
 @web_bp.get("/register")
@@ -183,12 +198,7 @@ def checkout():
     if auth_redirect:
         return auth_redirect
 
-    return render_template(
-        "checkout.html",
-        debug_auto_table=debug_auto_table,
-        customer_data=customer_data,
-        api_base_url=current_app.config.get("API_BASE_URL", ""),
-    )
+    return redirect(url_for("client_web.home", view="details"))
 
 
 @web_bp.get("/menu-alt")
@@ -201,12 +211,7 @@ def menu_alt():
     if auth_redirect:
         return auth_redirect
 
-    return render_template(
-        "index_alt.html",
-        debug_auto_table=debug_auto_table,
-        customer_data=customer_data,
-        api_base_url=current_app.config.get("API_BASE_URL", ""),
-    )
+    return redirect(url_for("client_web.home"))
 
 
 @web_bp.get("/feedback")
@@ -346,3 +351,15 @@ def kiosk_start(location: str):
             },
         }
     )
+
+
+@web_bp.get("/terms-of-service")
+def terms_of_service():
+    """Terms of Service page."""
+    return render_template("terms-of-service.html")
+
+
+@web_bp.get("/privacy-policy")
+def privacy_policy():
+    """Privacy Policy page."""
+    return render_template("privacy-policy.html")

@@ -262,8 +262,11 @@ def create_app() -> Flask:
         or ""
     ).strip()
 
-    # API base URL for browser direct access to pronto-api (6082)
-    app.config["API_BASE_URL"] = os.getenv("PRONTO_API_BASE_URL", "").strip()
+    # Browser must use same-origin /api/* and rely on the client BFF proxy.
+    # Do not expose PRONTO_API_BASE_URL (often localhost:6082) to the browser,
+    # otherwise remote devices resolve localhost incorrectly and fail with
+    # "Error de conexión" on client page load.
+    app.config["API_BASE_URL"] = ""
 
     init_runtime(app, config)
 
