@@ -300,6 +300,25 @@ def feedback_form():
     )
 
 
+@web_bp.get("/thank-you")
+def thank_you_page():
+    """
+    Order success page after checkout confirmation.
+
+    Query params:
+        - order_id: Optional order identifier for user feedback.
+    """
+    _current_customer, auth_redirect = _require_customer_web_auth()
+    if auth_redirect:
+        return auth_redirect
+
+    order_id = str(request.args.get("order_id") or "").strip()
+    return render_template(
+        "thank_you.html",
+        order_id=order_id,
+    )
+
+
 @web_bp.get("/kiosk/<location>")
 def kiosk_screen(location: str):
     """
@@ -396,4 +415,3 @@ def terms_of_service():
 def privacy_policy():
     """Privacy Policy page."""
     return render_template("privacy-policy.html")
-

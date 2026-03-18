@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="thank-you-page" role="main" aria-labelledby="thank-you-title">
+  <section class="thank-you-card">
+    <h1 id="thank-you-title">Pedido confirmado</h1>
+    <p>Tu orden ya fue enviada a cocina.</p>
+    {% if order_id %}
+    <p class="order-id">Folio: <strong>{{ order_id }}</strong></p>
+    {% endif %}
+    <div class="actions">
+      <a class="btn btn-primary" href="/?view=orders">Ver estado de orden</a>
+      <a class="btn btn-secondary" href="/">Volver al menú</a>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .thank-you-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    background: #f8fafc;
+  }
+
+  .thank-you-card {
+    width: min(540px, 100%);
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .thank-you-card h1 {
+    margin: 0 0 0.75rem;
+    font-size: 1.6rem;
+    color: #0f172a;
+  }
+
+  .thank-you-card p {
+    margin: 0.5rem 0;
+    color: #334155;
+  }
+
+  .order-id {
+    color: #0f172a;
+    font-size: 0.95rem;
+  }
+
+  .actions {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .btn-primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+
+  .btn-secondary {
+    background: #fff;
+    border-color: #cbd5e1;
+    color: #1e293b;
+  }
+</style>
+{% endblock %}

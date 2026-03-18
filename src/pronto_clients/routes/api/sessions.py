@@ -54,3 +54,9 @@ def set_table_context():
 def get_table_context():
     """PROXY: Get table context."""
     return forward_to_api("GET", "/api/sessions/table-context", stream=True)
+
+
+@sessions_bp.post("/sessions/validate-and-rehydrate")
+def validate_and_rehydrate_session():
+    """PROXY: Validate current customer session and rehydrate state."""
+    return forward_to_api("POST", "/api/sessions/validate-and-rehydrate", stream=True)
