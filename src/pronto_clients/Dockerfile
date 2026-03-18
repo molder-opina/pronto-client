@@ -1,0 +1,41 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /opt/pronto
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install shared library
+COPY pronto-libs /opt/pronto/pronto-libs
+RUN pip install --no-cache-dir /opt/pronto/pronto-libs
+
+# Copy canonical init/migrations tooling
+COPY pronto-scripts /opt/pronto/pronto-scripts
+
+# Install Client requirements
+COPY pronto-client/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Copy Client code
+COPY pronto-client/src/pronto_clients /opt/pronto/pronto_clients
+
+# Create non-root user for security (principle of least privilege)
+RUN groupadd -g 1000 appgroup && \
+    useradd -r -u 1000 -g appgroup -s /bin/bash -d /opt/app appuser && \
+    mkdir -p /opt/app && \
+    chown -R appuser:appgroup /opt/pronto
+
+# Switch to non-root user
+USER appuser
+
+ENV PYTHONPATH=/opt/pronto
+WORKDIR /opt/pronto/pronto_clients
+
+EXPOSE 5000
+
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "--timeout", "120", "--workers", "2", "--threads", "4", "wsgi:application"]
