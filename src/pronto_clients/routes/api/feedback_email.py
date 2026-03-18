@@ -46,7 +46,7 @@ def submit_bulk_feedback():
     return forward_to_api("POST", "/api/feedback/bulk", data=payload)
 
 
-@feedback_email_bp.post("/feedback/questions")
+@feedback_email_bp.get("/feedback/questions")
 def get_feedback_questions():
     """PROXY: Get feedback questions."""
-    return forward_to_api("POST", "/api/feedback/questions")
+    return forward_to_api("GET", "/api/feedback/questions")

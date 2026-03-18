@@ -43,7 +43,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     </div>
 
     <!-- Quick Filter Chips (Horizontal Scroll) -->
-    <div class="filter-chips-scroll" style="overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none">
+    <div class="filter-chips-scroll">
       <button type="button" class="filter-chip active" data-filter="all">Todas</button>
       <button type="button" class="filter-chip" data-filter="breakfast">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
@@ -105,66 +105,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
 </div> <!-- end .menu-page -->
 
-<!-- Item Customization Modal -->
-<div class="modal-overlay" id="item-modal" role="dialog" aria-modal="true" aria-labelledby="modal-item-name">
-  <div class="modal modal--item-customization modal-card">
-    <div class="modal-header modal-header--item">
-      <div class="modal-header__content">
-        <h3 id="modal-item-name"></h3>
-        <span id="modal-header-price" class="modal-header-price">{{ currency_symbol }}0.00</span>
-      </div>
-      <button class="modal-close" data-action="call" data-fn="closeItemModal" aria-label="Cerrar modal de producto">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-image-wrapper">
-        <img id="modal-item-image" class="modal-item-image" src="" alt="Imagen del producto" />
-      </div>
-      <p id="modal-item-description" class="modal-item-description"></p>
-
-      <div class="extras-section extras-section--hidden" id="extras-section">
-        <div class="extras-section__header">
-          <h4>Extras</h4>
-          <span id="modal-extras-indicator" class="extras-section__indicator">{{ currency_symbol }}0.00</span>
-        </div>
-        <div id="extras-list"></div>
-      </div>
-    </div>
-    <!-- Fixed Footer containing Quantity, Total, and Action -->
-    <div class="modal-footer">
-      <div class="modal-footer-top">
-        <div class="quantity-selector">
-          <span>Cantidad:</span>
-          <div class="quantity-selector-controls">
-            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity" data-arg="-1">
-              -
-            </button>
-            <span class="cart-item-quantity" id="modal-quantity">1</span>
-            <button type="button" class="quantity-btn" data-action="call" data-fn="adjustModalQuantity"
-              data-arg="1">+</button>
-          </div>
-        </div>
-
-        <div class="modal-footer-total">
-          <span>Total:</span>
-          <span id="modal-breakdown-total">{{ currency_symbol }}0.00</span>
-        </div>
-      </div>
-
-      <button type="button" class="modal-add-to-cart" id="modal-add-to-cart-btn"
-        onclick="window.addToCartFromModal()">
-        Agregar al pedido — <span id="modal-total-price">{{ currency_symbol }}0.00</span>
-      </button>
-
-      <div class="modal-price-meta" aria-hidden="true">
-        <span id="modal-base-price">{{ currency_symbol }}0.00</span>
-        <span id="modal-extras-price">{{ currency_symbol }}0.00</span>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Checkout Preference Overlay -->
-<div class="checkout-preference" id="checkout-preference-overlay" aria-hidden="true" style="display: none;">
+<div class="checkout-preference checkout-preference--hidden" id="checkout-preference-overlay" aria-hidden="true">
   <div class="checkout-preference__card">
     <div class="checkout-preference__status">
       <p class="checkout-preference__title">Avisando al mesero…</p>
@@ -207,46 +149,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
   </div>
 </div>
 
-{% endblock %} {% block cart_panel %}
-<!-- Cart Backdrop -->
-<div class="cart-backdrop" id="cart-backdrop"></div>
-
-<!-- Cart Panel -->
-<div class="cart-panel" id="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cart-title">
-  <div class="cart-header">
-    <h2 id="cart-title">Tu pedido</h2>
-    <button class="cart-close" aria-label="Cerrar carrito">×</button>
-  </div>
-  <div class="cart-items" id="cart-items">
-    <div class="empty-state">
-      <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <circle cx="9" cy="21" r="1" />
-        <circle cx="20" cy="21" r="1" />
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-      </svg>
-      <h3 class="empty-state-title">Tu carrito está vacío</h3>
-      <p class="empty-state-description">Agrega algunos platillos deliciosos para empezar</p>
-      <button class="btn btn-primary" data-action="call" data-fn="backToMenu">Ver menú</button>
-    </div>
-  </div>
-  <div class="cart-footer" id="cart-footer">
-    <div class="cart-total">
-      <span>Total:</span>
-      <span id="cart-total">{{ currency_symbol }}0.00</span>
-    </div>
-    <div class="cart-actions">
-      <button class="btn btn-secondary btn--small" id="clear-cart-btn" data-action="call" data-fn="clearCart"
-        title="Vaciar carrito">
-        🗑️ Vaciar
-      </button>
-      <button class="checkout-btn btn btn-primary btn--full" id="checkout-btn" data-action="proceed-checkout"
-        data-prevent-default="true">
-        Ir a pagar
-      </button>
-    </div>
-  </div>
-</div>
-{% endblock %}
+{% endblock %} {% block cart_panel %}{% endblock %}
 {% block scripts %}
 
 <script>
@@ -260,618 +163,87 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     debug_mode: {{ 'true' if config.get('DEBUG') else 'false' }},
       });
 
-  // Bridge for Vue app and legacy DOM modals
+</script>
+
+<script>
   (function () {
-    let menuCache = null;
-    let currentModalProduct = null;
-    let modalQuantity = 1;
-    let modalModifierGroups = [];
-    let modalSelectedModifiers = {};
-    let modalModifierLookup = new Map();
-    const NO_SELECTION_PREFIX = 'none:';
-    const STATIC_HOST = String(window.APP_SETTINGS?.static_host_url || '').trim().replace(/\/$/, '');
-    const MODAL_IMAGE_PLACEHOLDER = `${STATIC_HOST}/assets/images/placeholder-food.png`;
-    const MODAL_IMAGE_INLINE_FALLBACK =
-      'data:image/svg+xml;utf8,' +
-      encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">' +
-          '<rect width="960" height="540" fill="#eef2ff"/>' +
-          '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#475569" font-family="Arial" font-size="28">Imagen no disponible</text>' +
-        '</svg>'
-      );
+    const menuRoot = document.querySelector('[data-menu-root]');
+    if (!menuRoot) return;
 
-    function formatCurrency(value) {
-      const amount = Number(value) || 0;
-      return `{{ currency_symbol }}${amount.toFixed(2)}`;
-    }
+    const normalizeView = (value) => String(value || '').trim().toLowerCase();
 
-    function normalizeModifierGroups(rawGroups, options = {}) {
-      const groupIdPrefix = String(options.groupIdPrefix || '');
-      const labelPrefix = String(options.labelPrefix || '').trim();
-      const sourceType = String(options.sourceType || 'product');
-      if (!Array.isArray(rawGroups)) return [];
-      return rawGroups
-        .map((group, index) => {
-          const rawGroupId = String(group?.id || '').trim() || `group-${index + 1}`;
-          const groupId = groupIdPrefix ? `${groupIdPrefix}${rawGroupId}` : rawGroupId;
-          const rawMinSelection = Number(
-            group?.min_selection ?? group?.min_required ?? 0
-          );
-          const minSelection = Number.isFinite(rawMinSelection)
-            ? Math.max(0, rawMinSelection)
-            : 0;
-          const rawMaxSelection = Number(
-            group?.max_selection ?? group?.max_allowed ?? 0
-          );
-          let maxSelection = Number.isFinite(rawMaxSelection)
-            ? Math.max(0, rawMaxSelection)
-            : 0;
-          if (
-            group?.is_multiple_choice === false ||
-            String(group?.selection_type || '').toLowerCase() === 'single'
-          ) {
-            maxSelection = 1;
-          }
-          if (maxSelection > 0 && maxSelection < minSelection) {
-            maxSelection = minSelection;
-          }
-          const isRequired = Boolean(group?.is_required) || minSelection > 0;
-          const allowNoneOption =
-            group?.allow_none_option !== undefined
-              ? group.allow_none_option !== false
-              : minSelection === 0 && !isRequired;
+    const deriveInitialView = () => {
+      const body = document.body;
+      if (!body) return 'menu';
+      if (body.classList.contains('initial-view-details')) return 'details';
+      if (body.classList.contains('initial-view-orders')) return 'orders';
+      return 'menu';
+    };
 
-          const modifiers = Array.isArray(group?.modifiers)
-            ? group.modifiers
-                .map((modifier, modifierIndex) => {
-                  const modifierId = String(modifier?.id || '').trim();
-                  const selectionKey = modifierId
-                    ? `${groupId}::${modifierId}`
-                    : `${groupId}::modifier-${modifierIndex + 1}`;
-                  return {
-                  id: modifierId,
-                  selection_key: selectionKey,
-                  name: String(modifier?.name || '').trim(),
-                  price_adjustment: Number(
-                    modifier?.price_adjustment ?? modifier?.price ?? 0
-                  ),
-                  image_path: String(modifier?.image_path || modifier?.image_url || '').trim() || null,
-                  image_url: String(modifier?.image_url || modifier?.image_path || '').trim() || null,
-                  is_available: modifier?.is_available !== false,
-                };
-                })
-                .filter((modifier) => modifier.id && modifier.name)
-            : [];
-          if (allowNoneOption) {
-            const noSelectionId = `${NO_SELECTION_PREFIX}${groupId}`;
-            modifiers.unshift({
-              id: noSelectionId,
-              selection_key: `${groupId}::${noSelectionId}`,
-              name: `No lleve ${String(group?.name || `Grupo ${index + 1}`).toLowerCase()}`,
-              price_adjustment: 0,
-              image_path: null,
-              image_url: null,
-              is_available: true,
-              is_no_selection: true,
-            });
-          }
-          if (!modifiers.length) return null;
-          return {
-            id: groupId,
-            name: labelPrefix
-              ? `${labelPrefix} · ${String(group?.name || `Grupo ${index + 1}`)}`
-              : String(group?.name || `Grupo ${index + 1}`),
-            min_selection: minSelection,
-            max_selection: maxSelection,
-            is_required: isRequired,
-            allow_none_option: allowNoneOption,
-            source_type: sourceType,
-            modifiers,
-          };
-        })
-        .filter(Boolean);
-    }
+    const applyMenuVisibility = (view) => {
+      const currentView = normalizeView(view) || 'menu';
+      const showMenu = currentView === 'menu';
+      menuRoot.classList.toggle('menu-visible', showMenu);
+      menuRoot.classList.toggle('menu-hidden', !showMenu);
+    };
 
-    function collectModifierGroupsForModal(product) {
-      const baseGroups = normalizeModifierGroups(product?.modifier_groups, {
-        sourceType: 'product',
-      });
-      const componentGroups = [];
-      const components = Array.isArray(product?.package_components) ? product.package_components : [];
-      components.forEach((component, componentIndex) => {
-        const componentId = String(component?.component_item_id || component?.menu_item_id || componentIndex + 1);
-        const componentName = String(component?.name || `Producto ${componentIndex + 1}`);
-        const groups = normalizeModifierGroups(component?.modifier_groups, {
-          groupIdPrefix: `component:${componentId}:`,
-          labelPrefix: componentName,
-          sourceType: 'component',
-        });
-        componentGroups.push(...groups);
-      });
-      return [...baseGroups, ...componentGroups];
-    }
+    const deriveViewFromTabs = () => {
+      const tabSelectors = [
+        { id: 'tab-menu', view: 'menu' },
+        { id: 'tab-details', view: 'details' },
+        { id: 'tab-orders', view: 'orders' },
+      ];
 
-    function getGroupMinSelection(group) {
-      const min = Number(group?.min_selection || 0);
-      if (min > 0) return min;
-      return group?.is_required ? 1 : 0;
-    }
-
-    function getGroupEffectiveMaxSelection(group) {
-      const configuredMax = Number(group?.max_selection || 0);
-      if (configuredMax > 0) return configuredMax;
-      const minSelection = getGroupMinSelection(group);
-      const availableModifiers = Array.isArray(group?.modifiers)
-        ? group.modifiers.filter((modifier) => !modifier?.is_no_selection && modifier?.is_available !== false).length
-        : 0;
-      return Math.max(minSelection, availableModifiers, 1);
-    }
-
-    function buildModifierState(groups) {
-      modalModifierGroups = groups;
-      modalSelectedModifiers = {};
-      modalModifierLookup = new Map();
-      groups.forEach((group) => {
-        modalSelectedModifiers[group.id] = [];
-        group.modifiers.forEach((modifier) => {
-          const lookupPayload = {
-            id: modifier.id,
-            selection_key: modifier.selection_key || `${group.id}::${modifier.id}`,
-            name: modifier.name,
-            price_adjustment: modifier.price_adjustment,
-            groupId: group.id,
-            is_no_selection: modifier.is_no_selection === true,
-          };
-          // Compatibility: selection state stores selection_key, while older flows may
-          // still use raw modifier ids. Support both keys to avoid losing selections.
-          modalModifierLookup.set(String(modifier.id), lookupPayload);
-          modalModifierLookup.set(String(lookupPayload.selection_key), lookupPayload);
-        });
-      });
-    }
-
-    function getSelectedModifierSummary() {
-      const modifierIds = [];
-      const noneGroupIds = [];
-      const extras = [];
-      let extrasTotal = 0;
-      Object.entries(modalSelectedModifiers).forEach(([groupId, selection]) => {
-        if (!Array.isArray(selection)) return;
-        selection.forEach((modifierId) => {
-          const selected = modalModifierLookup.get(String(modifierId));
-          if (!selected) return;
-          if (selected.is_no_selection) {
-            noneGroupIds.push(String(groupId));
-            return;
-          }
-          modifierIds.push(selected.id);
-          extras.push(selected.name);
-          extrasTotal += Number(selected.price_adjustment || 0);
-        });
-      });
-      return { modifierIds, noneGroupIds, extras, extrasTotal };
-    }
-
-    function updateGroupCounter(groupId) {
-      const counter = document.querySelector(`[data-modifier-counter="${groupId}"]`);
-      if (!counter) return;
-      const group = modalModifierGroups.find((item) => String(item.id) === String(groupId));
-      if (!group) return;
-      const selectedCount = (modalSelectedModifiers[group.id] || []).length;
-      const maxSelection = getGroupEffectiveMaxSelection(group);
-      counter.textContent = `${selectedCount}/${maxSelection}`;
-    }
-
-    function renderModalModifiers(groups) {
-      const extrasSection = document.getElementById('extras-section');
-      const extrasList = document.getElementById('extras-list');
-      if (!extrasSection || !extrasList) return;
-
-      if (!groups.length) {
-        extrasSection.classList.add('extras-section--hidden');
-        extrasList.replaceChildren();
-        return;
+      for (const tab of tabSelectors) {
+        const element = document.getElementById(tab.id);
+        if (!element) continue;
+        const isActive =
+          element.classList.contains('active') ||
+          element.getAttribute('aria-pressed') === 'true';
+        if (isActive) return tab.view;
       }
+      return '';
+    };
 
-      extrasSection.classList.remove('extras-section--hidden');
-      extrasList.replaceChildren();
+    const syncVisibilityFromTabs = () => {
+      const tabView = normalizeView(deriveViewFromTabs());
+      if (!tabView) return;
+      applyMenuVisibility(tabView);
+    };
 
-      let componentSectionRendered = false;
-      groups.forEach((group) => {
-        if (group.source_type === 'component' && !componentSectionRendered) {
-          const componentTitle = document.createElement('h4');
-          componentTitle.className = 'section-title section-title--components';
-          componentTitle.textContent = 'Productos incluidos en el paquete';
-          extrasList.appendChild(componentTitle);
-          componentSectionRendered = true;
-        }
+    applyMenuVisibility(deriveInitialView());
+    // Vue tabs may activate after this script runs; re-sync on the next frames.
+    requestAnimationFrame(syncVisibilityFromTabs);
+    window.setTimeout(syncVisibilityFromTabs, 0);
+    window.setTimeout(syncVisibilityFromTabs, 250);
+    window.setTimeout(syncVisibilityFromTabs, 1000);
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'modifier-group';
-        wrapper.dataset.groupId = String(group.id);
+    window.addEventListener('pronto:view-change', (event) => {
+      const nextView = normalizeView(event?.detail?.view);
+      if (!nextView) return;
+      applyMenuVisibility(nextView);
+    });
 
-        const header = document.createElement('div');
-        header.className = 'modifier-group__header';
-
-        const title = document.createElement('h4');
-        title.textContent = group.name;
-        header.appendChild(title);
-
-        const minRequired = getGroupMinSelection(group);
-        if (minRequired > 0) {
-          const required = document.createElement('span');
-          required.className = 'modifier-required-badge';
-          required.textContent = minRequired === 1 ? 'Requerido' : `Mínimo ${minRequired}`;
-          header.appendChild(required);
-        }
-
-        const counter = document.createElement('span');
-        counter.className = 'modifier-selection-counter';
-        counter.dataset.modifierCounter = String(group.id);
-        const maxSelection = getGroupEffectiveMaxSelection(group);
-        counter.textContent = `0/${maxSelection}`;
-        header.appendChild(counter);
-
-        wrapper.appendChild(header);
-
-        const list = document.createElement('div');
-        list.className = 'modifiers-list';
-
-        group.modifiers.forEach((modifier) => {
-          const option = document.createElement('div');
-          option.className = 'extra-option';
-
-          const label = document.createElement('label');
-
-          const input = document.createElement('input');
-          input.type = maxSelection === 1 ? 'radio' : 'checkbox';
-          input.name = `modifier-group-${group.id}`;
-          input.dataset.groupId = String(group.id);
-          input.dataset.modifierId = String(modifier.id);
-          input.dataset.selectionKey = String(modifier.selection_key || `${group.id}::${modifier.id}`);
-          input.dataset.maxSelection = String(maxSelection);
-          input.dataset.noSelection = modifier.is_no_selection ? '1' : '0';
-          input.disabled = !modifier.is_available;
-          label.appendChild(input);
-
-          const modifierImage = String(modifier.image_path || modifier.image_url || '').trim();
-          if (modifierImage && !modifier.is_no_selection) {
-            option.classList.add('extra-option--with-image');
-            const thumb = document.createElement('img');
-            thumb.className = 'extra-thumb';
-            thumb.alt = modifier.name;
-            thumb.loading = 'lazy';
-            thumb.decoding = 'async';
-            setModalImageWithFallback(thumb, modifierImage, modifier.name);
-            label.appendChild(thumb);
-          }
-
-          const labelText = document.createElement('span');
-          labelText.className = 'extra-label';
-          labelText.textContent = modifier.name;
-          label.appendChild(labelText);
-
-          const price = document.createElement('span');
-          price.className = 'extra-price';
-          const adjustment = Number(modifier.price_adjustment || 0);
-          price.textContent =
-            adjustment > 0
-              ? `+${formatCurrency(adjustment)}`
-              : 'Incluido';
-          label.appendChild(price);
-
-          option.appendChild(label);
-          list.appendChild(option);
-        });
-
-        wrapper.appendChild(list);
-        extrasList.appendChild(wrapper);
-      });
-
-      if (!extrasList.dataset.boundChange) {
-        extrasList.addEventListener('change', function (event) {
-          const target = event.target;
-          if (!(target instanceof HTMLInputElement)) return;
-          if (!target.matches('input[data-modifier-id][data-group-id]')) return;
-
-          const groupId = String(target.dataset.groupId || '').trim();
-          const modifierId = String(target.dataset.modifierId || '').trim();
-          const selectionKey = String(target.dataset.selectionKey || '').trim();
-          if (!groupId || !modifierId || !selectionKey) return;
-
-          const group = modalModifierGroups.find((item) => String(item.id) === groupId);
-          if (!group) return;
-
-          const maxSelection = Number(target.dataset.maxSelection || 0);
-          const isNoSelection = target.dataset.noSelection === '1';
-          const noSelectionId = `${NO_SELECTION_PREFIX}${groupId}`;
-          const currentSelection = [...(modalSelectedModifiers[groupId] || [])];
-          const selectedIndex = currentSelection.indexOf(selectionKey);
-
-          if (isNoSelection) {
-            modalSelectedModifiers[groupId] = target.checked ? [noSelectionId] : [];
-          } else if (target.type === 'radio') {
-            modalSelectedModifiers[groupId] = [selectionKey];
-          } else if (target.checked) {
-            const noSelectionIndex = currentSelection.indexOf(noSelectionId);
-            if (noSelectionIndex > -1) {
-              currentSelection.splice(noSelectionIndex, 1);
-            }
-            if (maxSelection > 0 && selectedIndex === -1 && currentSelection.length >= maxSelection) {
-              target.checked = false;
-              if (typeof window.showNotification === 'function') {
-                window.showNotification(`Solo puedes seleccionar ${maxSelection} opción(es) en ${group.name}`, 'warning');
-              }
-              return;
-            }
-            if (selectedIndex === -1) currentSelection.push(selectionKey);
-            modalSelectedModifiers[groupId] = currentSelection;
-          } else {
-            modalSelectedModifiers[groupId] = currentSelection.filter((id) => id !== selectionKey);
-          }
-
-          updateGroupCounter(groupId);
-          updateModalTotals();
-          updateAddToCartButtonState();
-        });
-        extrasList.dataset.boundChange = '1';
-      }
-
-    }
-
-    function validateModifierSelections(showFeedback = false) {
-      let valid = true;
-      modalModifierGroups.forEach((group) => {
-        const wrapper = document.querySelector(`.modifier-group[data-group-id="${group.id}"]`);
-        const selected = (modalSelectedModifiers[group.id] || []);
-        const hasNoSelection = selected.some((modifierId) =>
-          String(modifierId).startsWith(NO_SELECTION_PREFIX)
-        );
-        const count = hasNoSelection ? 1 : selected.length;
-        const minSelection = getGroupMinSelection(group);
-        const maxSelection = getGroupEffectiveMaxSelection(group);
-        const isValid =
-          count >= minSelection &&
-          (maxSelection <= 0 || count <= maxSelection);
-
-        if (!isValid) {
-          valid = false;
-          if (wrapper) wrapper.style.borderColor = '#f97316';
-        } else if (wrapper) {
-          wrapper.style.borderColor = '#e2e8f0';
-        }
-      });
-
-      if (!valid && showFeedback && typeof window.showNotification === 'function') {
-        window.showNotification('Selecciona los aditamientos requeridos para continuar', 'warning');
-      }
-
-      return valid;
-    }
-
-    function updateAddToCartButtonState() {
-      const addButton = document.getElementById('modal-add-to-cart-btn');
-      if (!addButton) return;
-      const canAdd = validateModifierSelections(false);
-      addButton.disabled = !canAdd;
-      addButton.classList.toggle('is-disabled', !canAdd);
-    }
-
-    function normalizeMenuAssetUrl(url) {
-      const raw = String(url || '').trim();
-      if (!raw) return '';
-      if (!/^https?:\/\//i.test(raw)) {
-        const normalizedPath = raw
-          .replace('/assets/cafeter-a-de-prueba/', '/assets/pronto/')
-          .replace('/assets/cafeteria-de-prueba/', '/assets/pronto/');
-        if (normalizedPath.startsWith('/assets/') && STATIC_HOST) {
-          return `${STATIC_HOST}${normalizedPath}`;
-        }
-        return normalizedPath;
-      }
-      try {
-        const parsed = new URL(raw);
-        const normalizedPath = parsed.pathname
-          .replace('/assets/cafeter-a-de-prueba/', '/assets/pronto/')
-          .replace('/assets/cafeteria-de-prueba/', '/assets/pronto/');
-        if (STATIC_HOST && normalizedPath.startsWith('/assets/')) {
-          return `${STATIC_HOST}${normalizedPath}${parsed.search}${parsed.hash}`;
-        }
-        return `${parsed.origin}${normalizedPath}${parsed.search}${parsed.hash}`;
-      } catch (_err) {
-        return raw;
-      }
-    }
-
-    function setModalImageWithFallback(imgEl, src, altText) {
-      if (!imgEl) return;
-      imgEl.onerror = null;
-      imgEl.alt = altText || 'Imagen del producto';
-      const primary = normalizeMenuAssetUrl(src) || MODAL_IMAGE_PLACEHOLDER;
-      imgEl.onerror = () => {
-        if (imgEl.src !== MODAL_IMAGE_PLACEHOLDER) {
-          imgEl.onerror = () => {
-            imgEl.onerror = null;
-            imgEl.src = MODAL_IMAGE_INLINE_FALLBACK;
-          };
-          imgEl.src = MODAL_IMAGE_PLACEHOLDER;
+    window.addEventListener(
+      'click',
+      (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const tabButton = target.closest('#tab-menu, #tab-details, #tab-orders');
+        if (!tabButton) return;
+        const tabId = tabButton.getAttribute('id');
+        if (tabId === 'tab-details') {
+          applyMenuVisibility('details');
           return;
         }
-        imgEl.onerror = null;
-        imgEl.src = MODAL_IMAGE_INLINE_FALLBACK;
-      };
-      imgEl.src = primary;
-    }
-
-    async function getMenu() {
-      if (menuCache) return menuCache;
-      try {
-        const response = await fetch('/api/menu');
-        const result = await response.json();
-        // The API response is wrapped in .data
-        menuCache = result.data.catalog_items || [];
-        console.log('[BRIDGE] Menu cache loaded:', menuCache.length, 'items');
-        return menuCache;
-      } catch (e) {
-        console.error('[BRIDGE] Failed to load menu for modal', e);
-        return [];
-      }
-    }
-
-    window.openProductModal = async function (productId) {
-      console.log('[BRIDGE] openProductModal called for ID:', productId);
-      const items = await getMenu();
-      const product = items.find((item) => item.id == productId);
-
-      if (!product) {
-        console.error('[BRIDGE] Product not found in cache:', productId);
-        return;
-      }
-
-      const modal = document.getElementById('item-modal');
-      if (!modal) return;
-
-      if (!modal.dataset.backdropCloseBound) {
-        modal.addEventListener('click', function (event) {
-          if (event.target === modal) {
-            window.closeItemModal();
-          }
-        });
-        modal.dataset.backdropCloseBound = '1';
-      }
-
-      // Populate modal
-      const nameEl = document.getElementById('modal-item-name');
-      const descEl = document.getElementById('modal-item-description');
-      const imgEl = document.getElementById('modal-item-image');
-      const basePriceEl = document.getElementById('modal-base-price');
-      const totalPriceEl = document.getElementById('modal-total-price');
-      const breakdownTotalEl = document.getElementById('modal-breakdown-total');
-      const qtyEl = document.getElementById('modal-quantity');
-      const headerPriceEl = document.getElementById('modal-header-price');
-      const extrasPriceEl = document.getElementById('modal-extras-price');
-      const extrasIndicatorEl = document.getElementById('modal-extras-indicator');
-
-      if (nameEl) nameEl.textContent = product.name;
-      if (descEl) descEl.textContent = product.description || '';
-      const resolvedImage = normalizeMenuAssetUrl(product.image_path) || MODAL_IMAGE_PLACEHOLDER;
-      if (imgEl) {
-        setModalImageWithFallback(imgEl, resolvedImage, product.name);
-      }
-
-      const price = parseFloat(product.price) || 0;
-      const formattedPrice = formatCurrency(price);
-      const modifierGroups = collectModifierGroupsForModal(product);
-      currentModalProduct = {
-        id: product.id,
-        name: product.name,
-        description: product.description || '',
-        image: resolvedImage,
-        price,
-        modifierGroups,
-      };
-      modalQuantity = 1;
-      buildModifierState(modifierGroups);
-
-      if (basePriceEl) basePriceEl.textContent = formattedPrice;
-      if (totalPriceEl) totalPriceEl.textContent = formattedPrice;
-      if (breakdownTotalEl) breakdownTotalEl.textContent = formattedPrice;
-      if (headerPriceEl) headerPriceEl.textContent = formattedPrice;
-      if (qtyEl) qtyEl.textContent = '1';
-      if (extrasPriceEl) extrasPriceEl.textContent = formatCurrency(0);
-      if (extrasIndicatorEl) {
-        extrasIndicatorEl.textContent = modifierGroups.length ? formatCurrency(0) : 'Sin extras';
-        extrasIndicatorEl.classList.remove('has-value');
-      }
-
-      renderModalModifiers(modifierGroups);
-      updateAddToCartButtonState();
-
-      // Show modal
-      modal.classList.add('active');
-      document.body.classList.add('modal-open');
-      window.requestAnimationFrame(() => {
-        const modalBody = modal.querySelector('.modal-body');
-        if (modalBody) modalBody.scrollTop = 0;
-      });
-    };
-
-    window.closeItemModal = function () {
-      const modal = document.getElementById('item-modal');
-      if (modal) {
-        modal.classList.remove('active');
-        document.body.classList.remove('modal-open');
-      }
-    };
-
-    const itemModalCloseBtn = document.querySelector('#item-modal .modal-close');
-    if (itemModalCloseBtn && !itemModalCloseBtn.dataset.boundClick) {
-      itemModalCloseBtn.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        window.closeItemModal();
-      });
-      itemModalCloseBtn.dataset.boundClick = '1';
-    }
-
-    function updateModalTotals() {
-      const qtyEl = document.getElementById('modal-quantity');
-      const totalPriceEl = document.getElementById('modal-total-price');
-      const breakdownTotalEl = document.getElementById('modal-breakdown-total');
-      const extrasPriceEl = document.getElementById('modal-extras-price');
-      const extrasIndicatorEl = document.getElementById('modal-extras-indicator');
-      if (!currentModalProduct) return;
-      if (qtyEl) qtyEl.textContent = String(modalQuantity);
-      const selected = getSelectedModifierSummary();
-      if (extrasPriceEl) extrasPriceEl.textContent = formatCurrency(selected.extrasTotal);
-      if (extrasIndicatorEl) {
-        const hasExtras = Number(selected.extrasTotal || 0) > 0;
-        extrasIndicatorEl.textContent = hasExtras ? `+${formatCurrency(selected.extrasTotal)}` : formatCurrency(0);
-        extrasIndicatorEl.classList.toggle('has-value', hasExtras);
-      }
-      const total = ((currentModalProduct.price || 0) + selected.extrasTotal) * modalQuantity;
-      const formattedTotal = formatCurrency(total);
-      if (totalPriceEl) totalPriceEl.textContent = formattedTotal;
-      if (breakdownTotalEl) breakdownTotalEl.textContent = formattedTotal;
-    }
-
-    window.adjustModalQuantity = function (delta) {
-      const parsedDelta = Number(delta) || 0;
-      modalQuantity = Math.max(1, modalQuantity + parsedDelta);
-      updateModalTotals();
-    };
-
-    // Add To Cart Bridge
-    window.addToCartFromModal = function () {
-      if (!currentModalProduct) return;
-      if (!validateModifierSelections(true)) return;
-      const addToCart = window.addToCart;
-      if (typeof addToCart !== 'function') {
-        console.error('[BRIDGE] addToCart no está disponible');
-        if (typeof window.showNotification === 'function') {
-          window.showNotification('No se pudo agregar al carrito', 'error');
+        if (tabId === 'tab-orders') {
+          applyMenuVisibility('orders');
+          return;
         }
-        return;
-      }
-
-      const selected = getSelectedModifierSummary();
-      addToCart({
-        id: currentModalProduct.id,
-        name: currentModalProduct.name,
-        price: currentModalProduct.price,
-        quantity: modalQuantity,
-        image: currentModalProduct.image,
-        extras: selected.extras,
-        extrasTotal: selected.extrasTotal,
-        modifiers: selected.modifierIds,
-        modifier_none_groups: selected.noneGroupIds,
-      });
-
-      window.closeItemModal();
-      if (typeof window.showNotification === 'function') {
-        window.showNotification('¡Producto agregado!', 'success');
-      }
-    };
+        applyMenuVisibility('menu');
+      },
+      true,
+    );
   })();
 </script>
 
@@ -920,8 +292,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     errorMessage.textContent = 'Intenta nuevamente';
     const retryBtn = document.createElement('button');
     retryBtn.type = 'button';
-    retryBtn.className = 'btn btn-primary';
-    retryBtn.style.marginTop = '0.8rem';
+    retryBtn.className = 'btn btn-primary hours-error__retry';
     retryBtn.textContent = 'Reintentar';
     retryBtn.addEventListener('click', () => {
       businessHoursData = null;
@@ -1122,7 +493,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 </script>
 
 <!-- Checkout Offers Overlay -->
-<div class="checkout-offers" id="checkout-offers-overlay" aria-hidden="true" style="display: none">
+<div class="checkout-offers checkout-offers--hidden" id="checkout-offers-overlay" aria-hidden="true">
   <div class="checkout-offers__card">
     <button class="checkout-offers__close" id="checkout-offers-close" type="button">✕</button>
     <h3 class="checkout-offers__title">🍴 Ofertas Especiales</h3>
@@ -1175,19 +546,13 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
       <p class="table-selection-modal__description">
         Por favor indica el número de tu mesa para continuar
       </p>
-      <select id="manual-table-select" class="table-selection-modal__select" style="
-            width: 100%;
-            margin-bottom: 1.5rem;
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-          ">
+      <select id="manual-table-select" class="table-selection-modal__select table-selection-modal__select--full">
         <option value="">Elige tu mesa</option>
       </select>
-      <button id="confirm-table-btn" class="btn btn--primary table-selection-modal__button" style="width: 100%">
+      <button id="confirm-table-btn" class="btn btn--primary table-selection-modal__button table-selection-modal__button--full">
         Confirmar Mesa
       </button>
-      <button type="button" class="btn btn--ghost table-selection-modal__button" style="width: 100%; margin-top: 0.5rem"
+      <button type="button" class="btn btn--ghost table-selection-modal__button table-selection-modal__button--full table-selection-modal__button--spaced"
         data-action="call" data-fn="hideTableSelectionModal">
         Continuar sin mesa
       </button>
@@ -1196,7 +561,34 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 </div>
 
 <style>
-  /* Keep table selection above sticky header/cart layers in legacy menu page */
+  .filter-chips-scroll {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .checkout-preference--hidden,
+  .checkout-offers--hidden {
+    display: none;
+  }
+
+  .table-selection-modal__select--full {
+    width: 100%;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+  }
+
+  .table-selection-modal__button--full {
+    width: 100%;
+  }
+
+  .table-selection-modal__button--spaced {
+    margin-top: 0.5rem;
+  }
+
+  /* Keep table selection above sticky header/cart layers */
   #table-selection-modal {
     z-index: 13070 !important;
   }
@@ -1226,9 +618,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     const tableLabel = document.getElementById('table-label');
     const tableSubtitle = document.getElementById('table-subtitle');
     const urlParams = new URLSearchParams(window.location.search);
-    // Support multiple parameter names for QR codes: mesa, table, m, t
-    const tableFromQR =
-      urlParams.get('mesa') || urlParams.get('table') || urlParams.get('m') || urlParams.get('t');
+    const tableFromQR = urlParams.get('mesa');
     const tableInput = document.getElementById('table-number');
     const tableIdInput = document.getElementById('table-id');
     const tableSourceInput = document.getElementById('table-source');
@@ -1243,27 +633,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     const confirmBtn = document.getElementById('confirm-table-btn');
     const closeBtn = document.querySelector('.table-selection-modal__close');
 
-    const fallbackBuild = (areaCode, tableNumber) => {
-      const normalizedArea =
-        (areaCode || '')
-          .trim()
-          .replace(/[^A-Za-z0-9]/g, '')
-          .toUpperCase()
-          .slice(0, 3) || 'G';
-      const num = Number(tableNumber);
-      if (!Number.isInteger(num) || num < 1 || num > 99) return '';
-      return `${normalizedArea}-M${String(num).padStart(2, '0')}`;
-    };
-
     const buildCode = (areaCode, tableNumber) => {
-      try {
-        if (window.ProntoTableCode?.buildTableCode) {
-          return window.ProntoTableCode.buildTableCode(areaCode, tableNumber);
-        }
-      } catch (error) {
-        console.warn('[TABLE] No se pudo construir el código de mesa', error);
+      if (!window.ProntoTableCode?.buildTableCode) {
+        throw new Error('ProntoTableCode.buildTableCode no está disponible');
       }
-      return fallbackBuild(areaCode, tableNumber);
+      return window.ProntoTableCode.buildTableCode(areaCode, tableNumber);
     };
 
     const SERVER_TABLES = {{ (available_tables or []) | tojson | safe }};
@@ -1295,40 +669,21 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         normalizeMaybeUuid(tableData?.id) ||
         normalizeMaybeUuid(tableData?.table_id) ||
         normalizeMaybeUuid(tableData?.uuid);
-      const areaPrefixRaw =
-        tableData?.area?.prefix ||
-        tableData?.area_prefix ||
-        tableData?.areaCode ||
-        tableData?.area_code ||
-        '';
-      const areaPrefix = String(areaPrefixRaw || '').trim().toUpperCase();
       const zoneLabel =
         tableData?.area?.name || tableData?.zone || tableData?.area_name || '';
       const utils = window.ProntoTableCode;
-      const parsedCode =
-        utils?.parseTableCode?.(value) ||
-        (areaPrefix && value ? utils?.parseTableCode?.(buildCode(areaPrefix, Number(value.replace(/[^\d]/g, '')))) : null);
+      const parsedCode = utils?.parseTableCode?.(value);
       if (parsedCode) {
         const label = AREA_LABELS[parsedCode.areaCode] || zoneLabel || 'Mesa';
         return {
           id: tableId || null,
           areaCode: parsedCode.areaCode,
           tableNumber: parsedCode.tableNumber,
-          code: buildCode(parsedCode.areaCode, parsedCode.tableNumber) || value,
+          code: buildCode(parsedCode.areaCode, parsedCode.tableNumber),
           fullName: `${label} ${parsedCode.tableNumber}`,
         };
       }
-
-      const digitsMatch = value.match(/(\d{1,2})/);
-      const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
-      const areaCode = areaPrefix || (zoneLabel || 'G').trim().slice(0, 1).toUpperCase() || 'G';
-      return {
-        id: tableId || null,
-        areaCode,
-        tableNumber: tableNumber || 0,
-        code: value,
-        fullName: tableNumber ? `Mesa ${tableNumber}` : value,
-      };
+      return null;
     };
 
     if (Array.isArray(SERVER_TABLES) && SERVER_TABLES.length > 0) {
@@ -1381,7 +736,9 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             tableOptions = normalized;
           }
         })
-        .catch(() => undefined);
+        .catch((error) => {
+          console.warn('[pronto] No se pudieron cargar mesas desde /api/tables', error);
+        });
       return tableOptionsPromise;
     };
 
@@ -1438,28 +795,6 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
     function handleCheckoutUnauthorized() {
       void (async () => {
         try {
-          const response = await fetch('/api/client-auth/me', {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              Accept: 'application/json',
-              ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
-            },
-          });
-          if (response.ok) {
-            const payload = await response.json().catch(() => ({}));
-            const customer = payload?.customer || payload?.data?.customer;
-            if (customer && (customer.id || customer.email)) {
-              window.APP_SESSION = { customer };
-              setCheckoutFeedback('Sesión validada. Intenta confirmar nuevamente.', 'info');
-              return;
-            }
-          }
-        } catch (_error) {
-          // continue with logout fallback on probe failure
-        }
-
-        try {
           localStorage.removeItem('pronto-user');
           localStorage.removeItem('pronto-customer-ref');
         } catch (_error) {
@@ -1467,14 +802,15 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         }
         window.APP_SESSION = { customer: null };
         setCheckoutFeedback('');
-        if (typeof window.showNotification === 'function') {
-          window.showNotification(
+        if (typeof window.showToast === 'function') {
+          window.showToast(
             'Tu sesión expiró. Inicia sesión nuevamente para confirmar el pedido.',
             'warning'
           );
         }
-        if (typeof window.toggleProfile === 'function') {
-          window.toggleProfile();
+        const profileTrigger = document.querySelector('.header-btn.profile-btn');
+        if (profileTrigger instanceof HTMLElement) {
+          profileTrigger.click();
         }
       })();
     }
@@ -1703,32 +1039,8 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         };
       }
 
-      console.log('[TABLE] Trying fallback parsing...');
-      const dashMMatch = value.match(/^([A-Za-z0-9]+)-M(\d{1,2})$/);
-      if (dashMMatch) {
-        const areaCode = dashMMatch[1].toUpperCase();
-        const tableNumber = Number(dashMMatch[2]);
-        const code = buildCode(areaCode, tableNumber);
-        if (code) {
-          console.log('[TABLE] Fallback (M- format) result:', {
-            areaCode,
-            tableNumber,
-            code,
-            fullName: value,
-          });
-          const byCode = tableOptions.find((table) => table.code.toUpperCase() === code.toUpperCase());
-          return { id: byCode?.id || null, areaCode, tableNumber, code, fullName: value };
-        }
-      }
-      const digitsMatch = value.match(/(\d{1,2})/);
-      const tableNumber = digitsMatch ? Number(digitsMatch[1]) : null;
-      const areaCode = utils?.deriveAreaCodeFromLabel?.(value, 'G') || 'G';
-      const code = tableNumber ? buildCode(areaCode, tableNumber) : '';
-      const fullName = preferSavedLabel || value || (tableNumber ? `Mesa ${tableNumber}` : '');
-      console.log('[TABLE] Fallback result:', { areaCode, tableNumber, code, fullName });
-      if (!code) return null;
-      const byCode = tableOptions.find((table) => table.code.toUpperCase() === code.toUpperCase());
-      return { id: byCode?.id || null, areaCode, tableNumber, code, fullName };
+      console.warn('[TABLE] No se encontró mesa válida para el valor recibido:', value);
+      return null;
     }
 
     function formatTableLabel(table) {
@@ -2058,16 +1370,13 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                   ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
                   ...(getCustomerRef() ? { 'X-PRONTO-CUSTOMER-REF': getCustomerRef() } : {}),
                 },
-                body: JSON.stringify(editPayload || { changes: {} }),
+                body: JSON.stringify(editPayload),
               });
               const parsed = await res.json().catch(() => ({}));
               return { response: res, data: parsed, mode: 'edit' };
             }
 
-            let res = await doCreateOrder('/api/customer/orders', csrfToken);
-            if (res.status === 404) {
-              res = await doCreateOrder('/api/orders', csrfToken);
-            }
+            const res = await doCreateOrder('/api/customer/orders', csrfToken);
             const parsed = await res.json().catch(() => ({}));
             return { response: res, data: parsed, mode: 'create' };
           };
@@ -2095,7 +1404,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               return false;
             }
             let details = data?.details || {};
-            let code = String(details?.code || details?.legacy_code || '');
+            let code = String(details?.code || '');
             let message = String(
               data?.error || data?.message || 'No se pudo confirmar el pedido. Intenta nuevamente.'
             );
@@ -2118,7 +1427,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
                   // Continue with success flow below.
                 } else {
                   details = data?.details || {};
-                  code = String(details?.code || details?.legacy_code || '');
+                  code = String(details?.code || '');
                   message = String(
                     data?.error || data?.message || 'No se pudo confirmar el pedido. Intenta nuevamente.'
                   );
@@ -2140,20 +1449,13 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
           const result = data?.data || data || {};
           const orderId = result?.order_id || result?.id;
-          const sessionId =
-            result?.session_id ||
-            result?.session?.id ||
-            result?.dining_session_id ||
-            result?.session_uuid ||
-            '';
+          const sessionId = result?.session_id || '';
 
           if (typeof window.setSessionId === 'function' && sessionId) {
             window.setSessionId(sessionId);
           }
 
-          if (typeof window.clearCart === 'function') {
-            window.clearCart();
-          }
+          window.dispatchEvent(new CustomEvent('pronto:cart-clear'));
 
           if (checkoutNotes) {
             checkoutNotes.value = '';
@@ -2170,14 +1472,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
             'success'
           );
 
-          if (typeof window.showNotification === 'function') {
-            window.showNotification(
+          if (typeof window.showToast === 'function') {
+            window.showToast(
               mode === 'edit' ? 'Pedido actualizado exitosamente' : 'Pedido confirmado exitosamente',
               'success'
             );
-          }
-          if (typeof window.activateOrdersTab === 'function') {
-            window.activateOrdersTab(1);
           }
           if (typeof window.refreshMiniTracker === 'function') {
             try {
@@ -2186,9 +1485,7 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
               // no-op: tab switch still proceeds
             }
           }
-          if (typeof window.switchView === 'function') {
-            window.switchView('orders');
-          }
+          window.dispatchEvent(new CustomEvent('pronto:view-change', { detail: { view: 'orders' } }));
         } catch (error) {
           console.error('[CHECKOUT] Error confirming order', error);
           setCheckoutFeedback('Error de conexión al confirmar el pedido.', 'error');
@@ -2263,47 +1560,17 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
 
 {% if config.get('DEBUG') %} {% if debug_auto_table %}
 <!-- Draggable Debug Table Selector (DEBUG MODE ONLY) -->
-<div id="debug-table-panel" class="draggable-panel" style="
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 320px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      z-index: 999999 !important;
-      border: 1px solid #e2e8f0;
-    ">
-  <div class="draggable-header" style="
-        background: #1e293b;
-        color: white;
-        padding: 12px 16px;
-        border-radius: 12px 12px 0 0;
-        cursor: move;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      ">
-    <span style="font-weight: 600; font-size: 0.9rem">🛠️ Configuración DEBUG</span>
-    <button id="close-debug-panel-btn"
-      style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem">
+<div id="debug-table-panel" class="draggable-panel draggable-panel--hidden">
+  <div class="draggable-header draggable-header--debug">
+    <span class="draggable-title">🛠️ Configuración DEBUG</span>
+    <button id="close-debug-panel-btn" class="draggable-close-btn">
       ×
     </button>
   </div>
-  <div class="draggable-content" style="padding: 16px">
-    <div style="margin-bottom: 12px">
-      <label for="debug-table-select"
-        style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Seleccionar Mesa:</label>
-      <select id="debug-table-select" style="
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            background: #fff;
-            font-size: 1rem;
-          ">
+  <div class="draggable-content draggable-content--debug">
+    <div class="debug-field">
+      <label for="debug-table-select" class="debug-label">Seleccionar Mesa:</label>
+      <select id="debug-table-select" class="debug-select">
         {% if available_tables %}
         <option value="">-- Seleccionar --</option>
         {% for table in available_tables %}
@@ -2320,20 +1587,11 @@ currency_code = config.get('CURRENCY_CODE', 'MXN') %} {% block content %}
         {% endif %}
       </select>
     </div>
-    <div style="margin-bottom: 12px">
-      <label style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 6px">Estado Sesión:</label>
-      <div style="font-size: 0.9rem; font-weight: 600" id="debug-session-status">Inactiva</div>
+    <div class="debug-field">
+      <label class="debug-label">Estado Sesión:</label>
+      <div class="debug-session-status" id="debug-session-status">Inactiva</div>
     </div>
-    <button data-action="call" data-fn="updateTableFromDebug" style="
-          width: 100%;
-          padding: 10px;
-          background: #ff6b35;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-        ">
+    <button data-action="call" data-fn="updateTableFromDebug" class="debug-update-btn">
       Actualizar Mesa
     </button>
   </div>

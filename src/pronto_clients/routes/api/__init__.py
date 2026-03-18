@@ -27,7 +27,6 @@ from .notifications import notifications_bp
 from .orders import orders_bp
 from .sessions import sessions_bp
 from .feedback_email import feedback_email_bp
-from .stripe_webhooks import stripe_webhooks_bp
 
 api_bp = Blueprint("api", __name__)
 
@@ -46,4 +45,3 @@ api_bp.register_blueprint(notifications_bp)
 api_bp.register_blueprint(orders_bp)
 api_bp.register_blueprint(sessions_bp)
 api_bp.register_blueprint(feedback_email_bp)
-api_bp.register_blueprint(stripe_webhooks_bp)

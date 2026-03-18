@@ -43,7 +43,7 @@
 <script>
   window.APP_SETTINGS = {{ app_settings | tojson | safe }};
 
-  // Immutable Configuration - Protection against legacy overwrites
+  // Immutable configuration bootstrap
   (function () {
     const config = {
       'app_name': '{{ app_name }}',

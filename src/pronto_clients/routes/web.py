@@ -187,6 +187,39 @@ def home():
     )
 
 
+@web_bp.get("/mesa/<string:qr_code>")
+def mesa_qr(qr_code: str):
+    """
+    QR code entry point for physical restaurant tables.
+
+    Resolves the QR code to a table UUID and redirects to the home page
+    with the correct table_id query parameter so the session is initialized.
+
+    Args:
+        qr_code: The QR code printed on the physical table (e.g. 'M1-QR-SEED')
+    """
+    from pronto_shared.models import Table
+    from sqlalchemy import select
+
+    with get_session() as db_session:
+        stmt = select(Table).where(Table.qr_code == qr_code, Table.is_active == True)  # noqa: E712
+        table = db_session.execute(stmt).scalars().one_or_none()
+
+    if not table:
+        logger.warning(
+            "QR code not found or table inactive",
+            extra={"qr_code": qr_code},
+        )
+        return redirect(url_for("client_web.home"))
+
+    target_url = url_for("client_web.home", table_id=str(table.id))
+    logger.info(
+        "QR scan redirect",
+        extra={"qr_code": qr_code, "table_id": str(table.id), "table_number": table.table_number},
+    )
+    return redirect(target_url)
+
+
 @web_bp.get("/checkout")
 def checkout():
     """
@@ -363,3 +396,4 @@ def terms_of_service():
 def privacy_policy():
     """Privacy Policy page."""
     return render_template("privacy-policy.html")
+

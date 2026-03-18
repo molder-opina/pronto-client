@@ -1,181 +1,4 @@
-<!-- Profile Modal -->
-<div class="profile-modal" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
-    <div class="profile-modal-overlay"></div>
-    <div class="profile-modal-content">
-      <button class="profile-modal-close" aria-label="Cerrar modal">×</button>
-
-      <!-- Not Logged In View -->
-      <div id="profile-not-logged-in" class="profile-view">
-        <div class="profile-header">
-          <h2 id="profile-modal-title">Bienvenido a Pronto</h2>
-          <p class="profile-subheading">
-            Inicia sesión o regístrate para guardar tus pedidos
-          </p>
-        </div>
-
-        <div class="profile-tabs">
-          <button class="profile-tab active" data-tab="login">Iniciar Sesión</button>
-          <button class="profile-tab" data-tab="register">Registrarse</button>
-        </div>
-
-        <!-- Login Form -->
-        <form id="login-form" class="profile-form">
-          <div class="form-group">
-            <label for="login-email">Correo electrónico</label>
-            <input type="email" id="login-email" required autocomplete="email" />
-          </div>
-          <div class="form-group">
-            <label for="login-password">Contraseña</label>
-            <div class="password-input-wrapper">
-              <input type="password" id="login-password" required autocomplete="current-password" />
-              <button type="button" class="password-toggle" aria-label="Mostrar contraseña">
-                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <svg class="eye-slash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  style="display: none">
-                  <path
-                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
-                  </path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary btn--full">Iniciar Sesión</button>
-          <button type="button" class="btn btn-link forgot-password-btn forgot-password-btn-style" id="forgot-password-btn">
-            ¿Olvidaste tu contraseña?
-          </button>
-          <div class="form-feedback" id="login-feedback"></div>
-        </form>
-
-        <!-- Register Form -->
-        <form id="register-form" class="profile-form" style="display: none">
-          <div class="form-group">
-            <label for="register-name">Nombre completo para teclear</label>
-            <input type="text" id="register-name" placeholder="Ej: Juan Pérez García" required autocomplete="name" />
-          </div>
-          <div class="form-group">
-            <label for="register-email">Correo electrónico</label>
-            <input type="email" id="register-email" placeholder="tu@email.com" required autocomplete="email" />
-          </div>
-          <div class="form-group">
-            <label for="register-phone">Teléfono celular</label>
-            <div class="phone-input-container">
-              <div class="country-code-selector">
-                <span class="flag-icon">🇲🇽</span>
-                <span class="country-code">+52</span>
-              </div>
-              <input type="tel" id="register-phone" placeholder="5512345678" maxlength="10" pattern="[0-9]{10}" required
-                autocomplete="tel" />
-            </div>
-            <small class="phone-input-hint">10 dígitos sin
-              espacios</small>
-          </div>
-          <div class="form-group">
-            <label for="register-password">Contraseña</label>
-            <div class="password-input-wrapper">
-              <input type="password" id="register-password" placeholder="Mínimo 6 caracteres" required minlength="6"
-                autocomplete="new-password" />
-              <button type="button" class="password-toggle" aria-label="Mostrar contraseña">
-                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <svg class="eye-slash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  style="display: none">
-                  <path
-                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
-                  </path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              </button>
-            </div>
-            <div class="password-strength">
-              <div class="password-strength-bar" id="password-strength-bar"></div>
-            </div>
-            <div class="password-requirements" id="password-requirements">
-              <span class="req" data-req="length">Mínimo 6 caracteres</span>
-              <span class="req" data-req="number">Un número</span>
-              <span class="req" data-req="uppercase">Una mayúscula</span>
-            </div>
-          </div>
-          <div class="form-group checkbox-group">
-            <input type="checkbox" id="accept-terms" required />
-            <label for="accept-terms">
-              Acepto los <a href="/terms-of-service" target="_blank">Términos de Servicio</a> y
-              <a href="/privacy-policy" target="_blank">Política de Privacidad</a>
-            </label>
-          </div>
-          <button type="submit" class="btn btn-primary btn--full" id="register-submit-btn" disabled>
-            Crear Cuenta
-          </button>
-          <div class="form-feedback" id="register-feedback"></div>
-        </form>
-      </div>
-
-      <!-- Logged In View -->
-      <div id="profile-logged-in" class="profile-view" style="display: none">
-        <div class="profile-header">
-          <img id="profile-modal-avatar" class="profile-modal-avatar" src="{{ assets_images }}/default-avatar.png"
-            alt="Avatar" />
-          <h2 id="profile-name">Usuario</h2>
-          <p id="profile-email" class="profile-subheading"></p>
-        </div>
-
-        <div class="profile-menu">
-
-          <button class="profile-menu-item" data-profile-action="order-history">
-            <span>📜</span>
-            <span>Historial de Pedidos</span>
-          </button>
-          <button class="profile-menu-item" data-profile-action="profile">
-            <span>⚙️</span>
-            <span>Perfil</span>
-          </button>
-          <button class="profile-menu-item" data-profile-action="logout">
-            <span>🚪</span>
-            <span>Cerrar Sesión</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Personal Info View -->
-      <div id="profile-personal-info" class="profile-view" style="display: none">
-        <div class="profile-header profile-header--personal-info">
-          <button class="btn-link back-to-profile-btn" id="profile-personal-info-back-btn" type="button">←
-            Volver</button>
-          <h3>Editar perfil</h3>
-        </div>
-        <div class="profile-avatar-picker" id="profile-avatar-picker">
-          <p class="profile-avatar-picker__label">Ícono de perfil</p>
-          <div class="profile-avatar-picker__options" id="profile-avatar-options"></div>
-        </div>
-        <form id="profile-personal-info-form" class="profile-form">
-          <div class="form-group">
-            <label for="personal-info-tax-id">RFC</label>
-            <input type="text" id="personal-info-tax-id" placeholder="XAXX010101000"
-              style="text-transform: uppercase;" />
-          </div>
-          <div class="form-group">
-            <label for="personal-info-tax-name">Razón Social</label>
-            <input type="text" id="personal-info-tax-name" placeholder="Nombre o Razón Social" />
-          </div>
-          <div class="form-group">
-            <label for="personal-info-tax-email">Correo para Factura</label>
-            <input type="email" id="personal-info-tax-email" placeholder="facturacion@empresa.com" />
-          </div>
-          <div class="form-group">
-            <label for="personal-info-tax-address">Domicilio Fiscal (C.P.)</label>
-            <input type="text" id="personal-info-tax-address" placeholder="Código Postal" />
-          </div>
-          <button type="submit" class="btn btn-primary btn--full">Guardar Cambios</button>
-          <div class="form-feedback" id="personal-info-feedback"></div>
-        </form>
-      </div>
-    </div>
-</div>
+<!-- Modal stack canónica: implementaciones Vue activas -->
 <!-- Password Recovery Modal -->
 <div class="password-recovery-modal" id="password-recovery-modal" role="dialog" aria-modal="true" aria-labelledby="password-recovery-title">
     <div class="password-recovery-modal-overlay"></div>
@@ -210,7 +33,7 @@
         </div>
 
         <!-- Step 2: Success Message -->
-        <div id="password-recovery-step-2" class="password-recovery-step" style="display: none">
+        <div id="password-recovery-step-2" class="password-recovery-step password-recovery-step--hidden">
         <div class="password-recovery-success">
             <div class="password-recovery-success-icon">✓</div>
             <h3>¡Enlace enviado!</h3>
@@ -223,7 +46,7 @@
         </div>
 
         <!-- Step 3: Reset Password (for when user clicks link) -->
-        <div id="password-recovery-step-3" class="password-recovery-step" style="display: none">
+        <div id="password-recovery-step-3" class="password-recovery-step password-recovery-step--hidden">
         <div class="password-recovery-header">
             <h2>Nueva contraseña</h2>
             <p class="profile-subheading">Ingresa tu nueva contraseña</p>
@@ -240,8 +63,7 @@
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
-                <svg class="eye-slash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    style="display: none">
+                <svg class="eye-slash-icon eye-slash-icon--hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
                     <line x1="1" y1="1" x2="23" y2="23"></line>
                 </svg>
@@ -264,7 +86,7 @@
         </div>
 
         <!-- Step 4: Reset Success -->
-        <div id="password-recovery-step-4" class="password-recovery-step" style="display: none">
+        <div id="password-recovery-step-4" class="password-recovery-step password-recovery-step--hidden">
         <div class="password-recovery-success">
             <div class="password-recovery-success-icon">✓</div>
             <h3>¡Contraseña actualizada!</h3>

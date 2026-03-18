@@ -37,6 +37,27 @@
     margin-bottom: 0;
   }
 
+  .kiosk-status {
+    margin-top: 1rem;
+    display: none;
+  }
+
+  .kiosk-status__text {
+    margin: 0;
+  }
+
+  .kiosk-status__text--loading {
+    color: var(--muted);
+  }
+
+  .kiosk-status__text--success {
+    color: #16a34a;
+  }
+
+  .kiosk-status__text--error {
+    color: #dc2626;
+  }
+
   #kiosk-start-btn {
     background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
     color: white;
@@ -75,7 +96,7 @@
     Comenzar Pedido
   </button>
   
-  <div id="kiosk-status" style="margin-top: 1rem; display: none;"></div>
+  <div id="kiosk-status" class="kiosk-status"></div>
 </div>
 
 <script>
@@ -86,7 +107,7 @@ document.getElementById('kiosk-start-btn').addEventListener('click', async () =>
   btn.disabled = true;
   btn.textContent = 'Iniciando...';
   status.style.display = 'block';
-  status.innerHTML = '<p style="color: var(--muted);">Cargando menú...</p>';
+  status.innerHTML = '<p class="kiosk-status__text kiosk-status__text--loading">Cargando menú...</p>';
   
   try {
     const response = await fetch('/kiosk/{{ location }}/start', {
@@ -100,17 +121,17 @@ document.getElementById('kiosk-start-btn').addEventListener('click', async () =>
     const data = await response.json();
     
     if (data.success) {
-      status.innerHTML = '<p style="color: green;">¡Listo! Redirigiendo al menú...</p>';
+      status.innerHTML = '<p class="kiosk-status__text kiosk-status__text--success">¡Listo! Redirigiendo al menú...</p>';
       setTimeout(() => {
         window.location.href = '/';
       }, 500);
     } else {
-      status.innerHTML = '<p style="color: red;">Error: ' + (data.error || 'Intente de nuevo') + '</p>';
+      status.innerHTML = '<p class="kiosk-status__text kiosk-status__text--error">Error: ' + (data.error || 'Intente de nuevo') + '</p>';
       btn.disabled = false;
       btn.textContent = 'Comenzar Pedido';
     }
   } catch (error) {
-    status.innerHTML = '<p style="color: red;">Error de conexión. Intente de nuevo.</p>';
+    status.innerHTML = '<p class="kiosk-status__text kiosk-status__text--error">Error de conexión. Intente de nuevo.</p>';
     btn.disabled = false;
     btn.textContent = 'Comenzar Pedido';
   }

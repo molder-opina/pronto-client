@@ -14,6 +14,9 @@
   <link rel="stylesheet" href="{{ assets_css_clients }}/client-base.css?v={{ system_version }}&rev=20260305k" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/audit-fixes.css?v={{ system_version }}&rev=20260305j" />
   <link rel="stylesheet" href="{{ assets_css_clients }}/qa-consolidated.css?v={{ system_version }}&rev=20260305j" />
+  {% for vite_css in client_vite_css_files %}
+  <link rel="stylesheet" href="{{ vite_css }}?v={{ system_version }}&rev=20260315h" />
+  {% endfor %}
   <style>
     .sticky-cart-bar {
       position: fixed;
@@ -686,6 +689,21 @@
       background: #22c55e;
     }
 
+    .shortcuts-btn {
+      color: var(--text-secondary);
+    }
+
+    .shortcuts-btn:hover {
+      background: rgba(255, 107, 53, 0.1);
+      border-color: rgba(255, 107, 53, 0.2);
+      color: var(--primary);
+    }
+
+    .shortcuts-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
     /* Uniformidad visual del menú cliente */
     main .products-grid {
       width: 100%;
@@ -1041,22 +1059,22 @@
       font-weight: 600;
     }
 
-    .status-requested {
+    .status-new {
       background: #fef3c7;
       color: #92400e;
     }
 
-    .status-waiter_accepted {
+    .status-queued {
       background: #dbeafe;
       color: #1e40af;
     }
 
-    .status-kitchen_in_progress {
+    .status-preparing {
       background: #fed7aa;
       color: #9a3412;
     }
 
-    .status-ready_for_delivery {
+    .status-ready {
       background: #d1fae5;
       color: #065f46;
     }
@@ -1823,7 +1841,7 @@
   <script>
     window.APP_SETTINGS = {{ app_settings | tojson | safe }};
 
-    // Immutable Configuration - Protection against legacy overwrites
+    // Immutable Configuration - Protect against accidental client-side rewrites.
     (function () {
       const config = {
         'app_name': '{{ app_name }}',
@@ -1858,800 +1876,6 @@
   </div>
   <div class="notification-container" id="notification-container"></div>
 
-  <!-- Profile Modal -->
-  <div class="profile-modal" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
-    <div class="profile-modal-overlay"></div>
-    <div class="profile-modal-content">
-      <button class="profile-modal-close" aria-label="Cerrar modal">×</button>
-
-      <!-- Not Logged In View -->
-      <div id="profile-not-logged-in" class="profile-view">
-        <div class="profile-header">
-          <h2>Bienvenido a Pronto</h2>
-          <p class="profile-subheading">
-            Inicia sesión o regístrate para guardar tus pedidos
-          </p>
-        </div>
-
-        <div class="profile-tabs">
-          <button class="profile-tab active" data-tab="login">Iniciar Sesión</button>
-          <button class="profile-tab" data-tab="register">Registrarse</button>
-        </div>
-
-        <!-- Login Form -->
-        <form id="login-form" class="profile-form">
-          <div class="form-group">
-            <label for="login-email">Correo electrónico</label>
-            <input type="email" id="login-email" required autocomplete="email" />
-          </div>
-          <div class="form-group">
-            <label for="login-password">Contraseña</label>
-            <div class="password-input-wrapper">
-              <input type="password" id="login-password" required autocomplete="current-password" />
-              <button type="button" class="password-toggle" aria-label="Mostrar contraseña">
-                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <svg class="eye-slash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  style="display: none">
-                  <path
-                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
-                  </path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary btn--full">Iniciar Sesión</button>
-          <button type="button" class="btn btn-link forgot-password-btn forgot-password-btn-style" id="forgot-password-btn">
-            ¿Olvidaste tu contraseña?
-          </button>
-          <div class="form-feedback" id="login-feedback"></div>
-        </form>
-
-        <!-- Register Form -->
-        <form id="register-form" class="profile-form" style="display: none">
-          <div class="form-group">
-            <label for="register-name">Nombre completo para teclear</label>
-            <input type="text" id="register-name" placeholder="Ej: Juan Pérez García" required autocomplete="name" />
-          </div>
-          <div class="form-group">
-            <label for="register-email">Correo electrónico</label>
-            <input type="email" id="register-email" placeholder="tu@email.com" required autocomplete="email" />
-          </div>
-          <div class="form-group">
-            <label for="register-phone">Teléfono celular</label>
-            <div class="phone-input-container">
-              <div class="country-code-selector">
-                <span class="flag-icon">🇲🇽</span>
-                <span class="country-code">+52</span>
-              </div>
-              <input type="tel" id="register-phone" placeholder="5512345678" maxlength="10" pattern="[0-9]{10}" required
-                autocomplete="tel" />
-            </div>
-            <small class="phone-input-hint">10 dígitos sin
-              espacios</small>
-          </div>
-          <div class="form-group">
-            <label for="register-password">Contraseña</label>
-            <div class="password-input-wrapper">
-              <input type="password" id="register-password" placeholder="Mínimo 6 caracteres" required minlength="6"
-                autocomplete="new-password" />
-              <button type="button" class="password-toggle" aria-label="Mostrar contraseña">
-                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <svg class="eye-slash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  style="display: none">
-                  <path
-                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
-                  </path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              </button>
-            </div>
-            <div class="password-strength">
-              <div class="password-strength-bar" id="password-strength-bar"></div>
-            </div>
-            <div class="password-requirements" id="password-requirements">
-              <span class="req" data-req="length">Mínimo 6 caracteres</span>
-              <span class="req" data-req="number">Un número</span>
-              <span class="req" data-req="uppercase">Una mayúscula</span>
-            </div>
-          </div>
-          <div class="form-group checkbox-group">
-            <input type="checkbox" id="accept-terms" required />
-            <label for="accept-terms">
-              Acepto los <a href="/terms-of-service" target="_blank">Términos de Servicio</a> y
-              <a href="/privacy-policy" target="_blank">Política de Privacidad</a>
-            </label>
-          </div>
-          <button type="submit" class="btn btn-primary btn--full" id="register-submit-btn" disabled>
-            Crear Cuenta
-          </button>
-          <div class="form-feedback" id="register-feedback"></div>
-        </form>
-      </div>
-
-      <!-- Logged In View -->
-      <div id="profile-logged-in" class="profile-view" style="display: none">
-        <div class="profile-header">
-          <img id="profile-modal-avatar" class="profile-modal-avatar" src="{{ assets_images }}/default-avatar.png"
-            alt="Avatar" />
-          <h2 id="profile-name">Usuario</h2>
-          <p id="profile-email" class="profile-subheading"></p>
-        </div>
-
-        <div class="profile-menu">
-
-          <button class="profile-menu-item" data-profile-action="order-history">
-            <span>📜</span>
-            <span>Historial de Pedidos</span>
-          </button>
-          <button class="profile-menu-item" data-profile-action="profile">
-            <span>⚙️</span>
-            <span>Perfil</span>
-          </button>
-          <button class="profile-menu-item" data-profile-action="logout">
-            <span>🚪</span>
-            <span>Cerrar Sesión</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Personal Info View -->
-      <div id="profile-personal-info" class="profile-view" style="display: none">
-        <div class="profile-header profile-header--personal-info">
-          <button class="btn-link back-to-profile-btn" id="profile-personal-info-back-btn" type="button">← Volver</button>
-          <h3>Editar perfil</h3>
-        </div>
-
-        <div class="profile-avatar-picker" id="profile-avatar-picker">
-          <p class="profile-avatar-picker__label">Ícono de perfil</p>
-          <div class="profile-avatar-picker__options" id="profile-avatar-options"></div>
-        </div>
-
-        <form id="profile-personal-info-form" class="profile-form">
-          <div class="form-group">
-            <label for="personal-info-tax-id">RFC</label>
-            <input type="text" id="personal-info-tax-id" placeholder="XAXX010101000"
-              style="text-transform: uppercase;" />
-          </div>
-          <div class="form-group">
-            <label for="personal-info-tax-name">Razón Social</label>
-            <input type="text" id="personal-info-tax-name" placeholder="Nombre o Razón Social" />
-          </div>
-          <div class="form-group">
-            <label for="personal-info-tax-email">Correo para Factura</label>
-            <input type="email" id="personal-info-tax-email" placeholder="facturacion@empresa.com" />
-          </div>
-          <div class="form-group">
-            <label for="personal-info-tax-address">Domicilio Fiscal (C.P.)</label>
-            <input type="text" id="personal-info-tax-address" placeholder="Código Postal" />
-          </div>
-          <div class="form-group">
-            <label for="personal-info-tax-regime">Régimen Fiscal</label>
-            <select id="personal-info-tax-regime">
-              <option value="">Selecciona un régimen...</option>
-              <option value="601">601 - General de Ley Personas Morales</option>
-              <option value="603">603 - Personas Morales con Fines no Lucrativos</option>
-              <option value="612">612 - Personas Físicas con Actividades Empresariales</option>
-              <option value="621">621 - Incorporación Fiscal</option>
-              <option value="626">626 - Actividades Empresariales por Plataformas Tecnológicas</option>
-              <option value="605">605 - Sueldos y Salarios</option>
-              <option value="606">606 - Arrendamiento</option>
-              <option value="608">608 - Demás Ingresos</option>
-              <option value="610">610 - Residentes en el Extranjero</option>
-              <option value="611">611 - Ingresos por Dividendos</option>
-              <option value="614">614 - Ingresos por Intereses</option>
-              <option value="615">615 - Ingresos por Premios</option>
-              <option value="616">616 - Sin Obligaciones Fiscales</option>
-              <option value="622">622 - Actividad Agrícola, Ganadera, Silvícola y Pesquera</option>
-              <option value="629">629 - Regímenes Fiscales Preferentes</option>
-              <option value="630">630 - Enajenación de Acciones en Bolsa</option>
-            </select>
-          </div>
-          <button type="submit" class="btn btn-primary btn--full">Guardar Cambios</button>
-          <div class="form-feedback" id="personal-info-feedback"></div>
-        </form>
-      </div>
-    </div>
-  </div>
-  <header class="header">
-    <div class="header-container">
-      <div class="logo-section">
-        <a href="/" class="logo-link">
-          <img src="{{ restaurant_assets }}/branding/logo.jpg" alt="{{ restaurant_name }} logo"
-            data-onload-class="loaded"
-            data-fallback-src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23ff6b35%22/%3E%3Ctext x=%2250%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22white%22 font-family=%22sans-serif%22%3EQ%3C/text%3E%3C/svg%3E" />
-          <span class="brand-name">{{ restaurant_name|title }}</span>
-        </a>
-      </div>
-      <div class="header-actions">
-        <button class="header-btn waiter-btn" aria-label="Llamar al mesero" title="Llamar al mesero">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-        </button>
-        <button class="header-btn cart-btn" data-toggle-cart aria-label="Ver carrito" title="Ver carrito">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          <span class="cart-badge" id="cart-count">0</span>
-        </button>
-        <button class="header-btn profile-btn" aria-label="Mi perfil" title="Mi perfil">
-          <img class="profile-avatar" id="profile-avatar"
-            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23e2e8f0'/%3E%3Cpath d='M50 45a15 15 0 100-30 15 15 0 000 30zM25 85c0-13.8 11.2-25 25-25s25 11.2 25 25' fill='%236b7280'/%3E%3C/svg%3E"
-            alt="Foto de perfil" />
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- View Tabs - Switch between Menu and My Orders -->
-  <div class="view-tabs sticky-nav" id="view-tabs">
-    <div class="view-tabs-container">
-      <button class="view-tab{% if initial_client_view == 'menu' %} active{% endif %}" id="tab-menu">
-        <i data-lucide="utensils" class="view-tab__icon"></i>
-        <span class="view-tab__text">Menú</span>
-      </button>
-      <button class="view-tab{% if initial_client_view == 'details' %} active{% endif %}" id="tab-details">
-        <i data-lucide="clipboard-list" class="view-tab__icon"></i>
-        <span class="view-tab__text">Detalles</span>
-      </button>
-      <button class="view-tab{% if initial_client_view == 'orders' %} active{% endif %}" id="tab-orders">
-        <i data-lucide="clipboard-check" class="view-tab__icon"></i>
-        <span class="view-tab__text">Órdenes</span>
-        <span class="badge badge--hidden" id="orders-badge">0</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- Active Orders Section - Shows when viewing orders -->
-  <div class="active-orders-section" id="active-orders-section" style="display: {% if initial_client_view == 'orders' %}block{% else %}none{% endif %}">
-    <!-- Single Order Tracker (se usa como modal de detalle) -->
-    <div class="single-order-tracker" id="single-order-tracker"></div>
-
-    <!-- Multiple Orders Grid - Shows when there are 2+ orders -->
-    <div class="multiple-orders-view" id="multiple-orders-view">
-      <div class="multiple-orders-view__header">
-        <div class="active-orders-headline">
-          <h2>Órdenes Activas</h2>
-          <span>⏱️ Se actualiza automáticamente cada 10 segundos</span>
-        </div>
-        <div class="active-orders-search">
-          <label class="active-orders-search__label" for="orders-search-input">Buscar orden</label>
-          <input
-            id="orders-search-input"
-            class="active-orders-search__input"
-            type="search"
-            placeholder="Folio, estado o producto..."
-            autocomplete="off"
-            aria-label="Buscar órdenes activas"
-          />
-        </div>
-      </div>
-      <p class="active-orders-search-empty" id="orders-search-empty-state" style="display:none"></p>
-      <div class="active-orders-list" id="active-orders-list">
-        <!-- Orders will be dynamically inserted here -->
-      </div>
-    </div>
-
-    <!-- Modal de detalle -->
-    <div class="order-detail-modal" id="order-detail-modal" role="dialog" aria-modal="true">
-      <div class="order-detail-content" id="order-detail-content">
-        <button class="order-detail-close" id="close-order-detail" aria-label="Cerrar detalle de orden">✕</button>
-        <div id="order-detail-body"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Checkout Section (Detalles Tab) - Hidden by default -->
-  <div class="checkout-section" id="checkout-section" style="display: {% if initial_client_view == 'details' %}block{% else %}none{% endif %}">
-    <div class="checkout-shell">
-      <!-- Checkout Accordion Layout -->
-      <style>
-        /* Accordion Styles for Checkout Tab */
-        .checkout-accordion-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          padding-bottom: 2rem;
-        }
-
-        .checkout-accordion {
-          background: var(--card-bg, #fff);
-          border: 1px solid var(--border-color, #e5e7eb);
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-          transition: all 0.3s ease;
-        }
-
-        .checkout-accordion.collapsed .accordion-content {
-          display: none;
-        }
-
-        .checkout-accordion-header {
-          padding: 1rem 1.25rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-          background: var(--bg-surface, #fff);
-          /* border-bottom is added only if expanded */
-        }
-
-        .checkout-accordion:not(.collapsed) .checkout-accordion-header {
-          border-bottom: 1px solid var(--border-color, #e5e7eb);
-          background: var(--bg-secondary, #f9fafb);
-        }
-
-        .accordion-title {
-          font-weight: 600;
-          font-size: 1.05rem;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          color: var(--text-primary, #111827);
-        }
-
-        .accordion-icon {
-          font-size: 1.2rem;
-        }
-
-        .accordion-chevron {
-          width: 0.6rem;
-          height: 0.6rem;
-          display: inline-block;
-          border-right: 2px solid currentColor;
-          border-bottom: 2px solid currentColor;
-          transform: rotate(45deg);
-          transition: transform 0.25s ease;
-          color: var(--text-tertiary, #9ca3af);
-          flex-shrink: 0;
-          margin-right: 0.05rem;
-        }
-
-        .accordion-toggle-btn {
-          width: 32px;
-          height: 32px;
-          border: 0;
-          background: transparent;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          cursor: pointer;
-          padding: 0;
-        }
-
-        .accordion-toggle-btn:hover {
-          background: rgba(255, 255, 255, 0.12);
-        }
-
-        .accordion-toggle-btn:focus-visible {
-          outline: 2px solid #93c5fd;
-          outline-offset: 1px;
-        }
-
-        .checkout-accordion:not(.collapsed) .accordion-chevron {
-          transform: rotate(-135deg);
-          margin-top: 0.2rem;
-        }
-
-        .accordion-content {
-          padding: 1.25rem;
-          background: var(--card-bg, #fff);
-          animation: slideDown 0.3s ease-out;
-        }
-
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .header-status {
-          font-size: 0.75rem;
-          padding: 0.25rem 0.6rem;
-          border-radius: 999px;
-          background: #f3f4f6;
-          color: #4b5563;
-          font-weight: 500;
-          margin-right: 0.75rem;
-        }
-
-        .header-status.new {
-          background: #dbeafe;
-          color: #1e40af;
-        }
-
-        .header-status.confirmed {
-          background: #dcfce7;
-          color: #166534;
-        }
-
-        /* Details tab contrast hardening */
-        #checkout-section .checkout-shell,
-        #checkout-section .accordion-content,
-        #checkout-section .mesa-info-card,
-        #checkout-section .checkout-summary-header,
-        #checkout-section .checkout-summary__items,
-        #checkout-section .checkout-summary__total,
-        #checkout-section .form-group,
-        #checkout-section #checkout-form {
-          color: #0f172a !important;
-        }
-
-        #checkout-section .mesa-info-card__title,
-        #checkout-section .checkout-summary__title,
-        #checkout-section .checkout-summary__total-label,
-        #checkout-section .checkout-summary__total-amount,
-        #checkout-section label,
-        #checkout-section .form-group__counter {
-          color: #0f172a !important;
-        }
-
-        #checkout-section .checkout-accordion-header,
-        #checkout-section .checkout-accordion-header .accordion-title,
-        #checkout-section .checkout-accordion-header .accordion-title span,
-        #checkout-section .checkout-accordion-header .accordion-chevron {
-          color: #f8fafc !important;
-        }
-
-        #checkout-section .checkout-accordion-header .header-status.new {
-          color: #1e40af !important;
-        }
-
-        #checkout-section .checkout-accordion-header .header-status.confirmed {
-          color: #166534 !important;
-        }
-
-        #checkout-section #details-table-select,
-        #checkout-section #notes {
-          background: #ffffff !important;
-          color: #0f172a !important;
-          border: 1px solid #cbd5e1 !important;
-          border-radius: 8px;
-          padding: 0.65rem 0.75rem;
-          width: 100% !important;
-          box-sizing: border-box;
-        }
-
-        #checkout-section #notes {
-          min-height: 96px;
-          resize: vertical;
-          line-height: 1.4;
-        }
-
-        #checkout-section .form-group label {
-          display: block;
-          margin-bottom: 0.35rem;
-          font-weight: 600;
-        }
-
-        #checkout-section .form-group__counter {
-          display: block;
-          float: none !important;
-          text-align: right;
-          margin-top: 0.35rem;
-          color: #64748b !important;
-        }
-
-        #checkout-section #details-table-select::placeholder,
-        #checkout-section #notes::placeholder {
-          color: #64748b !important;
-        }
-
-        #checkout-section .checkout-submit-btn {
-          background: linear-gradient(135deg, #ff6b35 0%, #f97316 100%) !important;
-          color: #ffffff !important;
-          border: none !important;
-          border-radius: 10px;
-          min-height: 44px;
-          font-weight: 700;
-        }
-
-        #checkout-section .checkout-submit-btn:disabled {
-          background: #cbd5e1 !important;
-          color: #64748b !important;
-        }
-      </style>
-
-      <div class="checkout-accordion-list" id="checkout-accordions">
-        <!-- Mesa Info -->
-        <div class="checkout-accordion" id="accordion-mesa">
-          <div class="checkout-accordion-header">
-            <div class="accordion-title" style="color: #f8fafc">
-              <span>Datos de la Mesa</span>
-            </div>
-            <div style="display: flex; align-items: center">
-              <button type="button" class="accordion-toggle-btn" aria-label="Comprimir o expandir sección">
-                <span class="accordion-chevron" style="color: #f8fafc" aria-hidden="true"></span>
-              </button>
-            </div>
-          </div>
-          <div class="accordion-content">
-            <form id="checkout-form" novalidate>
-              <div class="mesa-info-card" style="
-                    margin-bottom: 1rem;
-                    border: 1px solid #e5e7eb;
-                    padding: 1rem;
-                    border-radius: 8px;
-                  ">
-                <div class="mesa-info-card__content">
-                  <h4 class="mesa-info-card__title" id="table-label" style="margin: 0">Mesa —</h4>
-                  <p class="mesa-info-card__text" id="table-subtitle" style="margin: 0.35rem 0 0; color: #6b7280">
-                    Selecciona una mesa para confirmar tu pedido
-                  </p>
-                  <div style="margin-top: 0.75rem">
-                    <label for="details-table-select" style="display: block; margin-bottom: 0.35rem">Mesa</label>
-                    <select id="details-table-select" name="table_id"
-                      style="width: 100%; padding: 0.65rem; border: 1px solid #d1d5db; border-radius: 8px">
-                      <option value="">Selecciona una mesa</option>
-                    </select>
-                  </div>
-                  <p id="table-error-message"
-                    style="display: none; color: #b91c1c; margin-top: 0.5rem; font-size: 0.9rem">
-                    Selecciona una mesa para generar la orden
-                  </p>
-                  <input type="hidden" id="table-id" />
-                  <input type="hidden" id="table-source" name="table_source" />
-                  <input type="hidden" id="table-number" name="table_number" />
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="notes">Notas especiales</label>
-                <textarea id="notes" name="notes" rows="3" placeholder="Alergias, preferencias..."
-                  maxlength="500"></textarea>
-                <span class="form-group__counter" id="notes-counter" style="font-size: 0.8em">0/500</span>
-              </div>
-
-              <div class="feedback-message" id="checkout-feedback"></div>
-            </form>
-          </div>
-        </div>
-
-        <!-- 2. History of Session Orders (Dynamic) -->
-        <div id="checkout-history-container">
-          <!-- Rendered via JS -->
-        </div>
-
-        <!-- 3. Current Cart Accordion -->
-        <div class="checkout-accordion expanded" id="accordion-current-order">
-          <div class="checkout-accordion-header">
-            <div class="accordion-title" style="color: #f8fafc">
-              <span class="accordion-icon">🛒</span>
-              <span>Orden Actual</span>
-            </div>
-            <div style="display: flex; align-items: center">
-              <span class="header-status new">Por Confirmar</span>
-              <button type="button" class="accordion-toggle-btn" aria-label="Comprimir o expandir sección">
-                <span class="accordion-chevron" style="color: #f8fafc" aria-hidden="true"></span>
-              </button>
-            </div>
-          </div>
-          <div class="accordion-content">
-            <!-- Cart Items Summary -->
-            <div class="checkout-summary-header" style="margin-bottom: 1rem">
-              <h3 class="checkout-summary__title" style="font-size: 1rem">Resumen del Pedido</h3>
-              <span class="checkout-summary__badge" id="cart-items-count">0 items</span>
-            </div>
-
-            <div class="checkout-summary__items" id="checkout-summary"></div>
-
-            <div class="checkout-summary__divider"></div>
-
-            <div class="checkout-summary__total">
-              <span class="checkout-summary__total-label">Total a Pagar</span>
-              <span class="checkout-summary__total-amount" id="checkout-total">$0.00</span>
-            </div>
-
-            <button type="submit" form="checkout-form" class="checkout-submit-btn" id="checkout-submit-btn">
-              Confirmar Pedido
-            </button>
-
-            <p class="checkout-summary__secure"
-              style="text-align: center; margin-top: 1rem; font-size: 0.8rem; color: gray">
-              🔒 Confirmación instantánea
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Account Details Section - Shows when viewing account summary -->
-  <div class="account-details-section" id="account-details-section" style="display: none">
-    <div class="account-details-container">
-      <div class="account-details-header">
-        <div>
-          <h2 class="account-details-title">💳 Resumen de Cuenta</h2>
-          <p class="account-details-subtitle">Detalles completos de tu sesión</p>
-        </div>
-      </div>
-      <div id="account-details-content">
-        <!-- Account details will be dynamically inserted here -->
-      </div>
-    </div>
-  </div>
-
-  <main>{% block content %}{% endblock %}</main>
-
-  <!-- Cart Panel Block (outside main so it's accessible in all views) -->
-  {% block cart_panel %}{% endblock %}
-
-  <!-- Mini Order Tracker (shown when there's an active order) - Global across all pages -->
-  <div class="mini-tracker" id="mini-tracker">
-    <div class="mini-tracker-content">
-      <div class="mini-tracker-left">
-        <div class="mini-tracker-icon">🍽️</div>
-        <div class="mini-tracker-info">
-          <div class="mini-tracker-title">Tu pedido</div>
-          <div class="mini-tracker-status" id="mini-tracker-status">Preparando...</div>
-        </div>
-      </div>
-      <div class="mini-tracker-right">
-        <div class="mini-tracker-order-select" id="mini-tracker-order-select-wrapper">
-          <label for="mini-tracker-order-select">Orden</label>
-          <select id="mini-tracker-order-select"></select>
-        </div>
-        <div class="mini-tracker-progress-container" id="mini-tracker-progress-container">
-          <div class="mini-tracker-progress-bar">
-            <div class="mini-tracker-progress-fill" id="mini-tracker-progress"></div>
-          </div>
-          <div class="mini-tracker-percentage" id="mini-tracker-percentage">0%</div>
-        </div>
-        <button class="mini-tracker-btn" id="view-detail-btn" type="button" data-action="call" data-fn="viewFullTracker">
-          Ver detalle
-        </button>
-        <button class="mini-tracker-close" id="mini-tracker-close" type="button"
-          aria-label="Minimizar tracker" title="Minimizar tracker">
-          <span class="mini-tracker-close-icon" aria-hidden="true">—</span>
-        </button>
-        <button class="mini-tracker-btn mini-tracker-btn--primary" id="request-checkout-btn" style="display: none"
-          data-action="call" data-fn="requestCheckoutFromTracker">
-          💳 Pedir Cuenta
-        </button>
-      </div>
-    </div>
-  </div>
-  <button class="mini-tracker-toggle" id="mini-tracker-toggle" type="button"
-    aria-label="Mostrar tracker del pedido" title="Mostrar tracker del pedido">
-    <span class="mini-tracker-toggle__icon">🍽️</span>
-    <span>Mostrar pedido</span>
-  </button>
-
-  <footer class="footer">
-    <div class="footer-container">
-      <!-- Business Hours Display -->
-      <div class="business-hours-display" id="business-hours-display">
-        <h3 class="business-hours-title">⏰ Horarios de Atención</h3>
-        <div class="business-hours-schedule" id="business-hours-schedule">
-          <!-- Schedule will be populated by JavaScript -->
-        </div>
-        <div class="business-hours-status" id="current-status">
-          <!-- Current status will be populated by JavaScript -->
-        </div>
-      </div>
-
-      <div class="footer-main">
-        <div class="footer-hours-actions">
-          <button type="button" class="footer-hours-btn" id="footer-hours-btn">
-            🕒 Ver horarios de atención
-          </button>
-        </div>
-
-        <p class="footer-copyright">
-          &copy; {{ restaurant_name|title }} {{ current_year }} · Hecho con pasión
-          · Versión {{ system_version }}
-          <button type="button" class="support-link" data-open-support>Soporte técnico</button>
-        </p>
-        <p class="footer-shortcuts-hint">Presiona <kbd>?</kbd> para atajos</p>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Outside Business Hours Modal -->
-  <div class="outside-hours-modal" id="outside-hours-modal">
-    <div class="outside-hours-modal-content">
-      <h2 style="margin: 0 0 1rem 0; color: var(--text); font-size: 1.5rem">
-        🕐 Fuera de Horario
-      </h2>
-      <p style="margin: 0 0 1.5rem 0; color: var(--muted); line-height: 1.6">
-        Actualmente nos encontramos fuera de nuestro horario de atención. Puedes ver nuestro menú,
-        pero los pedidos no serán procesados hasta que abramos.
-      </p>
-      <div id="outside-hours-schedule"
-        style="background: #f8fafc; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem">
-        <!-- Schedule will be populated by JavaScript -->
-      </div>
-      <button type="button" class="btn btn-primary outside-hours-continue-btn" id="outside-hours-continue-btn">
-        Continuar de todos modos
-      </button>
-    </div>
-  </div>
-
-  <!-- All outside-hours styles moved to menu.css for better maintainability -->
-
-  <!-- Support Modal -->
-  <div class="support-modal" id="support-modal" role="dialog" aria-modal="true" aria-labelledby="support-modal-title">
-    <div class="support-modal-content">
-      <button class="support-modal-close" id="support-modal-close" aria-label="Cerrar modal de soporte">×</button>
-      <h2>Soporte técnico</h2>
-      <p>Cuéntanos qué problema encontraste y te contactaremos.</p>
-      <form id="support-form">
-        <div class="form-group">
-          <label for="support-category">Categoría del problema</label>
-          <select id="support-category" required>
-            <option value="">Selecciona una categoría</option>
-            <option value="order">Problema con un pedido</option>
-            <option value="payment">Problema de pago</option>
-            <option value="product">Producto incorrecto o faltante</option>
-            <option value="delivery">Problema de entrega</option>
-            <option value="account">Problema con mi cuenta</option>
-            <option value="technical">Error técnico en la app</option>
-            <option value="suggestion">Sugerencia o comentario</option>
-            <option value="other">Otro</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="support-name">Nombre</label>
-          <input type="text" id="support-name" required placeholder="Tu nombre" />
-        </div>
-        <div class="form-group">
-          <label for="support-email">Correo</label>
-          <input type="email" id="support-email" required placeholder="tu@email.com" />
-        </div>
-        <div class="form-group">
-          <label for="support-description">¿Qué sucedió?</label>
-          <textarea id="support-description" rows="4" required
-            placeholder="Describe el problema con detalle..."></textarea>
-        </div>
-        <div class="form-group">
-          <label for="support-image">Adjuntar imagen (opcional)</label>
-          <div class="file-upload-wrapper">
-            <input type="file" id="support-image" accept="image/*" capture="environment" />
-            <div class="file-upload-preview" id="support-image-preview" style="display: none">
-              <img id="support-image-img" src="" alt="Vista previa" />
-              <button type="button" class="remove-image" id="remove-support-image" aria-label="Eliminar imagen">×</button>
-            </div>
-            <div class="file-upload-placeholder" id="support-image-placeholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <span>Toma una foto o selecciona</span>
-            </div>
-          </div>
-        </div>
-        <input type="hidden" id="support-page-url" />
-        <button type="submit" class="btn btn-primary btn--full">Enviar reporte</button>
-        <div class="support-feedback" id="support-feedback"></div>
-      </form>
-      <div class="support-success" id="support-success" style="display: none">
-        <div class="support-success-icon">✓</div>
-        <h3>¡Reporte enviado!</h3>
-        <p>Tu número de ticket es: <strong id="support-ticket-number"></strong></p>
-        <p>Te contactaremos a <span id="support-confirm-email"></span> en breve.</p>
-        <button type="button" class="btn btn-secondary" id="support-close-btn">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Password Recovery Modal -->
   <div class="password-recovery-modal" id="password-recovery-modal">
     <div class="password-recovery-modal-overlay"></div>
@@ -2662,7 +1886,7 @@
       <div id="password-recovery-step-1" class="password-recovery-step">
         <div class="password-recovery-header">
           <h2>¿Olvidaste tu contraseña?</h2>
-          <p style="color: var(--muted); margin-top: 0.5rem">
+          <p class="password-recovery-muted password-recovery-muted--spaced">
             Ingresa tu email y te enviaremos un enlace para restablecerla
           </p>
         </div>
@@ -2686,11 +1910,11 @@
       </div>
 
       <!-- Step 2: Success Message -->
-      <div id="password-recovery-step-2" class="password-recovery-step" style="display: none">
+      <div id="password-recovery-step-2" class="password-recovery-step password-recovery-step--hidden">
         <div class="password-recovery-success">
           <div class="password-recovery-success-icon">✓</div>
           <h3>¡Enlace enviado!</h3>
-          <p style="color: var(--muted)">
+          <p class="password-recovery-muted">
             Si el correo electrónico está registrado, recibirás un enlace para restablecer tu
             contraseña.
           </p>
@@ -2699,10 +1923,10 @@
       </div>
 
       <!-- Step 3: Reset Password (for when user clicks link) -->
-      <div id="password-recovery-step-3" class="password-recovery-step" style="display: none">
+      <div id="password-recovery-step-3" class="password-recovery-step password-recovery-step--hidden">
         <div class="password-recovery-header">
           <h2>Nueva contraseña</h2>
-          <p style="color: var(--muted); margin-top: 0.5rem">Ingresa tu nueva contraseña</p>
+          <p class="password-recovery-muted password-recovery-muted--spaced">Ingresa tu nueva contraseña</p>
         </div>
 
         <form id="password-reset-form">
@@ -2716,8 +1940,7 @@
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
-                <svg class="eye-slash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  style="display: none">
+                <svg class="eye-slash-icon eye-slash-icon--hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
                   <line x1="1" y1="1" x2="23" y2="23"></line>
                 </svg>
@@ -2740,11 +1963,11 @@
       </div>
 
       <!-- Step 4: Reset Success -->
-      <div id="password-recovery-step-4" class="password-recovery-step" style="display: none">
+      <div id="password-recovery-step-4" class="password-recovery-step password-recovery-step--hidden">
         <div class="password-recovery-success">
           <div class="password-recovery-success-icon">✓</div>
           <h3>¡Contraseña actualizada!</h3>
-          <p style="color: var(--muted)">Tu contraseña ha sido cambiada exitosamente.</p>
+          <p class="password-recovery-muted">Tu contraseña ha sido cambiada exitosamente.</p>
           <button class="btn btn-primary btn--full" id="reset-success-btn">Iniciar sesión</button>
         </div>
       </div>
@@ -3051,6 +2274,22 @@
       line-height: 1.45;
     }
 
+    .password-recovery-muted {
+      color: var(--muted);
+    }
+
+    .password-recovery-muted--spaced {
+      margin-top: 0.5rem;
+    }
+
+    .password-recovery-step--hidden {
+      display: none;
+    }
+
+    .eye-slash-icon--hidden {
+      display: none;
+    }
+
     .password-recovery-footer {
       margin-top: 1.5rem;
       text-align: center;
@@ -3246,125 +2485,6 @@
       transform: scale(1.05);
     }
 
-    /* Safety fallback: keep menu card images bounded even if Vue scoped CSS fails to load. */
-    [data-menu-root] .product-card {
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    [data-menu-root] .product-card__image-container {
-      position: relative;
-      aspect-ratio: 4/3;
-      overflow: hidden;
-      background: #f1f5f9;
-    }
-
-    [data-menu-root] .product-card__image {
-      display: block;
-      width: 100%;
-      height: 100%;
-      max-height: 320px;
-      object-fit: cover;
-    }
-
-    /* Checkout preference overlay fallback (avoid unstyled plain text buttons). */
-    .checkout-preference {
-      position: fixed;
-      inset: auto 1rem 1rem 1rem;
-      z-index: 11020;
-    }
-
-    .checkout-preference__card {
-      width: min(760px, 100%);
-      margin: 0 auto;
-      background: #0f172a;
-      color: #f8fafc;
-      border: 1px solid #1e293b;
-      border-radius: 14px;
-      box-shadow: 0 20px 40px rgba(2, 6, 23, 0.42);
-      padding: 0.95rem 1rem;
-    }
-
-    .checkout-preference__buttons {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.55rem;
-    }
-
-    .checkout-preference__btn {
-      border: 1px solid #334155;
-      background: #1e293b;
-      color: #f8fafc;
-      border-radius: 10px;
-      padding: 0.65rem 0.75rem;
-      font-size: 0.9rem;
-      font-weight: 700;
-      text-align: center;
-      cursor: pointer;
-      transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
-    }
-
-    .checkout-preference__btn:hover {
-      background: #273548;
-      border-color: #ff6b35;
-      transform: translateY(-1px);
-    }
-
-    .checkout-preference__btn--digital {
-      border-color: #fdba74;
-      color: #fed7aa;
-    }
-
-    /* Hard fallback: cart drawer must be fixed/off-canvas by default. */
-    #cart-backdrop {
-      position: fixed !important;
-      inset: 0 !important;
-      background: rgba(15, 23, 42, 0.45) !important;
-      opacity: 0 !important;
-      pointer-events: none !important;
-      transition: opacity 0.2s ease !important;
-      z-index: 13010 !important;
-    }
-
-    #cart-backdrop.open {
-      opacity: 1 !important;
-      pointer-events: auto !important;
-    }
-
-    #cart-panel {
-      position: fixed !important;
-      top: 0 !important;
-      right: 0 !important;
-      width: min(420px, 92vw) !important;
-      height: 100vh !important;
-      height: 100dvh !important;
-      background: #ffffff !important;
-      box-shadow: -10px 0 30px rgba(15, 23, 42, 0.2) !important;
-      transform: translateX(100%) !important;
-      transition: transform 0.25s ease !important;
-      display: flex !important;
-      flex-direction: column !important;
-      overflow: hidden !important;
-      z-index: 13020 !important;
-    }
-
-    #cart-panel.open {
-      transform: translateX(0) !important;
-    }
-
-    @media (max-width: 1024px) {
-      #cart-panel {
-        width: min(420px, 100vw) !important;
-      }
-    }
-
-    #cart-items {
-      flex: 1 !important;
-      min-height: 0 !important;
-      overflow-y: auto !important;
-      padding: 0.85rem 1rem 1rem !important;
-      background: #fff !important;
-    }
 
     .menu-item-image-overlay {
       position: absolute;
@@ -3524,55 +2644,6 @@
       box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.15);
     }
 
-    /* Vue menu search fallback (prevents legacy ".menu-search" rules from breaking layout). */
-    main [data-menu-root] .menu-page__header .menu-search {
-      position: relative !important;
-      width: 100% !important;
-      height: auto !important;
-      padding: 0 !important;
-      border: 0 !important;
-      border-radius: 0 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-    }
-
-    main [data-menu-root] .menu-page__header .menu-search__icon {
-      position: absolute !important;
-      left: 0.9rem !important;
-      top: 50% !important;
-      transform: translateY(-50%) !important;
-      color: #94a3b8 !important;
-      pointer-events: none !important;
-      z-index: 2 !important;
-    }
-
-    main [data-menu-root] .menu-page__header .menu-search__input {
-      width: 100% !important;
-      min-height: 46px !important;
-      padding: 0.75rem 1rem 0.75rem 2.65rem !important;
-      border: 1px solid #d7dee8 !important;
-      border-radius: 12px !important;
-      font-size: 0.95rem !important;
-      line-height: 1.25 !important;
-      color: #0f172a !important;
-      background: #f9fbff !important;
-      box-shadow: none !important;
-      appearance: none !important;
-      -webkit-appearance: none !important;
-    }
-
-    main [data-menu-root] .menu-page__header .menu-search__input::placeholder {
-      color: #94a3b8 !important;
-      opacity: 1 !important;
-    }
-
-    main [data-menu-root] .menu-page__header .menu-search__input:focus-visible,
-    main [data-menu-root] .menu-page__header .menu-search__input:focus {
-      outline: none !important;
-      border-color: #ff6b35 !important;
-      background: #ffffff !important;
-      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.16) !important;
-    }
 
     .menu-search-icon {
       position: absolute;
@@ -4120,9 +3191,14 @@
       transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
     }
 
-    .initial-view-orders [data-menu-root],
-    .initial-view-details [data-menu-root] {
+    .initial-view-orders [data-menu-root]:not(.menu-visible),
+    .initial-view-details [data-menu-root]:not(.menu-visible) {
       display: none !important;
+    }
+
+    .initial-view-orders [data-menu-root].menu-visible,
+    .initial-view-details [data-menu-root].menu-visible {
+      display: block !important;
     }
 
     #profile-personal-info .back-to-profile-btn:hover {
@@ -4461,6 +3537,10 @@
       font-size: 0.92rem;
       line-height: 1.35;
       color: #475569;
+    }
+
+    #business-hours-modal .hours-error__retry {
+      margin-top: 0.8rem;
     }
 
     /* Item customization modal must always stay above sticky header/tabs. */
@@ -5049,13 +4129,6 @@
       }
     }
 
-    /* Remove phantom white strip below footer on desktop.
-       Some legacy styles leave body with bottom padding (64px). */
-    @media (min-width: 769px) {
-      body {
-        padding-bottom: 0 !important;
-      }
-    }
   </style>
 
 
@@ -5167,9 +4240,57 @@
 
   <script>
     window.__PRONTO_TS_CLIENT_BASE__ = true;
+    
+    // Keyboard Shortcuts Modal Toggle
+    (function() {
+      const shortcutsBtn = document.getElementById('shortcuts-btn');
+      const shortcutsModal = document.getElementById('shortcuts-modal');
+      
+      if (shortcutsBtn && shortcutsModal) {
+        shortcutsBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const isActive = shortcutsModal.classList.contains('active');
+          if (isActive) {
+            shortcutsModal.classList.remove('active');
+            shortcutsModal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+          } else {
+            shortcutsModal.classList.add('active');
+            shortcutsModal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            const closeBtn = shortcutsModal.querySelector('.shortcuts-close');
+            if (closeBtn) {
+              setTimeout(() => closeBtn.focus(), 100);
+            }
+          }
+        });
+        
+        // Close modal when clicking overlay
+        shortcutsModal.addEventListener('click', function(e) {
+          if (e.target === shortcutsModal) {
+            shortcutsModal.classList.remove('active');
+            shortcutsModal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+          }
+        });
+      }
+      
+      // Close modal with Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          const modal = document.getElementById('shortcuts-modal');
+          if (modal && modal.classList.contains('active')) {
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+          }
+        }
+      });
+    })();
   </script>
-  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260309g"></script>
-  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260309g"></script>
+  <script type="module" src="{{ assets_js_clients }}/base.js?v={{ system_version }}&rev=20260315g"></script>
+  <script type="module" src="{{ assets_js_clients }}/menu.js?v={{ system_version }}&rev=20260315g"></script>
 
   <!-- Sticky Cart Summary Bar (Mobile) -->
   <div class="sticky-cart-bar" id="sticky-cart-bar" role="dialog" aria-label="Resumen del carrito">
@@ -5188,7 +4309,7 @@
           <span class="sticky-cart-bar__items" id="sticky-cart-items">0 artículos</span>
         </div>
       </div>
-      <button class="sticky-cart-bar__btn" id="sticky-cart-btn" data-action="call" data-fn="showCart">
+      <button class="sticky-cart-bar__btn" id="sticky-cart-btn" type="button">
         Ver Carrito
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -5215,6 +4336,8 @@
   <!-- Vue Notification Center for SSE notifications -->
   <div id="notification-center-root"></div>
   <div id="order-history-root"></div>
+  <!-- Vue Client App root: App.vue mounts here (base.ts bootstrapModule('#app')). -->
+  <div id="app"></div>
 
   {% block scripts %}{% endblock %}
 </body>

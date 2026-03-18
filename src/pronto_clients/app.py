@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import os
 import secrets
+import json
 from datetime import datetime, timezone
+from urllib.parse import urlparse
+from urllib.request import urlopen
 
 from flask import Flask, jsonify, session
 from flask_cors import CORS
@@ -34,6 +37,10 @@ from pronto_shared.services.secret_service import (
 # Using shared CSRF instance
 
 _ROUTES_ONLY_ENV = "PRONTO_ROUTES_ONLY"
+_CLIENT_ASSET_MANIFEST_CACHE: dict[str, object] = {
+    "css_files": [],
+    "fetched_at": 0.0,
+}
 
 
 def _is_routes_only() -> bool:
@@ -43,6 +50,89 @@ def _is_routes_only() -> bool:
 def register_blueprints(app: Flask) -> None:
     app.register_blueprint(web_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+
+
+def _build_static_upstream_candidates(app: Flask) -> list[str]:
+    static_container_host = (
+        app.config.get("PRONTO_STATIC_CONTAINER_HOST")
+        or os.getenv("PRONTO_STATIC_CONTAINER_HOST")
+        or ""
+    ).rstrip("/")
+    static_public_host = (
+        app.config.get("PRONTO_STATIC_PUBLIC_HOST")
+        or os.getenv("PRONTO_STATIC_PUBLIC_HOST")
+        or ""
+    ).rstrip("/")
+
+    upstream_candidates: list[str] = []
+    if static_container_host:
+        upstream_candidates.append(static_container_host)
+
+    for internal_host in ("http://static:80", "http://pronto-static-1:80"):
+        if internal_host not in upstream_candidates:
+            upstream_candidates.append(internal_host)
+
+    if static_public_host:
+        parsed_public = urlparse(static_public_host)
+        public_host = (parsed_public.hostname or "").lower()
+        if public_host in {"localhost", "127.0.0.1"}:
+            host_docker = static_public_host.replace(
+                parsed_public.netloc, f"host.docker.internal:{parsed_public.port or 80}"
+            )
+            if host_docker not in upstream_candidates:
+                upstream_candidates.append(host_docker)
+        elif static_public_host not in upstream_candidates:
+            upstream_candidates.append(static_public_host)
+
+    return upstream_candidates
+
+
+def _resolve_client_vite_css_files(app: Flask) -> list[str]:
+    now_ts = datetime.now(timezone.utc).timestamp()
+    cached_css = _CLIENT_ASSET_MANIFEST_CACHE.get("css_files") or []
+    fetched_at = float(_CLIENT_ASSET_MANIFEST_CACHE.get("fetched_at") or 0.0)
+
+    # Refresh at most every 60s.
+    if cached_css and (now_ts - fetched_at) < 60:
+        return [str(css) for css in cached_css if css]
+
+    manifest_path = "/assets/js/clients/.vite/manifest.json"
+    for upstream_host in _build_static_upstream_candidates(app):
+        target_url = f"{upstream_host}{manifest_path}"
+        try:
+            with urlopen(target_url, timeout=5) as response:
+                raw = response.read().decode("utf-8", errors="ignore")
+                manifest = json.loads(raw)
+
+                css_files: list[str] = []
+                seen: set[str] = set()
+
+                def _add_css_list(items: object) -> None:
+                    if not isinstance(items, list):
+                        return
+                    for css_item in items:
+                        css_rel = str(css_item or "").lstrip("/")
+                        if not css_rel or css_rel in seen:
+                            continue
+                        seen.add(css_rel)
+                        css_files.append(css_rel)
+
+                for entry_key in ("entrypoints/base.ts", "entrypoints/menu.ts"):
+                    entry = manifest.get(entry_key) or {}
+                    _add_css_list(entry.get("css"))
+                    for import_key in entry.get("imports") or []:
+                        import_entry = manifest.get(import_key) or {}
+                        _add_css_list(import_entry.get("css"))
+
+                if css_files:
+                    _CLIENT_ASSET_MANIFEST_CACHE["css_files"] = css_files
+                    _CLIENT_ASSET_MANIFEST_CACHE["fetched_at"] = now_ts
+                    return css_files
+        except Exception:
+            continue
+
+    _CLIENT_ASSET_MANIFEST_CACHE["fetched_at"] = now_ts
+    return [str(css) for css in cached_css if css]
 
 
 def init_runtime(app: Flask, config) -> None:
@@ -207,6 +297,10 @@ def init_runtime(app: Flask, config) -> None:
             "assets_js_clients": f"{base_url}{assets_path}/js/clients",
             "assets_lib": f"{base_url}{assets_path}/lib",
             "assets_images": f"{base_url}{assets_path}/images",
+            "client_vite_css_files": [
+                f"{base_url}{assets_path}/js/clients/{css_rel.lstrip('/')}"
+                for css_rel in _resolve_client_vite_css_files(app)
+            ],
         }
 
 
