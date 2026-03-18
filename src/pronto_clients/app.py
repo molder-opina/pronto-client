@@ -117,7 +117,7 @@ def _resolve_client_vite_css_files(app: Flask) -> list[str]:
                         seen.add(css_rel)
                         css_files.append(css_rel)
 
-                for entry_key in ("entrypoints/base.ts", "entrypoints/menu.ts"):
+                for entry_key in ("entrypoints/base.ts",):
                     entry = manifest.get(entry_key) or {}
                     _add_css_list(entry.get("css"))
                     for import_key in entry.get("imports") or []:
